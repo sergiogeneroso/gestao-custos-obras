@@ -1,19 +1,22 @@
-package com.seegeneroso.gestao_custos_obras.model.despesa;
+package com.seegeneroso.gestao_custos_obras.despesa;
 
-import com.seegeneroso.gestao_custos_obras.model.etapa.Etapa;
-import com.seegeneroso.gestao_custos_obras.model.imovel.Imovel;
+import com.seegeneroso.gestao_custos_obras.etapaProjeto.EtapaProjetoModel;
+import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
+
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "despesa")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class Despesa {
+public class DespesaModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,11 +24,11 @@ public class Despesa {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "imovel_id")
-    private Imovel imovel;
+    private ImovelModel imovel;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "etapa_id")
-    private Etapa etapa;
+    private EtapaProjetoModel etapa;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal valor;
@@ -37,4 +40,8 @@ public class Despesa {
 
     @Column(name = "comprovante_url", length = 500)
     private String comprovanteUrl;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "despesa", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DespesaPagamentoModel> pagamentos = new ArrayList<>();
 }

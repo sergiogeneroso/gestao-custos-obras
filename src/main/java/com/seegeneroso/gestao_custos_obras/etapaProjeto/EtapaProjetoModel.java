@@ -1,14 +1,14 @@
-package com.seegeneroso.gestao_custos_obras.model.etapa;
+package com.seegeneroso.gestao_custos_obras.etapaProjeto;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "etapa")
+@Table(name = "etapa_projeto")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class Etapa {
+public class EtapaProjetoModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

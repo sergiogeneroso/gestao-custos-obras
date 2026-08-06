@@ -1,14 +1,14 @@
-package com.seegeneroso.gestao_custos_obras.model.envolvido;
+package com.seegeneroso.gestao_custos_obras.aportante;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "envolvido")
+@Table(name = "aportante")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class Envolvido {
+public class AportanteModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

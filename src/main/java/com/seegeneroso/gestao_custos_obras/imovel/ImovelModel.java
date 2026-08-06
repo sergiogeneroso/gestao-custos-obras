@@ -1,18 +1,19 @@
-package com.seegeneroso.gestao_custos_obras.model.imovel;
+package com.seegeneroso.gestao_custos_obras.imovel;
 
-import com.seegeneroso.shared.enums.StatusImovel;
-import com.seegeneroso.shared.enums.TipoImovel;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+
+import com.seegeneroso.gestao_custos_obras.shared.enums.StatusImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoImovel;
 
 @Entity
 @Table(name = "imovel")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class Imovel {
+public class ImovelModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

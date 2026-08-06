@@ -6,13 +6,14 @@ CREATE TABLE usuario (
     role VARCHAR(30) NOT NULL DEFAULT 'ADMIN'
 );
 
-CREATE TABLE envolvido (
+CREATE TABLE aportante (
     id BIGSERIAL PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
     documento VARCHAR(20),
     email VARCHAR(150),
     telefone VARCHAR(20),
-    tipo_participacao VARCHAR(50) NOT NULL
+    tipo_participacao VARCHAR(50) NOT NULL,
+    ativo BOOLEAN NOT NULL DEFAULT true
 );
 
 CREATE TABLE imovel (
@@ -23,10 +24,11 @@ CREATE TABLE imovel (
     area NUMERIC(10,2),
     valor_aquisicao_inicial NUMERIC(14,2),
     status VARCHAR(20) NOT NULL DEFAULT 'PLANEJAMENTO',
-    descricao TEXT
+    descricao TEXT,
+    ativo BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE etapa (
+CREATE TABLE etapa_projeto (
     id BIGSERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     descricao TEXT
@@ -35,7 +37,7 @@ CREATE TABLE etapa (
 CREATE TABLE despesa (
     id BIGSERIAL PRIMARY KEY,
     imovel_id BIGINT NOT NULL REFERENCES imovel(id),
-    etapa_id BIGINT NOT NULL REFERENCES etapa(id),
+    etapa_projeto_id BIGINT NOT NULL REFERENCES etapa_projeto(id),
     valor NUMERIC(14,2) NOT NULL,
     data_pagamento DATE NOT NULL,
     descricao VARCHAR(255),
@@ -45,6 +47,6 @@ CREATE TABLE despesa (
 CREATE TABLE despesa_pagamento (
     id BIGSERIAL PRIMARY KEY,
     despesa_id BIGINT NOT NULL REFERENCES despesa(id),
-    envolvido_id BIGINT NOT NULL REFERENCES envolvido(id) ON DELETE RESTRICT,
+    aportante_id BIGINT NOT NULL REFERENCES aportante(id) ON DELETE RESTRICT,
     valor_pago NUMERIC(14,2) NOT NULL
 );
