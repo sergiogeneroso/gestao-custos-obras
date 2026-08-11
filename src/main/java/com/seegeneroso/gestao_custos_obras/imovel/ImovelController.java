@@ -49,4 +49,24 @@ public class ImovelController {
         imovelService.inativar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping(value = "/{id}/fotos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO> adicionarFoto(
+            @PathVariable Long id,
+            @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
+            @RequestParam(value = "legenda", required = false) String legenda) {
+        com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO foto = imovelService.adicionarFoto(id, arquivo, legenda);
+        return ResponseEntity.status(HttpStatus.CREATED).body(foto);
+    }
+
+    @GetMapping("/{id}/fotos")
+    public ResponseEntity<List<com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO>> listarFotos(@PathVariable Long id) {
+        return ResponseEntity.ok(imovelService.listarFotos(id));
+    }
+
+    @DeleteMapping("/{id}/fotos/{fotoId}")
+    public ResponseEntity<Void> deletarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
+        imovelService.deletarFoto(id, fotoId);
+        return ResponseEntity.noContent().build();
+    }
 }

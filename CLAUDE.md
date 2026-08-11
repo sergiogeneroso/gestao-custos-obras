@@ -80,11 +80,12 @@ Nunca criar pacotes por camada (`controller/`, `service/`, `repository/`, `model
 
 | Domínio          | Status                                             |
 |------------------|----------------------------------------------------|
-| `imovel`         | CRUD completo                                      |
+| `imovel`         | CRUD completo + Galeria de Fotos (RF06)            |
 | `aportante`      | CRUD completo                                      |
 | `etapaProjeto`   | CRUD completo                                      |
-| `despesa`        | CRUD completo + PUT + Rateio + Filtros             |
+| `despesa`        | CRUD completo + PUT + Rateio + Upload Comprovante  |
 | `orcamentoEtapa` | CRUD completo + Orçado vs. Realizado + Status      |
+| `shared/storage` | Storage local/S3 + Endpoints de Upload/Download    |
 | `relatorio`      | A implementar (RF05)                               |
 | `auth` (JWT)     | A implementar (RNF01)                              |
 | Frontend Angular | Setup ainda não iniciado                           |

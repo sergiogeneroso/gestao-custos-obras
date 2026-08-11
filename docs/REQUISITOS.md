@@ -40,9 +40,13 @@ Cada gasto é registrado e vinculado a um imóvel, uma etapa e um ou mais aporta
   extrato de aportes por aportante
 - Exportação: PDF ou planilha (Excel/CSV)
 
-### RF06 — Upload de Imagens do Imóvel ⏳ Pendente
-- Permitir anexar fotos ao cadastro do imóvel (campo mencionado em RF01 mas
-  ainda não implementado)
+### RF06 — Upload de Imagens do Imóvel ✅ Implementado
+- Galeria de fotos do imóvel via `POST /api/imoveis/{id}/fotos` (upload `multipart/form-data`)
+- Listagem de fotos com carimbo de data/hora em `GET /api/imoveis/{id}/fotos`
+- Remoção de fotos em `DELETE /api/imoveis/{id}/fotos/{fotoId}`
+- Upload de comprovante de despesa via `POST /api/despesas/{id}/comprovante`
+- Serviço de storage local (`shared/storage/LocalStorageService`), extensível para S3/Cloud Storage
+- Download de arquivos via `GET /api/arquivos/download/{subpasta}/{nomeArquivo}`
 
 ## Requisitos Não Funcionais (RNF)
 

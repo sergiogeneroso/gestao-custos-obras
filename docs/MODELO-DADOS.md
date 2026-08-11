@@ -70,7 +70,16 @@ erDiagram
         NUMERIC valor_pago "14,2"
     }
 
+    IMOVEL_FOTO {
+        BIGSERIAL id PK
+        BIGINT imovel_id FK
+        VARCHAR url
+        VARCHAR legenda
+        TIMESTAMP data_upload
+    }
+
     IMOVEL ||--o{ DESPESA : "possui"
+    IMOVEL ||--o{ IMOVEL_FOTO : "galeria de fotos"
     ETAPA_PROJETO ||--o{ DESPESA : "classifica"
     IMOVEL ||--o{ ORCAMENTO_ETAPA : "planeja"
     ETAPA_PROJETO ||--o{ ORCAMENTO_ETAPA : "orça"

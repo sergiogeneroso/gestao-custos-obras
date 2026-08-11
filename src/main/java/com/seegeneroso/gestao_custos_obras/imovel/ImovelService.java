@@ -15,6 +15,8 @@ import java.util.List;
 public class ImovelService {
 
     private final ImovelRepository imovelRepository;
+    private final ImovelFotoRepository imovelFotoRepository;
+    private final com.seegeneroso.gestao_custos_obras.shared.storage.StorageService storageService;
     private final ImovelMapper imovelMapper;
 
     @Transactional
@@ -64,5 +66,63 @@ public class ImovelService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
         imovel.setAtivo(false);
         imovelRepository.save(imovel);
+    }
+
+    @Transactional
+    public com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO adicionarFoto(Long imovelId, org.springframework.web.multipart.MultipartFile arquivo, String legenda) {
+        ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(imovelId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + imovelId));
+
+        String subpasta = "imoveis/" + imovelId;
+        String nomeArquivo = storageService.salvar(arquivo, subpasta);
+
+        String fileUri = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/arquivos/download/")
+                .path(subpasta + "/")
+                .path(nomeArquivo)
+                .toUriString();
+
+        ImovelFotoModel foto = ImovelFotoModel.builder()
+                .imovel(imovel)
+                .url(fileUri)
+                .legenda(legenda)
+                .build();
+
+        ImovelFotoModel fotoSalva = imovelFotoRepository.save(foto);
+        return new com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO(
+                fotoSalva.getId(),
+                imovel.getId(),
+                fotoSalva.getUrl(),
+                fotoSalva.getLegenda(),
+                fotoSalva.getDataUpload()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO> listarFotos(Long imovelId) {
+        if (!imovelRepository.existsById(imovelId)) {
+            throw new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + imovelId);
+        }
+        return imovelFotoRepository.findByImovelId(imovelId).stream()
+                .map(foto -> new com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO(
+                        foto.getId(),
+                        foto.getImovel().getId(),
+                        foto.getUrl(),
+                        foto.getLegenda(),
+                        foto.getDataUpload()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void deletarFoto(Long imovelId, Long fotoId) {
+        ImovelFotoModel foto = imovelFotoRepository.findById(fotoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Foto não encontrada com id: " + fotoId));
+
+        if (!foto.getImovel().getId().equals(imovelId)) {
+            throw new RegraDeNegocioException("A foto não pertence ao imóvel informado.");
+        }
+
+        imovelFotoRepository.delete(foto);
     }
 }

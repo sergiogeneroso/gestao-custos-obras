@@ -27,6 +27,7 @@ public class DespesaService {
     private final ImovelRepository imovelRepository;
     private final EtapaProjetoRepository etapaProjetoRepository;
     private final AportanteRepository aportanteRepository;
+    private final com.seegeneroso.gestao_custos_obras.shared.storage.StorageService storageService;
     private final DespesaMapper despesaMapper;
 
     @Transactional
@@ -166,5 +167,24 @@ public class DespesaService {
             throw new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id);
         }
         despesaRepository.deleteById(id);
+    }
+
+    @Transactional
+    public DespesaResponseDTO uploadComprovante(Long id, org.springframework.web.multipart.MultipartFile arquivo) {
+        DespesaModel despesa = despesaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+
+        String subpasta = "despesas/" + id;
+        String nomeArquivo = storageService.salvar(arquivo, subpasta);
+
+        String fileUri = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/arquivos/download/")
+                .path(subpasta + "/")
+                .path(nomeArquivo)
+                .toUriString();
+
+        despesa.setComprovanteUrl(fileUri);
+        DespesaModel despesaSalva = despesaRepository.save(despesa);
+        return despesaMapper.toResponseDTO(despesaSalva);
     }
 }

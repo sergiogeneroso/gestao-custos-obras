@@ -31,3 +31,11 @@ spring.flyway.locations=classpath:db/migration
 # ==========================
 spring.security.user.name=${SECURITY_USER:admin}
 spring.security.user.password=${SECURITY_PASS:123456}
+
+# ==========================
+# Upload de Arquivos
+# ==========================
+# Diretório de armazenamento local (relativo à raiz do projeto)
+app.upload.dir=${UPLOAD_DIR:uploads}
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=20MB

@@ -19,14 +19,13 @@ Este arquivo é o **quadro oficial de acompanhamento do projeto**. Ele deve ser 
 - [x] **[Sprint 1]** Implementação de alteração/edição completa em Despesas (`PUT /api/despesas/{id}`)
 - [x] **[Sprint 1]** Suporte a filtros dinâmicos no endpoint `GET /api/despesas?imovelId={id}&etapaProjetoId={id}`
 - [x] **[Sprint 1]** Migration `V4__criar_orcamento_etapa.sql` e pacote `orcamentoEtapa/` com cálculo em tempo real de total gasto, diferença e status (`NO_PRAZO`, `ATENCAO`, `ESTOURADO`)
+- [x] **[Sprint 1]** Serviço de Armazenamento e Upload de Arquivos (`shared/storage/` com `LocalStorageService` e `ArquivoController`)
+- [x] **[Sprint 1]** Galeria de Fotos do Imóvel (RF06 / Migration `V5__criar_imovel_foto.sql` + `ImovelFotoModel` + Endpoints em `/api/imoveis/{id}/fotos`)
+- [x] **[Sprint 1]** Upload e anexo direto de comprovantes de despesas (RF04 / Endpoint em `/api/despesas/{id}/comprovante`)
 
 ---
 
 ## ⏳ 2. Roadmap do MVP (Mínimo Produto Viável)
-
-### 📌 Etapa 5 — Armazenamento e Upload de Arquivos (Fotos & Comprovantes)
-- [ ] Serviço em `shared/storage/` (Local / S3) para upload e download de arquivos
-- [ ] Endpoints para anexo de fotos do imóvel (RF06 / Diário de Obra simplificado) e comprovantes de despesa (RF04)
 
 ### 📌 Etapa 6 — Módulo de Relatórios e Analytics (RF05)
 - [ ] Pacote `relatorio/`: Endpoints agregados para:

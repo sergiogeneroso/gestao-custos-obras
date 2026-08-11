@@ -57,4 +57,11 @@ public class DespesaController {
         despesaService.deletar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping(value = "/{id}/comprovante", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DespesaResponseDTO> uploadComprovante(
+            @PathVariable Long id,
+            @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo) {
+        return ResponseEntity.ok(despesaService.uploadComprovante(id, arquivo));
+    }
 }
