@@ -74,12 +74,75 @@ public class DespesaService {
         return despesaMapper.toResponseDTO(despesaSalva);
     }
 
+    @Transactional
+    public DespesaResponseDTO atualizar(Long id, DespesaRequestDTO dto) {
+        DespesaModel despesa = despesaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+
+        ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(dto.imovelId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + dto.imovelId()));
+
+        EtapaProjetoModel etapa = etapaProjetoRepository.findById(dto.etapaProjetoId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Etapa de projeto não encontrada com id: " + dto.etapaProjetoId()));
+
+        despesa.setImovel(imovel);
+        despesa.setEtapaProjeto(etapa);
+        despesa.setValor(dto.valor());
+        despesa.setDataPagamento(dto.dataPagamento());
+        despesa.setDescricao(dto.descricao());
+        despesa.setComprovanteUrl(dto.comprovanteUrl());
+
+        despesa.getPagamentos().clear();
+
+        if (dto.pagamentos() != null && !dto.pagamentos().isEmpty()) {
+            BigDecimal somaPagamentos = BigDecimal.ZERO;
+
+            for (DespesaPagamentoRequestDTO pagDto : dto.pagamentos()) {
+                AportanteModel aportante = aportanteRepository.findByIdAndAtivoTrue(pagDto.aportanteId())
+                        .orElseThrow(() -> new RecursoNaoEncontradoException("Aportante não encontrado com id: " + pagDto.aportanteId()));
+
+                somaPagamentos = somaPagamentos.add(pagDto.valorPago());
+
+                DespesaPagamentoModel pagamento = DespesaPagamentoModel.builder()
+                        .despesa(despesa)
+                        .aportante(aportante)
+                        .valorPago(pagDto.valorPago())
+                        .build();
+
+                despesa.getPagamentos().add(pagamento);
+            }
+
+            if (somaPagamentos.compareTo(dto.valor()) > 0) {
+                throw new RegraDeNegocioException("A soma dos pagamentos (" + somaPagamentos + ") não pode exceder o valor total da despesa (" + dto.valor() + ")");
+            }
+        }
+
+        DespesaModel despesaAtualizada = despesaRepository.save(despesa);
+        return despesaMapper.toResponseDTO(despesaAtualizada);
+    }
+
     @Transactional(readOnly = true)
-    public List<DespesaResponseDTO> listarTodas() {
-        return despesaRepository.findAll()
-                .stream()
+    public List<DespesaResponseDTO> listar(Long imovelId, Long etapaProjetoId) {
+        List<DespesaModel> despesas;
+
+        if (imovelId != null && etapaProjetoId != null) {
+            despesas = despesaRepository.findByImovelIdAndEtapaProjetoId(imovelId, etapaProjetoId);
+        } else if (imovelId != null) {
+            despesas = despesaRepository.findByImovelId(imovelId);
+        } else if (etapaProjetoId != null) {
+            despesas = despesaRepository.findByEtapaProjetoId(etapaProjetoId);
+        } else {
+            despesas = despesaRepository.findAll();
+        }
+
+        return despesas.stream()
                 .map(despesaMapper::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DespesaResponseDTO> listarTodas() {
+        return listar(null, null);
     }
 
     @Transactional(readOnly = true)
@@ -87,10 +150,7 @@ public class DespesaService {
         if (!imovelRepository.existsById(imovelId)) {
             throw new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + imovelId);
         }
-        return despesaRepository.findByImovelId(imovelId)
-                .stream()
-                .map(despesaMapper::toResponseDTO)
-                .toList();
+        return listar(imovelId, null);
     }
 
     @Transactional(readOnly = true)

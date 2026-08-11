@@ -11,4 +11,6 @@ public interface DespesaRepository extends JpaRepository<DespesaModel, Long> {
     List<DespesaModel> findByImovelId(Long imovelId);
 
     List<DespesaModel> findByEtapaProjetoId(Long etapaProjetoId);
+
+    List<DespesaModel> findByImovelIdAndEtapaProjetoId(Long imovelId, Long etapaProjetoId);
 }

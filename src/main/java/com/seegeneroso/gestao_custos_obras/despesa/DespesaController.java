@@ -29,8 +29,10 @@ public class DespesaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DespesaResponseDTO>> listarTodas() {
-        return ResponseEntity.ok(despesaService.listarTodas());
+    public ResponseEntity<List<DespesaResponseDTO>> listar(
+            @RequestParam(required = false) Long imovelId,
+            @RequestParam(required = false) Long etapaProjetoId) {
+        return ResponseEntity.ok(despesaService.listar(imovelId, etapaProjetoId));
     }
 
     @GetMapping("/imovel/{imovelId}")
@@ -41,6 +43,13 @@ public class DespesaController {
     @GetMapping("/{id}")
     public ResponseEntity<DespesaResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(despesaService.buscarPorId(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<DespesaResponseDTO> atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody DespesaRequestDTO dto) {
+        return ResponseEntity.ok(despesaService.atualizar(id, dto));
     }
 
     @DeleteMapping("/{id}")
