@@ -25,6 +25,6 @@ public record DespesaRequestDTO(
         String descricao,
         String comprovanteUrl,
 
-        @Valid
-        List<DespesaPagamentoRequestDTO> pagamentos
+        List<@Valid DespesaPagamentoRequestDTO> pagamentos
 ) {}
+
