@@ -1,54 +1,40 @@
-# Status e Próximos Passos (Roadmap de Desenvolvimento)
+# Status e Próximos Passos
 
-Este arquivo é o **quadro oficial de acompanhamento do projeto**. Ele deve ser consultado e atualizado ao final de cada etapa ou sessão de trabalho por qualquer desenvolvedor ou assistente de IA.
+Consultar e atualizar ao final de cada sessão de trabalho.
 
----
+## Feito
 
-## 🟢 1. O que já foi Implementado
+- Base: Spring Boot 4.1 (Java 25), Flyway, Security, Bean Validation
+- CRUD completo: `imovel` (+ galeria de fotos), `aportante`, `etapaProjeto`,
+  `despesa` (+ rateio, PUT, filtros, upload de comprovante), `orcamentoEtapa`
+  (orçado vs. realizado)
+- `relatorio/`: custo por imóvel/m², extrato de aportantes, orçado vs.
+  realizado, exportação CSV (RF05)
+- `shared/storage`: upload/download local, extensível para cloud
+- `application.properties.example` criado; `ddl-auto=update`
 
-- [x] Projeto Spring Boot criado (Java 25, Spring Boot 4.1, Maven, Flyway, Lombok, PostgreSQL driver, Spring Security, Bean Validation)
-- [x] Migration `V1__criar_estrutura_inicial.sql` com tabelas base (`usuario`, `aportante`, `imovel`, `etapa_projeto`, `despesa`, `despesa_pagamento`)
-- [x] Migration `V3__limpar_colunas_antigas.sql`
-- [x] Pacote `shared/` com enums (`StatusImovel`, `TipoImovel`), exceptions (`RecursoNaoEncontradoException`, `RegraDeNegocioException`, `ApiErrorHandler`), config (`SecurityConfig`, `DatabaseCleanupRunner`)
-- [x] CRUD completo de `Imovel` com Soft Delete (`ativo = false`)
-- [x] CRUD completo de `Aportante` com Soft Delete (`ativo = false`)
-- [x] CRUD completo de `EtapaProjeto` (Catálogo global reutilizável)
-- [x] CRUD completo de `Despesa` com rateio via `DespesaPagamento` e validação de limite
-- [x] **[Sprint 1]** Documentação do modelo de dados em `docs/MODELO-DADOS.md` com diagrama ER em Mermaid
-- [x] **[Sprint 1]** Criação do `application.properties.example` e ajuste de `ddl-auto=update`
-- [x] **[Sprint 1]** Implementação de alteração/edição completa em Despesas (`PUT /api/despesas/{id}`)
-- [x] **[Sprint 1]** Suporte a filtros dinâmicos no endpoint `GET /api/despesas?imovelId={id}&etapaProjetoId={id}`
-- [x] **[Sprint 1]** Migration `V4__criar_orcamento_etapa.sql` e pacote `orcamentoEtapa/` com cálculo em tempo real de total gasto, diferença e status (`NO_PRAZO`, `ATENCAO`, `ESTOURADO`)
-- [x] **[Sprint 1]** Serviço de Armazenamento e Upload de Arquivos (`shared/storage/` com `LocalStorageService` e `ArquivoController`)
-- [x] **[Sprint 1]** Galeria de Fotos do Imóvel (RF06 / Migration `V5__criar_imovel_foto.sql` + `ImovelFotoModel` + Endpoints em `/api/imoveis/{id}/fotos`)
-- [x] **[Sprint 1]** Upload e anexo direto de comprovantes de despesas (RF04 / Endpoint em `/api/despesas/{id}/comprovante`)
-- [x] **[Sprint 2]** Módulo de Relatórios e Analytics (RF05 / Pacote `relatorio/` com custo total por imóvel, custo por m², extrato de aportes por aportante e orçado vs realizado, filtros dinâmicos e exportação CSV)
+## Roadmap do MVP
 
----
+### Etapa 7 — Autenticação JWT (RNF01)
+- [ ] `auth/`: `UsuarioModel`, `UsuarioRepository`, `UsuarioService`,
+      `AuthController` (`/api/auth/login`)
+- [ ] Substituir HTTP Basic por filtro stateless JWT + roles (`ADMIN`, `USER`)
 
-## ⏳ 2. Roadmap do MVP (Mínimo Produto Viável)
+### Etapa 8 — Testes
+- [ ] Testes unitários de cada Service
+- [ ] Testes de integração de Controllers (`MockMvc`)
 
-### 📌 Etapa 7 — Autenticação e Segurança JWT (RNF01)
-- [ ] Pacote `auth/`: `UsuarioModel`, `UsuarioRepository`, `UsuarioService`, `AuthController` (`/api/auth/login`)
-- [ ] Substituir HTTP Basic no `SecurityConfig` por filtro stateless JWT (`JwtFilter`) e permissões por Role (`ADMIN`, `USER`)
+### Etapa 9 — Frontend Angular
+- [ ] Setup Angular + Angular Material
+- [ ] Login + AuthGuard
+- [ ] Dashboard (Custo Total, R$/m², Orçado vs. Realizado)
+- [ ] Telas CRUD (Imóveis, Aportantes, Etapas, Orçamento)
+- [ ] Lançamento de despesas mobile-friendly (canteiro de obras)
 
-### 📌 Etapa 8 — Cobertura de Testes
-- [ ] Testes unitários de serviços (`ImovelService`, `AportanteService`, `EtapaProjetoService`, `DespesaService`, `OrcamentoEtapaService`)
-- [ ] Testes de integração de controllers com `MockMvc` / `TestRestTemplate`
+## Pós-MVP (fase 2)
 
-### 📌 Etapa 9 — Frontend Responsivo (Angular 19+ & Angular Material)
-- [ ] Setup do projeto Angular + Angular Material
-- [ ] Autenticação (Tela de login + AuthGuard)
-- [ ] Dashboard com KPIs financeiras (Custo Total, R$/m², Orçado vs Realizado)
-- [ ] Telas CRUD (Imóveis, Aportantes, Catálogo de Etapas, Planejamento de Orçamento)
-- [ ] Tela de Lançamento de Despesas no Canteiro de Obras (Mobile-friendly)
-
----
-
-## 🔮 3. Fase 2 — Evoluções Futuras (Pós-MVP)
-
-- [ ] Módulo `fornecedor/`: Cadastro completo de fornecedores, histórico de serviços e banco de orçamentos/cotações.
-- [ ] Diário de Obra Avançado: Registro diário de clima, equipes, ocorrências e diário fotográfico com marcação no tempo.
-- [ ] OCR de Notas Fiscais: Leitura automática de PDFs de NF-e/boletos via AI (Document AI / Textract).
-- [ ] Alertas Proativos: Disparo automático de e-mails/push notifications ao atingir limites de orçamento.
-- [ ] DRE Executiva e Projeção de Lucro (Lucro Esperado vs Realizado).
+- [ ] `fornecedor/`: cadastro, histórico, banco de orçamentos
+- [ ] Diário de obra (clima, equipe, ocorrências, fotos com timestamp)
+- [ ] OCR de notas fiscais
+- [ ] Alertas de orçamento (e-mail/push)
+- [ ] DRE executiva / projeção de lucro
