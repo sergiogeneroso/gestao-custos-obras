@@ -27,6 +27,19 @@ symlink para essa mesma pasta).
 - Arquitetura completa, requisitos, roadmap, decisões e modelo de dados:
   pasta `docs/` (leia sob demanda, não carregam automaticamente)
 
+## Gestão de sessão e contexto
+
+Ao perceber que uma tarefa é grande ou tem uma parte isolável (exploração de
+código, pesquisa, leitura de muitos arquivos não relacionados ao objetivo
+final), sugira ao usuário — antes de simplesmente seguir consumindo
+contexto — se vale mais a pena:
+- abrir uma sessão/janela nova pra essa tarefa, ou
+- delegar a parte isolável a um subagente,
+
+explicando em uma frase o porquê. Isso é uma sugestão, não uma pausa
+obrigatória: se o usuário não responder ou pedir pra seguir, continue
+normalmente na sessão atual.
+
 ## Testes
 
 Rodar `./mvnw test` antes de considerar uma tarefa finalizada.

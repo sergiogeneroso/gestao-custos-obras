@@ -16,3 +16,8 @@
 - Use plan mode antes de mexer em regras de rateio de despesa
   (`despesa/DespesaService.java`) — é a regra de negócio mais sensível do
   projeto financeiramente
+- Sobre a regra de "Gestão de sessão e contexto" do `AGENTS.md`: no Claude
+  Code, isso normalmente significa sugerir rodar a exploração/pesquisa via
+  subagente (Task tool), que devolve só o resumo em vez de encher o contexto
+  principal, ou sugerir `/clear`/uma sessão nova quando a tarefa atual já
+  terminou e a próxima é um domínio não relacionado
