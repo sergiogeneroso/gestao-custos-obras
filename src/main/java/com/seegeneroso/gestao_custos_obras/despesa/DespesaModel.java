@@ -13,8 +13,10 @@ import java.util.List;
 
 @Entity
 @Table(name = "despesa")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class DespesaModel {
 
@@ -27,8 +29,8 @@ public class DespesaModel {
     private ImovelModel imovel;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "etapa_id")
-    private EtapaProjetoModel etapa;
+    @JoinColumn(name = "etapa_projeto_id")
+    private EtapaProjetoModel etapaProjeto;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal valor;

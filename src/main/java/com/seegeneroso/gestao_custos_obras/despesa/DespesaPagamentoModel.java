@@ -9,8 +9,10 @@ import com.seegeneroso.gestao_custos_obras.aportante.AportanteModel;
 
 @Entity
 @Table(name = "despesa_pagamento")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class DespesaPagamentoModel {
 
@@ -23,8 +25,8 @@ public class DespesaPagamentoModel {
     private DespesaModel despesa;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "envolvido_id")
-    private AportanteModel envolvido;
+    @JoinColumn(name = "aportante_id")
+    private AportanteModel aportante;
 
     @Column(name = "valor_pago", nullable = false, precision = 14, scale = 2)
     private BigDecimal valorPago;
