@@ -1,6 +1,5 @@
 package com.seegeneroso.gestao_custos_obras.imovel;
 
-import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.StatusImovel;
