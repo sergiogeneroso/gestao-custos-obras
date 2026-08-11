@@ -34,11 +34,17 @@ Cada gasto é registrado e vinculado a um imóvel, uma etapa e um ou mais aporta
 - Validação crítica: soma dos pagamentos não pode exceder o valor da despesa
 - Endpoint: `/api/despesas`
 
-### RF05 — Módulo de Relatórios e Gráficos ⏳ Pendente
+### RF05 — Módulo de Relatórios e Gráficos ✅ Implementado
 - Filtros: por imóvel/lote, por período (início/fim), por etapa, por aportante
 - Visualização: custo total acumulado; gráfico de pizza/barras por etapa;
   extrato de aportes por aportante
 - Exportação: PDF ou planilha (Excel/CSV)
+- Endpoints em `/api/relatorios`: `custo-por-imovel`, `custo-por-m2`,
+  `extrato-aportantes`, `orcado-vs-realizado` — com filtros opcionais
+  (`imovelId`, `etapaProjetoId`, `aportanteId`, `dataInicio`, `dataFim`) e
+  exportação CSV via `?format=csv` (delimitador `;`, compatível com Excel pt-BR).
+  A visualização de gráficos (pizza/barras) será renderizada no frontend Angular
+  (Etapa 9) a partir dos dados agregados destes endpoints.
 
 ### RF06 — Upload de Imagens do Imóvel ✅ Implementado
 - Galeria de fotos do imóvel via `POST /api/imoveis/{id}/fotos` (upload `multipart/form-data`)

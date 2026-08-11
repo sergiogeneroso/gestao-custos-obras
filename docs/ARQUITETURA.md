@@ -49,7 +49,7 @@ com.seegeneroso.gestao_custos_obras/
 │       ├── DespesaPagamentoRequestDTO.java
 │       ├── DespesaResponseDTO.java
 │       └── DespesaPagamentoResponseDTO.java
-├── relatorio/                      (a implementar — RF05)
+├── relatorio/                      (RelatorioService, RelatorioController, dto/ — RF05)
 ├── auth/                           (a implementar — RNF01)
 └── shared/
     ├── config/
@@ -94,6 +94,7 @@ Cada domínio segue rigorosamente esta estrutura:
 | Aportante     | `/api/aportantes`      | POST, GET, GET/{id}, PUT/{id}, DELETE/{id} (soft delete) |
 | EtapaProjeto  | `/api/etapas-projeto`  | POST, GET, GET/{id}, PUT/{id}, DELETE/{id}               |
 | Despesa       | `/api/despesas`        | POST, GET, GET/{id}, DELETE/{id}; GET por imóvel         |
+| Relatório     | `/api/relatorios`      | GET custo-por-imovel, custo-por-m2, extrato-aportantes, orcado-vs-realizado (filtros + `?format=csv`) |
 
 ## Segurança (estado atual)
 

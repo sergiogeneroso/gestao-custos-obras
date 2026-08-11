@@ -22,17 +22,11 @@ Este arquivo é o **quadro oficial de acompanhamento do projeto**. Ele deve ser 
 - [x] **[Sprint 1]** Serviço de Armazenamento e Upload de Arquivos (`shared/storage/` com `LocalStorageService` e `ArquivoController`)
 - [x] **[Sprint 1]** Galeria de Fotos do Imóvel (RF06 / Migration `V5__criar_imovel_foto.sql` + `ImovelFotoModel` + Endpoints em `/api/imoveis/{id}/fotos`)
 - [x] **[Sprint 1]** Upload e anexo direto de comprovantes de despesas (RF04 / Endpoint em `/api/despesas/{id}/comprovante`)
+- [x] **[Sprint 2]** Módulo de Relatórios e Analytics (RF05 / Pacote `relatorio/` com custo total por imóvel, custo por m², extrato de aportes por aportante e orçado vs realizado, filtros dinâmicos e exportação CSV)
 
 ---
 
 ## ⏳ 2. Roadmap do MVP (Mínimo Produto Viável)
-
-### 📌 Etapa 6 — Módulo de Relatórios e Analytics (RF05)
-- [ ] Pacote `relatorio/`: Endpoints agregados para:
-  - Custo total acumulado por imóvel
-  - Custo por metro quadrado (`R$/m²`)
-  - Extrato acumulado de aportes por socio/investidor (`Aportante`)
-  - Comparativo Orçado vs Realizado por etapa e total do imóvel
 
 ### 📌 Etapa 7 — Autenticação e Segurança JWT (RNF01)
 - [ ] Pacote `auth/`: `UsuarioModel`, `UsuarioRepository`, `UsuarioService`, `AuthController` (`/api/auth/login`)

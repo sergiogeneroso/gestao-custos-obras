@@ -26,8 +26,8 @@ Pacote raiz: `com.seegeneroso.gestao_custos_obras`
 ├── aportante/         → AportanteModel, AportanteRepository, AportanteService, AportanteMapper, AportanteController, dto/
 ├── etapaProjeto/      → EtapaProjetoModel, EtapaProjetoRepository, EtapaProjetoService, EtapaProjetoMapper, EtapaProjetoController, dto/
 ├── despesa/           → DespesaModel, DespesaPagamentoModel, DespesaRepository, DespesaPagamentoRepository, DespesaService, DespesaMapper, DespesaController, dto/
-├── orcamentoEtapa/    → (Próxima etapa: orçado vs realizado)
-├── relatorio/         → (a implementar: RF05)
+├── orcamentoEtapa/    → OrcamentoEtapaModel, OrcamentoEtapaRepository, OrcamentoEtapaService, OrcamentoEtapaMapper, OrcamentoEtapaController, dto/ (Orçado vs Realizado + Status)
+├── relatorio/         → RelatorioService, RelatorioController, dto/ (RF05 — custo por imóvel, custo por m², extrato de aportes, orçado vs realizado + filtros + CSV)
 ├── auth/              → (a implementar: JWT/RNF01)
 └── shared/
     ├── config/        → SecurityConfig, DatabaseCleanupRunner
@@ -86,7 +86,7 @@ Nunca criar pacotes por camada (`controller/`, `service/`, `repository/`, `model
 | `despesa`        | CRUD completo + PUT + Rateio + Upload Comprovante  |
 | `orcamentoEtapa` | CRUD completo + Orçado vs. Realizado + Status      |
 | `shared/storage` | Storage local/S3 + Endpoints de Upload/Download    |
-| `relatorio`      | A implementar (RF05)                               |
+| `relatorio`      | CRUD completo + Filtros + Exportação CSV (RF05)    |
 | `auth` (JWT)     | A implementar (RNF01)                              |
 | Frontend Angular | Setup ainda não iniciado                           |
 

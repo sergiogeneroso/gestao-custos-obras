@@ -34,4 +34,5 @@ build/
 
 ### Credenciais e uploads locais ###
 src/main/resources/application.properties
+.claude/settings.local.json
 uploads/
