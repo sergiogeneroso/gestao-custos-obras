@@ -115,3 +115,34 @@ rastreado no git desde o commit inicial, contrariando a própria regra de
 `postgres`/`admin` em `localhost`, secret JWT com sufixo `dev-only`), mas
 fica registrado aqui para decisão futura sobre destrackear/purgar do
 histórico.
+
+## ADR-016 — Tema configurável via painel admin, paletas curadas (Ago 2026)
+RF07: admin pode trocar a paleta de cores do sistema, valendo pra todos os
+usuários. **Persistência:** backend (não `localStorage`) — se ficasse só no
+navegador de quem trocou, os demais usuários não veriam a mudança; precisa de
+um endpoint de configuração simples (par chave-valor, não é um domínio CRUD
+completo). **Mecanismo:** paletas pré-definidas (curadas), não color picker
+livre — evita admin quebrar contraste/acessibilidade do tema Material sem
+querer. Quatro paletas fechadas nesta sessão (hex e detalhes em
+`docs/FRONTEND.md`): Azul corporativo (default), Terracota industrial, Verde
+financeiro, Grafite + âmbar — cada uma com light e dark mode (ADR-014 já
+previa toggle claro/escuro). **Efeito colateral:** esse endpoint de config
+precisa ser admin-only, o que antecipa uma fatia pequena da RBAC que RNF01
+tinha deixado pra fase 2 (`.hasRole("ADMIN")` só nesse endpoint específico,
+não a regra geral por domínio).
+
+## ADR-017 — Tipografia Inter e ícones Lucide (Ago 2026)
+Continuação das decisões de design visual (após ADR-016). **Tipografia:**
+Inter no lugar da Roboto padrão do Material — sans-serif com boa legibilidade
+em tabelas de números (uso pesado no projeto: valores monetários, m²),
+comum em produtos financeiros/SaaS. Self-hosted via `@fontsource/inter` em
+vez de Google Fonts via CDN, mesma lógica de não depender de terceiro em
+runtime. **Ícones:** Lucide no lugar do Material Icons/Symbols — set mais
+moderno/minimalista, via `lucide-angular` (wrapper oficial). Convive com
+`mat-icon` só onde componentes do Material exigem ícone Material
+internamente; nas telas de domínio o uso é direto via `lucide-angular`.
+**Gráficos:** Chart.js direto, sem wrapper Angular (`ng2-charts`,
+`ngx-echarts`) — os três gráficos do dashboard (RF05: Custo Total, R$/m²,
+Orçado vs. Realizado) são simples o bastante pra não justificar mais uma
+camada de integração; usado via `ViewChild` num `<canvas>`. Detalhes:
+`docs/FRONTEND.md`.

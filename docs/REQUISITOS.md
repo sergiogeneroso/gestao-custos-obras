@@ -1,5 +1,11 @@
 # Requisitos
 
+Requisitos de negócio (o quê), tecnologia-agnósticos. Requisito novo que é só
+manifestação de tela/UX de um RF/RNF já existente aqui (validação de
+formulário, fluxo, mensagem) entra em `docs/FRONTEND.md`, não vira entrada
+nova neste arquivo — evita duplicar "o quê" (aqui) com "como no frontend"
+(lá) conforme a Etapa 9 avança.
+
 ## Requisitos Funcionais (RF)
 
 ### RF01 — Imóveis/Lotes ✅
@@ -32,6 +38,14 @@ compatível com Excel pt-BR). Gráficos ficam por conta do frontend Angular.
 Galeria de fotos do imóvel (`/api/imoveis/{id}/fotos`), comprovante de
 despesa (`/api/despesas/{id}/comprovante`). Storage local
 (`shared/storage/LocalStorageService`), extensível para S3/Cloud Storage.
+
+### RF07 — Configuração de Tema (Painel Admin) ⏳ Pendente
+Admin escolhe, entre paletas pré-definidas, qual tema visual vale para todos
+os usuários (não é preferência individual). Suporta light e dark mode. Quatro
+paletas curadas: Azul corporativo (default), Terracota industrial, Verde
+financeiro, Grafite + âmbar (hex e detalhes em `docs/FRONTEND.md`).
+Persistência no backend (config chave-valor), endpoint restrito a
+`ROLE_ADMIN`. Decisão completa: ADR-016 em `docs/DECISOES.md`.
 
 ## Requisitos Não Funcionais (RNF)
 

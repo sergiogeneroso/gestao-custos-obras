@@ -49,13 +49,55 @@ detalhe) e o service HTTP daquele domínio — evita pastas `components/`,
 
 ## Design
 
-- Cores: paleta customizada no tema Material (não a paleta padrão), a
-  definir/ajustar durante o setup
 - Layout desktop-first, responsivo via Angular Material (grid/flex já
   cobrem breakpoints menores sem esforço extra de design mobile). RNF03 exige
   mobile-friendly especificamente na tela de lançamento de despesas — as
   demais telas de gestão priorizam desktop
 - Listagem de imóveis: grid de cards com foto de capa (galeria RF06), badge
   de status colorido (Planejamento/Construção/Finalizado), identificador,
-  tipo, endereço, área e valor. Mockup de referência gerado na sessão de
-  planejamento do frontend.
+  tipo, endereço, área e valor.
+
+### Tema e paleta de cores (RF07, ADR-016)
+
+Tema configurável por um admin, valendo pra todo mundo (não é preferência
+por usuário) — trocável em painel admin entre paletas pré-definidas, com
+light e dark mode. Implementação via CSS custom properties (tokens do tema
+Material M3) trocadas em runtime a partir da config vinda do backend, não
+build separado por paleta.
+
+Quatro paletas curadas, primária (topo/app-bar) + destaque (CTA/botões) +
+neutra (texto secundário/borda):
+
+| Paleta | Primária | Destaque | Neutra |
+|---|---|---|---|
+| **Azul corporativo** (default) | `#1E3A5F` | `#2F6FED` | `#64748B` |
+| Terracota industrial | `#7A2E10` | `#E8833A` | `#57534E` |
+| Verde financeiro | `#1F6F4A` | `#4FA968` | `#52525B` |
+| Grafite + âmbar | `#27272A` | `#F59E0B` | `#52525B` |
+
+Cada paleta precisa de par light/dark (mesmas cores-base, ajuste de
+luminância nas superfícies) — variantes exatas de dark mode ficam pra
+implementação, seguindo os tokens de cor M3 do Angular Material.
+
+### Tipografia (ADR-017)
+
+**Inter** no lugar da Roboto padrão do Material. Self-hosted via
+`@fontsource/inter` (não Google Fonts via `<link>`) — evita dependência de
+CDN externo em runtime e mantém o app funcional offline/sem terceiros.
+Aplicada nos tokens de tipografia do tema Material M3 (`typography.ts` ou
+equivalente), não só num `font-family` solto no CSS global.
+
+### Ícones (ADR-017)
+
+**Lucide** no lugar do Material Icons/Symbols padrão, via `lucide-angular`
+(wrapper oficial, `<lucide-icon name="...">`) — não substitui `mat-icon`
+onde componentes do Material já esperam um ícone Material internamente (ex.
+`matSuffix` de alguns componentes), só o uso direto nas telas do domínio.
+
+### Gráficos do dashboard (RF05, ADR-017)
+
+**Chart.js direto**, sem wrapper Angular (`ng2-charts` etc.) — usado via
+`ViewChild` num `<canvas>` dentro do componente de dashboard. Os três
+gráficos do RF05 (Custo Total, R$/m², Orçado vs. Realizado) são
+barra/linha/rosca simples, não justificam uma camada de integração Angular
+adicional em cima do Chart.js.

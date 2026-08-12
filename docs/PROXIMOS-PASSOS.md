@@ -45,6 +45,9 @@ Consultar e atualizar ao final de cada sessão de trabalho.
 - [ ] Dashboard (Custo Total, R$/m², Orçado vs. Realizado)
 - [ ] Telas CRUD (Imóveis, Aportantes, Etapas, Orçamento)
 - [ ] Lançamento de despesas mobile-friendly (canteiro de obras)
+- [ ] RF07 — tema configurável: endpoint de config no backend
+      (`ROLE_ADMIN`), 4 paletas curadas + light/dark (ADR-016), painel admin
+      no frontend pra trocar
 
 ## Pós-MVP (fase 2)
 
