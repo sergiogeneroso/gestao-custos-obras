@@ -22,6 +22,8 @@ Consultar e atualizar ao final de cada sessão de trabalho.
   manual): o Spring Boot 4.1 removeu a `FlywayAutoConfiguration`, então
   `ddl-auto=validate` e `migrate()` roda por bean antes do EMF (ADR-012).
   `DatabaseCleanupRunner` removido (era para limpar pre-ADR-003/004).
+- Flyway **pausado** (ADR-013) até a modelagem do MVP fechar: `ddl-auto=update`,
+  `FlywayConfig` sem `@Configuration`, schema direto pelo Hibernate
 
 ## Roadmap do MVP
 

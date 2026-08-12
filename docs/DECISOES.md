@@ -67,3 +67,19 @@ passa a ser a única fonte de schema). A recriação do DB aplicou V1–V6 limpa
 mudanças pré-ADR-003/004). Upgrade:
 se o Spring Boot reintroduzir auto-config/starter Flyway, remover
 `FlywayConfig` e `spring.flyway.enabled=false` voltando à config nativa.
+**Pausado por ADR-013** — ver abaixo; o desenho continua válido para quando
+for reativado.
+
+## ADR-013 — Pausa do Flyway durante a modelagem do MVP (Ago 2026)
+Projeto em fase inicial, uso solo, sem dado relevante em disco, e a
+modelagem de dados do MVP ainda não fechou. Escrever uma migration a cada
+ajuste de coluna nesse estágio é atrito pago duas vezes: uma vez agora, outra
+no squash quando o modelo estabilizar. Decisão: pausar o Flyway (`FlywayConfig`
+sem `@Configuration`, `ddl-auto=update` no lugar de `validate`) e deixar o
+Hibernate gerir o schema direto pelas entidades enquanto a modelagem estiver
+em fluxo. As migrations em `db/migration/` ficam inertes, não são apagadas.
+Reativar (religar `@Configuration`, voltar `ddl-auto=validate`, consolidar as
+migrations antigas numa `V1` baseline única refletindo o modelo final) antes
+de existir dado real que importe ou mais alguém mexendo no projeto —
+retrofitar migrations num banco já povoado é bem mais caro que começar com
+elas desde o primeiro dado real.

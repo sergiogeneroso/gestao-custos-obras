@@ -15,22 +15,27 @@ import javax.sql.DataSource;
 /**
  * Configuração manual do Flyway.
  *
- * ponytail: o Spring Boot 4.1 removeu a FlywayAutoConfiguration do
+ * ponytail: PAUSADO (ADR-013) — modelagem do MVP ainda não fechou e não há
+ * dado relevante em disco, então cada ajuste de coluna via migration é
+ * atrito pago duas vezes (agora e no squash pós-MVP). Enquanto pausado,
+ * o schema é gerido por `ddl-auto=update` (ver application.properties);
+ * esta classe fica sem @Configuration, os beans não são registrados e as
+ * migrations em db/migration ficam inertes. Reativar antes de ter dado real
+ * ou mais gente no projeto: religar @Configuration, voltar ddl-auto=validate
+ * e consolidar as migrations antigas numa V1 baseline única.
+ *
+ * ADR-010/012 documentam o desenho original (que continua válido para
+ * quando isso for reativado):
+ * o Spring Boot 4.1 removeu a FlywayAutoConfiguration do
  * spring-boot-autoconfigure (não há starter equivalente). Sem estes beans,
  * o flyway-core fica no classpath porém inerte — ninguém instancia o migrador
- * nem roda as migrations, e o schema fica só por conta do Hibernate. Aqui o
- * Flyway passa a ser a única fonte de schema (ddl-auto=validate no
- * application.properties), alinhado à ADR-010.
- *
- * A ordem de inicialização é crucial: o Hibernate validate (que roda na criação
- * do EntityManagerFactory) precisa enxergar o schema já migrado. Bean EMF é
- * "entityManagerFactory"; o registryPostProcessor abaixo adiciona o bean
- * "flywayMigrate" às suas dependências, garantindo migrate() antes do validate.
- *
- * Quando o Spring Boot voltar a fornecer auto-config/starter para Flyway,
- * remover esta classe e spring.flyway.enabled=false e usar a config nativa.
+ * nem roda as migrations. A ordem de inicialização é crucial: o Hibernate
+ * validate (que roda na criação do EntityManagerFactory) precisa enxergar o
+ * schema já migrado. Bean EMF é "entityManagerFactory"; o
+ * registryPostProcessor abaixo adiciona o bean "flywayMigrate" às suas
+ * dependências, garantindo migrate() antes do validate.
  */
-@Configuration
+// @Configuration — desativado (ADR-013); religar quando o Flyway voltar
 public class FlywayConfig {
 
     @Bean

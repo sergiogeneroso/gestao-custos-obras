@@ -9,13 +9,18 @@ só o que é genuinamente transversal a 2+ domínios (config, enums,
 exceptions, JWT, Flyway). Ver justificativa completa em `docs/DECISOES.md`
 (ADR-001).
 
-## Schema do banco (Flyway)
+## Schema do banco (Flyway — pausado, ver ADR-013)
 
-Migrations em `src/main/resources/db/migration/` (V1, V3, V4, V5, V6...).
-No Spring Boot 4.1 a `FlywayAutoConfiguration` foi removida, então o
-migrador é instanciado por `@Bean` em `shared/config/FlywayConfig.java`,
-que roda `migrate()` antes do `EntityManagerFactory` (Hibernate em
-`ddl-auto=validate` apenas confere o schema). Detalhes: ADR-012.
+Flyway está **pausado** enquanto a modelagem do MVP não fecha: schema gerido
+direto pelo Hibernate via `ddl-auto=update`, e `FlywayConfig` está sem
+`@Configuration` (beans não registrados). As migrations antigas em
+`src/main/resources/db/migration/` (V1, V3, V4, V5, V6...) ficam inertes, não
+foram apagadas. Quando o Flyway for reativado: religar `@Configuration` em
+`shared/config/FlywayConfig.java`, voltar `ddl-auto=validate` e consolidar as
+migrations antigas numa `V1` baseline única. No Spring Boot 4.1 a
+`FlywayAutoConfiguration` foi removida do framework — por isso, quando
+reativado, o migrador volta a ser instanciado manualmente por esse `@Bean`,
+que roda `migrate()` antes do `EntityManagerFactory`. Detalhes: ADR-012/013.
 
 A árvore de pacotes atual não está documentada aqui de propósito — rode
 `find src/main/java -name "*.java"` ou peça pro Claude explorar, é mais

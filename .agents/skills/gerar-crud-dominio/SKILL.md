@@ -16,8 +16,11 @@ leia esses arquivos antes de gerar o novo domínio.
    (como `EtapaProjeto`)? Precisa de alguma constraint de unicidade
    (ex: nome único, como `EtapaProjeto.nome`)?
 
-2. **Migration** — criar `src/main/resources/db/migration/V{next}__criar_{tabela}.sql`
-   (nunca editar uma migration existente; ver `.agents/rules/banco-e-migrations.md`)
+2. **Migration** — Flyway está pausado (ADR-013): **não** criar arquivo de
+   migration agora, o `{Dominio}Model.java` do passo 3 já basta (Hibernate
+   aplica via `ddl-auto=update`). Quando o Flyway for reativado, criar
+   `src/main/resources/db/migration/V{next}__criar_{tabela}.sql` (nunca
+   editar uma migration existente; ver `.agents/rules/banco-e-migrations.md`)
 
 3. **Criar o pacote** `src/main/java/com/seegeneroso/gestao_custos_obras/{dominio}/`
    com, nesta ordem:
