@@ -83,3 +83,17 @@ migrations antigas numa `V1` baseline única refletindo o modelo final) antes
 de existir dado real que importe ou mais alguém mexendo no projeto —
 retrofitar migrations num banco já povoado é bem mais caro que começar com
 elas desde o primeiro dado real.
+
+## ADR-014 — Frontend no mesmo repositório, Angular standalone sem NgRx (Ago 2026)
+Decisões tomadas antes de iniciar a geração do frontend (Etapa 9 do roadmap).
+**Localização:** `frontend/` na raiz do mesmo repositório (monorepo), em vez
+de repositório separado — projeto solo, um só clone/histórico é mais simples
+de manter do que sincronizar dois repositórios. **Standalone components:**
+Angular moderno abandonou `NgModule` como padrão desde a v17; manter módulos
+aqui seria carregar boilerplate que o próprio framework já descontinuou.
+**Sem NgRx:** avaliado e descartado pelo mesmo raciocínio do ADR-008
+(MapStruct) — projeto pequeno, CRUDs simples, estado local via `services` +
+Angular `signals` resolve sem a complexidade de um store dedicado. Detalhes
+de estrutura de pastas, autenticação (JWT em `localStorage`, interceptor
+funcional, `authGuard`) e design (tema Material customizado, listagem de
+imóveis em cards com foto de capa, desktop-first): `docs/FRONTEND.md`.
