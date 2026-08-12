@@ -40,7 +40,11 @@ Consultar e atualizar ao final de cada sessão de trabalho.
 - [ ] Testes de integração de Controllers (`MockMvc`)
 
 ### Etapa 9 — Frontend Angular
-- [ ] Setup Angular + Angular Material
+- [x] Setup Angular + Angular Material
+- [x] Estrutura de pastas (`core/`, `features/<domínio>/`, `shared/`) +
+      roteamento base: `Shell` (toolbar/sidenav) em `core/layout/`, rotas
+      lazy (`loadComponent`) por domínio em `app.routes.ts`, placeholders
+      em `features/*`
 - [ ] Login + AuthGuard
 - [ ] Dashboard (Custo Total, R$/m², Orçado vs. Realizado)
 - [ ] Telas CRUD (Imóveis, Aportantes, Etapas, Orçamento)
