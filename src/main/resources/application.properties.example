@@ -22,15 +22,17 @@ spring.jpa.properties.hibernate.format_sql=true
 # ==========================
 # Flyway Migrations
 # ==========================
-spring.flyway.enabled=true
-spring.flyway.baseline-on-migrate=true
+# Flyway gerido por @Bean manual (FlywayConfig) — Spring Boot 4.1 removeu a
+# FlywayAutoConfiguration (sem starter). ddl-auto=validate acima confirma o schema.
+spring.flyway.enabled=false
 spring.flyway.locations=classpath:db/migration
 
 # ==========================
-# Segurança Temporária (Basic Auth)
+# JWT
 # ==========================
-spring.security.user.name=${SECURITY_USER:admin}
-spring.security.user.password=${SECURITY_PASS:123456}
+# Secret HMAC-SHA256 (min. 32 chars). Em produção, injetar via env var.
+app.jwt.secret=${JWT_SECRET:changeme-256-bits-min-32-chars-secret-key-dev-only}
+app.jwt.expiration-minutos=${JWT_EXPIRATION_MINUTOS:120}
 
 # ==========================
 # Upload de Arquivos

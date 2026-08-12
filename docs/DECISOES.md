@@ -52,3 +52,18 @@ fonte única de regras cross-tool; regras específicas por caminho em
 (symlink em `.claude/skills/`); `docs/` para referência sob demanda, nunca
 importada via `@` no CLAUDE.md (importar carrega no contexto toda sessão,
 o que anula o ganho de token).
+
+## ADR-012 — Flyway por @Bean manual no Spring Boot 4.1 (Ago 2026)
+O Spring Boot 4.1 removeu a `FlywayAutoConfiguration` (e `FlywayProperties`)
+do `spring-boot-autoconfigure` — não há mais starter nem auto-config para
+Flyway; só o BOM gerencia a versão do `flyway-core`. Consequência: ter
+`flyway-core` no pom.xml **não** roda migrações nem cria
+`flyway_schema_history` — o schema fica só por conta do Hibernate.
+Decisão: declarar `Flyway` via `@Bean` em `shared/config/FlywayConfig.java`,
+rodar `migrate()` num bean que o `entityManagerFactory` dependa (via
+`BeanDefinitionRegistryPostProcessor`) e usar `ddl-auto=validate` (o Flyway
+passa a ser a única fonte de schema). A recriação do DB aplicou V1–V6 limpas
+(oportunidade para eliminar o `DatabaseCleanupRunner`, que visava limpar
+mudanças pré-ADR-003/004). Upgrade:
+se o Spring Boot reintroduzir auto-config/starter Flyway, remover
+`FlywayConfig` e `spring.flyway.enabled=false` voltando à config nativa.

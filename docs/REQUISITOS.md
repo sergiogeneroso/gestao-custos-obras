@@ -35,7 +35,10 @@ despesa (`/api/despesas/{id}/comprovante`). Storage local
 
 ## Requisitos Não Funcionais (RNF)
 
-- **RNF01 — Autenticação** ⏳ Pendente: JWT. Atualmente HTTP Basic temporário.
+- **RNF01 — Autenticação** ✅: JWT stateless (jjwt). Login em `/api/auth/login`
+  emite token; `JwtAuthenticationFilter` valida `Authorization: Bearer`.
+  HTTP Basic removido. Senha armazenada como hash BCrypt. Role viaja no token;
+  regras `.hasRole(...)` por domínio pendentes (fase 2).
 - **RNF02 — Persistência** ✅: PostgreSQL, integridade referencial
   (`ON DELETE RESTRICT` em relações financeiras), Flyway.
 - **RNF03 — Responsividade** ⏳ Pendente: Angular + Angular Material,

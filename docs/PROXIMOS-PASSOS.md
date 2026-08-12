@@ -12,13 +12,26 @@ Consultar e atualizar ao final de cada sessão de trabalho.
   realizado, exportação CSV (RF05)
 - `shared/storage`: upload/download local, extensível para cloud
 - `application.properties.example` criado; `ddl-auto=update`
+- `auth/`: domínio de autenticação — `UsuarioModel`, `UsuarioRepository`,
+  `AuthService`, `AuthController` (`/api/auth/login`), login emite JWT
+- `shared/config/JwtService` + `JwtAuthenticationFilter` (stateless, jjwt),
+  `BCryptPasswordEncoder`, `JwtAuthenticationEntryPoint` (401 adequado)
+- HTTP Basic removido; substituído por JWT (RNF01)
+- Seed admin inicial via migration V6 (BCrypt) — admin@gestao.local / admin123
+- Flyway restaurado como única fonte de schema (`FlywayConfig` `@Bean`
+  manual): o Spring Boot 4.1 removeu a `FlywayAutoConfiguration`, então
+  `ddl-auto=validate` e `migrate()` roda por bean antes do EMF (ADR-012).
+  `DatabaseCleanupRunner` removido (era para limpar pre-ADR-003/004).
 
 ## Roadmap do MVP
 
-### Etapa 7 — Autenticação JWT (RNF01)
-- [ ] `auth/`: `UsuarioModel`, `UsuarioRepository`, `UsuarioService`,
+### Etapa 7 — Autenticação JWT (RNF01) ✅
+- [x] `auth/`: `UsuarioModel`, `UsuarioRepository`, `AuthService`,
       `AuthController` (`/api/auth/login`)
-- [ ] Substituir HTTP Basic por filtro stateless JWT + roles (`ADMIN`, `USER`)
+- [x] Substituir HTTP Basic por filtro stateless JWT + role no token
+      (`ROLE_<role>` no `Authentication`; regras `.hasRole(...)` por
+      domínio ficam pendentes para a fase 2, quando os outros tipos de
+      role forem definidos)
 
 ### Etapa 8 — Testes
 - [ ] Testes unitários de cada Service
