@@ -1,8 +1,8 @@
 ---
 paths:
-  - "src/main/java/**/despesa/**"
-  - "src/main/java/**/aportante/**"
-  - "src/main/java/**/imovel/**"
+  - "backend/src/main/java/**/despesa/**"
+  - "backend/src/main/java/**/aportante/**"
+  - "backend/src/main/java/**/imovel/**"
 ---
 
 # Regras de Negócio Financeiras (não quebrar)

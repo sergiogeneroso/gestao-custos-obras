@@ -1,6 +1,6 @@
 # Modelo de Dados
 
-Schema PostgreSQL gerenciado via Flyway (`src/main/resources/db/migration/`).
+Schema PostgreSQL gerenciado via Flyway (`backend/src/main/resources/db/migration/`).
 Para os campos exatos de cada tabela, ver a migration correspondente ou o
 `Model.java` do domínio — não duplicado aqui de propósito.
 

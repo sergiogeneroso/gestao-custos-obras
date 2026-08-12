@@ -40,6 +40,12 @@ explicando em uma frase o porquê. Isso é uma sugestão, não uma pausa
 obrigatória: se o usuário não responder ou pedir pra seguir, continue
 normalmente na sessão atual.
 
+## Estrutura do repositório
+
+Monorepo: `backend/` (Spring Boot/Java) e `frontend/` (Angular) na raiz,
+lado a lado. Ver ADR-014/015 em `docs/DECISOES.md`.
+
 ## Testes
 
-Rodar `./mvnw test` antes de considerar uma tarefa finalizada.
+Rodar `cd backend && ./mvnw test` antes de considerar uma tarefa de backend
+finalizada.

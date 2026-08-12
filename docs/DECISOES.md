@@ -43,7 +43,7 @@ avaliadas: PrimeNG, TailwindCSS, Bootstrap.
 
 ## ADR-010 — Flyway para migrações
 Controle de versão do schema. Migrations em
-`src/main/resources/db/migration/`; nunca editar uma já aplicada.
+`backend/src/main/resources/db/migration/`; nunca editar uma já aplicada.
 
 ## ADR-011 — Documentação dividida por ferramenta (Ago 2026)
 Projeto usa Claude Code e Antigravity. Decisão: `AGENTS.md` na raiz como
@@ -97,3 +97,21 @@ Angular `signals` resolve sem a complexidade de um store dedicado. Detalhes
 de estrutura de pastas, autenticação (JWT em `localStorage`, interceptor
 funcional, `authGuard`) e design (tema Material customizado, listagem de
 imóveis em cards com foto de capa, desktop-first): `docs/FRONTEND.md`.
+
+## ADR-015 — Backend movido para `backend/`, monorepo simétrico (Ago 2026)
+O repositório nasceu só como backend (Spring Boot na raiz: `pom.xml`, `src/`,
+`mvnw`). Ao decidir por `frontend/` na raiz (ADR-014), a estrutura ficou
+assimétrica — arquivos do backend soltos na raiz, frontend contido numa
+pasta. Avaliado o custo de mover agora (rename de ~80 arquivos rastreados,
+mais ~15 referências de path em `.agents/rules/`, `docs/` e na skill
+`gerar-crud-dominio`) contra o custo de mover depois, com o projeto maior:
+decisão foi pagar o custo agora. Backend movido para `backend/` (git detectou
+os renames automaticamente, histórico preservado); `frontend/` já nasce no
+lugar certo quando for gerado. Comando de teste passa a ser
+`cd backend && ./mvnw test`. Efeito colateral descoberto durante a migração:
+`backend/src/main/resources/application.properties` estava — e continua —
+rastreado no git desde o commit inicial, contrariando a própria regra de
+`.agents/rules/seguranca.md`; risco baixo (credenciais são só de dev local:
+`postgres`/`admin` em `localhost`, secret JWT com sufixo `dev-only`), mas
+fica registrado aqui para decisão futura sobre destrackear/purgar do
+histórico.

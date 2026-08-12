@@ -1,7 +1,7 @@
 ---
 paths:
-  - "src/main/resources/application*.properties"
-  - "src/main/java/**/config/**"
+  - "backend/src/main/resources/application*.properties"
+  - "backend/src/main/java/**/config/**"
 ---
 
 # Segurança

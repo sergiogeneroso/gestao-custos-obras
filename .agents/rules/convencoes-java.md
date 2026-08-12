@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/main/java/**/*.java"
+  - "backend/src/main/java/**/*.java"
 ---
 
 # Convenções de Código Java

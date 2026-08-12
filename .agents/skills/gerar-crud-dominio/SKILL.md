@@ -19,10 +19,10 @@ leia esses arquivos antes de gerar o novo domínio.
 2. **Migration** — Flyway está pausado (ADR-013): **não** criar arquivo de
    migration agora, o `{Dominio}Model.java` do passo 3 já basta (Hibernate
    aplica via `ddl-auto=update`). Quando o Flyway for reativado, criar
-   `src/main/resources/db/migration/V{next}__criar_{tabela}.sql` (nunca
+   `backend/src/main/resources/db/migration/V{next}__criar_{tabela}.sql` (nunca
    editar uma migration existente; ver `.agents/rules/banco-e-migrations.md`)
 
-3. **Criar o pacote** `src/main/java/com/seegeneroso/gestao_custos_obras/{dominio}/`
+3. **Criar o pacote** `backend/src/main/java/com/seegeneroso/gestao_custos_obras/{dominio}/`
    com, nesta ordem:
    - `{Dominio}Model.java` — entity JPA, seguir `ImovelModel.java` como modelo
      (Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`)
@@ -46,7 +46,7 @@ leia esses arquivos antes de gerar o novo domínio.
      domínio introduza uma convenção nova (regra path-scoped nova, por
      exemplo)
 
-5. **Rodar `./mvnw test`** antes de considerar a tarefa concluída.
+5. **Rodar `cd backend && ./mvnw test`** antes de considerar a tarefa concluída.
 
 ## O que NUNCA fazer
 

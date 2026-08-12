@@ -1,5 +1,12 @@
 # Arquitetura
 
+## Estrutura do repositório
+
+Monorepo: `backend/` (este projeto Spring Boot) e `frontend/` (Angular) como
+pastas irmãs na raiz. Ver ADR-015 em `docs/DECISOES.md`. Este documento
+descreve só o `backend/`; o frontend tem sua própria doc em
+`docs/FRONTEND.md`.
+
 ## Padrão: package by feature
 
 Cada domínio (`imovel/`, `aportante/`, `etapaProjeto/`, `despesa/`,
@@ -14,7 +21,7 @@ exceptions, JWT, Flyway). Ver justificativa completa em `docs/DECISOES.md`
 Flyway está **pausado** enquanto a modelagem do MVP não fecha: schema gerido
 direto pelo Hibernate via `ddl-auto=update`, e `FlywayConfig` está sem
 `@Configuration` (beans não registrados). As migrations antigas em
-`src/main/resources/db/migration/` (V1, V3, V4, V5, V6...) ficam inertes, não
+`backend/src/main/resources/db/migration/` (V1, V3, V4, V5, V6...) ficam inertes, não
 foram apagadas. Quando o Flyway for reativado: religar `@Configuration` em
 `shared/config/FlywayConfig.java`, voltar `ddl-auto=validate` e consolidar as
 migrations antigas numa `V1` baseline única. No Spring Boot 4.1 a
@@ -23,7 +30,7 @@ reativado, o migrador volta a ser instanciado manualmente por esse `@Bean`,
 que roda `migrate()` antes do `EntityManagerFactory`. Detalhes: ADR-012/013.
 
 A árvore de pacotes atual não está documentada aqui de propósito — rode
-`find src/main/java -name "*.java"` ou peça pro Claude explorar, é mais
+`find backend/src/main/java -name "*.java"` ou peça pro Claude explorar, é mais
 confiável que manter isso sincronizado manualmente.
 
 ## Padrão de cada domínio (CRUD)

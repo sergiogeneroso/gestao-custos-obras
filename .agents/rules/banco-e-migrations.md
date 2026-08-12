@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/main/resources/db/migration/**"
+  - "backend/src/main/resources/db/migration/**"
 ---
 
 # Banco de Dados e Migrations
@@ -17,5 +17,5 @@ paths:
 - Ao adicionar/alterar coluna, atualizar também `docs/MODELO-DADOS.md`
   (diagrama ER) na mesma tarefa
 - (regras pré-pausa, valem de novo quando o Flyway for reativado) migrations
-  versionadas em `src/main/resources/db/migration/`; **nunca editar** uma já
+  versionadas em `backend/src/main/resources/db/migration/`; **nunca editar** uma já
   aplicada, sempre criar uma nova com o próximo número (`V7__...`, ...)
