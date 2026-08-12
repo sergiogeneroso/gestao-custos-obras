@@ -1,4 +1,11 @@
-<mat-toolbar color="primary">Gestão de Custos de Obras</mat-toolbar>
+<mat-toolbar color="primary">
+  <span>Gestão de Custos de Obras</span>
+  <span class="spacer"></span>
+  @if (usuario(); as u) {
+    <span class="usuario">{{ u.nome }}</span>
+  }
+  <button mat-button (click)="sair()">Sair</button>
+</mat-toolbar>
 
 <mat-sidenav-container class="container">
   <mat-sidenav mode="side" opened>

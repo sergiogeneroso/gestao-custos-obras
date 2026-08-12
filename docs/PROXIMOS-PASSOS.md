@@ -45,7 +45,11 @@ Consultar e atualizar ao final de cada sessão de trabalho.
       roteamento base: `Shell` (toolbar/sidenav) em `core/layout/`, rotas
       lazy (`loadComponent`) por domínio em `app.routes.ts`, placeholders
       em `features/*`
-- [ ] Login + AuthGuard
+- [x] Login + AuthGuard: `core/auth/` (`AuthService` com signal de usuário +
+      `localStorage`, `authInterceptor` funcional injeta Bearer,
+      `authGuard` protege o `Shell`), tela de login split-screen
+      (`core/auth/login/`) na paleta Azul corporativo (ADR-016). Testado
+      ponta a ponta com o seed admin (login → área logada → logout)
 - [ ] Dashboard (Custo Total, R$/m², Orçado vs. Realizado)
 - [ ] Telas CRUD (Imóveis, Aportantes, Etapas, Orçamento)
 - [ ] Lançamento de despesas mobile-friendly (canteiro de obras)

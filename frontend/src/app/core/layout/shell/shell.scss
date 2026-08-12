@@ -1,3 +1,12 @@
+.spacer {
+  flex: 1;
+}
+
+.usuario {
+  margin-right: 16px;
+  font-size: 0.9rem;
+}
+
 .container {
   height: calc(100vh - 64px);
 }

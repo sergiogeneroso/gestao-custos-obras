@@ -1,0 +1,30 @@
+<div class="login">
+  <div class="login__marca">
+    <h1>Gestão de Custos de Obras</h1>
+    <p>Acompanhe custos de aquisição e construção por etapa e por aportante.</p>
+  </div>
+
+  <div class="login__form">
+    <form [formGroup]="form" (ngSubmit)="entrar()">
+      <h2>Entrar</h2>
+
+      <mat-form-field appearance="outline">
+        <mat-label>E-mail</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="username" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Senha</mat-label>
+        <input matInput type="password" formControlName="senha" autocomplete="current-password" />
+      </mat-form-field>
+
+      @if (erro()) {
+        <p class="login__erro">{{ erro() }}</p>
+      }
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || carregando()">
+        {{ carregando() ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </form>
+  </div>
+</div>
