@@ -11,7 +11,7 @@
   position: relative;
   background:
     radial-gradient(1200px 600px at 82% -260px, rgba(43, 39, 65, 0.75), transparent 60%),
-    radial-gradient(1100px 500px at -10% 100%, rgba(0, 0, 0, 0.3), transparent 55%);
+    radial-gradient(1100px 500px at -10% 100%, rgba(0, 0, 0, 0.14), transparent 55%);
   margin-inline: -24px;
   padding-inline: 24px;
 }
@@ -84,7 +84,8 @@ a {
 }
 
 .landing__hero {
-  padding: 96px 0 64px;
+  margin-inline: 0;
+  padding: 96px 6px 64px;
 
   h1 {
     font-weight: 500;
@@ -121,7 +122,8 @@ a {
 .landing__numeros {
   background: radial-gradient(900px 420px at 85% -40%, rgba(53, 59, 128, 0.7), transparent 64%), #262a60;
   padding: 56px 24px;
-  margin: 0 -24px;
+  margin: 0;
+  border-radius: 16px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 28px;
