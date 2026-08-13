@@ -48,14 +48,21 @@ Consultar e atualizar ao final de cada sessão de trabalho.
 - [x] Login + AuthGuard: `core/auth/` (`AuthService` com signal de usuário +
       `localStorage`, `authInterceptor` funcional injeta Bearer,
       `authGuard` protege o `Shell`), tela de login split-screen
-      (`core/auth/login/`) na paleta Azul corporativo (ADR-016). Testado
-      ponta a ponta com o seed admin (login → área logada → logout)
-- [ ] Dashboard (Custo Total, R$/m², Orçado vs. Realizado)
+      (`core/auth/login/`). Testado ponta a ponta com o seed admin
+      (login → área logada → logout)
+- [x] Design system Nocturne adotado como tema default (ADR-018): paleta,
+      Inter, ícones Phosphor, raio/densidade globais, landing page pública
+      em `/`, `Shell` movido pra `/painel`
+- [x] Dashboard (`features/dashboard/`): KPIs (custo lançado no mês, custo
+      médio por m², despesas sem comprovante) e 3 imóveis mais recentes,
+      alternável cards/lista — dados montados no frontend a partir de
+      `GET /api/imoveis` + `GET /api/despesas`, sem endpoint novo. Gráficos
+      (Custo Total, Orçado vs. Realizado, ADR-017/Chart.js) ainda pendentes
 - [ ] Telas CRUD (Imóveis, Aportantes, Etapas, Orçamento)
 - [ ] Lançamento de despesas mobile-friendly (canteiro de obras)
 - [ ] RF07 — tema configurável: endpoint de config no backend
-      (`ROLE_ADMIN`), 4 paletas curadas + light/dark (ADR-016), painel admin
-      no frontend pra trocar
+      (`ROLE_ADMIN`), 5 paletas curadas (Nocturne dark-only + 4 com par
+      light/dark, ADR-016/ADR-018), painel admin no frontend pra trocar
 
 ## Pós-MVP (fase 2)
 

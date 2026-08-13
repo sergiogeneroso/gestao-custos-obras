@@ -5,25 +5,51 @@
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 
+// Inter (self-hosted, ADR-017) — pesos usados no tema Nocturne (ADR-018)
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+
+// Phosphor (ADR-018, substitui Lucide do ADR-017)
+@import '@phosphor-icons/web/regular/style.css';
+
 html {
   height: 100%;
+  // Nocturne (ADR-018) é o tema default: dark, seed violet (paleta nomeada
+  // mais próxima em matiz — nenhuma bate com a saturação baixa do accent
+  // #9184d9, então ela só fornece o scaffolding tonal; a cor exata vem dos
+  // overrides de --mat-sys-* abaixo)
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        theme-type: dark,
+        primary: mat.$violet-palette,
+        tertiary: mat.$violet-palette,
       ),
-      typography: Roboto,
-      density: 0,
+      typography: Inter,
+      density: -1,
     )
   );
+
+  // Raio uniforme de 8px (Nocturne)
+  --mat-sys-corner-extra-small: 8px;
+  --mat-sys-corner-small: 8px;
+  --mat-sys-corner-medium: 8px;
+
+  // Cor exata do Nocturne, por cima do scaffolding do violet-palette
+  --mat-sys-background: #161826;
+  --mat-sys-surface: #161826;
+  --mat-sys-surface-container: #232532;
+  --mat-sys-surface-container-low: #1b1d2b;
+  --mat-sys-on-background: #e9e9ed;
+  --mat-sys-on-surface: #e9e9ed;
+  --mat-sys-primary: #9184d9;
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
+  // Nocturne é dark-only (ADR-018) — sem par light
+  color-scheme: dark;
 
   // Set a default background, font and text colors for the application using
   // Angular Material's system-level CSS variables. Learn more about these

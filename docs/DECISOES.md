@@ -129,7 +129,8 @@ financeiro, Grafite + âmbar — cada uma com light e dark mode (ADR-014 já
 previa toggle claro/escuro). **Efeito colateral:** esse endpoint de config
 precisa ser admin-only, o que antecipa uma fatia pequena da RBAC que RNF01
 tinha deixado pra fase 2 (`.hasRole("ADMIN")` só nesse endpoint específico,
-não a regra geral por domínio).
+não a regra geral por domínio). Ver ADR-018 — Nocturne entra como paleta
+default, ocupando o lugar do Azul corporativo.
 
 ## ADR-017 — Tipografia Inter e ícones Lucide (Ago 2026)
 Continuação das decisões de design visual (após ADR-016). **Tipografia:**
@@ -145,4 +146,42 @@ internamente; nas telas de domínio o uso é direto via `lucide-angular`.
 `ngx-echarts`) — os três gráficos do dashboard (RF05: Custo Total, R$/m²,
 Orçado vs. Realizado) são simples o bastante pra não justificar mais uma
 camada de integração; usado via `ViewChild` num `<canvas>`. Detalhes:
-`docs/FRONTEND.md`.
+`docs/FRONTEND.md`. Ver ADR-018 — ícones migram de Lucide para Phosphor.
+
+## ADR-018 — Adoção do design system Nocturne como tema default (Ago 2026)
+
+Um design system chamado **Nocturne** foi importado via claude_design MCP
+com templates já desenhados especificamente para este domínio (login,
+dashboard interno, landing) — mais específico e completo do que a referência
+de layout genérica (Berry/Flat Able/Gradient Able) usada até então. Emenda
+pontos do ADR-009/016/017 sem invalidá-los:
+
+**Paleta (emenda ADR-016):** Nocturne passa a ser a paleta **default**,
+no lugar de Azul corporativo — que continua existindo como opção curada
+normal para quando RF07 (troca de paleta pelo admin) for implementado.
+Nocturne é um tema fixo dark-only (bg `#161826`, surface `#232532`, texto
+`#e9e9ed`, accent `#9184d9`) — exceção documentada à regra do ADR-016 de
+"cada paleta precisa de par light/dark": não existe variante light
+desenhada para o Nocturne, então selecioná-lo no futuro painel admin
+implica dark mode.
+
+**Ícones (emenda ADR-017):** Phosphor substitui Lucide. Sem wrapper Angular
+oficial (ao contrário do `lucide-angular`) — usado direto via classe CSS do
+pacote `@phosphor-icons/web`.
+
+**Forma e tipografia:** raio de 8px, densidade compacta e botões primários
+sempre outline (nunca preenchidos) passam a ser a linha de base do tema
+Material — como o Material só expõe cor por paleta (não forma/densidade),
+esses três aspectos são globais, independentes de qual paleta de cor está
+ativa. Tipografia Inter do ADR-017 (nunca chegou a ser implementada) entra
+junto.
+
+**Componentes (ADR-009 não muda):** Angular Material continua sendo o
+framework de componentes. A cor exata do Nocturne é aplicada via override
+dos tokens de sistema M3 (`--mat-sys-*`), não por paleta nomeada do
+Material — nenhuma das paletas nomeadas (`$violet-palette` etc.) bate com a
+saturação baixa do accent do Nocturne.
+
+**Escopo desta sessão:** aplicado na tela de login, no shell interno (RF05
+Dashboard incluído) e numa landing page nova antes do login — RF07 (troca
+de paleta em runtime) continua pendente, sem mudança nesta ADR.
