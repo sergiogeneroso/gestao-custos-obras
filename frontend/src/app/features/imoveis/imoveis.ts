@@ -2,6 +2,7 @@ import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { ImovelDetalheDialog } from './imovel-detalhe-dialog/imovel-detalhe-dialog';
 import { ImovelFormDialog } from './imovel-form-dialog/imovel-form-dialog';
 import { ImovelResponseDTO, STATUS_IMOVEL_LABEL, TIPO_IMOVEL_LABEL } from './imovel.model';
 import { ImoveisService } from './imoveis.service';
@@ -31,6 +32,10 @@ export class Imoveis implements OnInit {
 
   protected editar(imovel: ImovelResponseDTO): void {
     this.abrirFormulario(imovel);
+  }
+
+  protected verDetalhe(imovel: ImovelResponseDTO): void {
+    this.dialog.open(ImovelDetalheDialog, { data: { imovel }, autoFocus: false, width: '720px', maxWidth: '95vw' });
   }
 
   protected inativar(imovel: ImovelResponseDTO): void {

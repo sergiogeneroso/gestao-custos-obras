@@ -17,7 +17,7 @@
   } @else {
     <div class="imoveis__cards">
       @for (imovel of imoveis(); track imovel.id) {
-        <article class="card">
+        <article class="card" (click)="verDetalhe(imovel)">
           <div class="card__foto" aria-hidden="true"></div>
           <div class="card__corpo">
             <div class="card__meta">
@@ -50,7 +50,7 @@
               </div>
             </div>
 
-            <div class="card__acoes">
+            <div class="card__acoes" (click)="$event.stopPropagation()">
               <button mat-stroked-button type="button" (click)="editar(imovel)">Editar</button>
               <button mat-icon-button type="button" (click)="inativar(imovel)" aria-label="Inativar imóvel">
                 <i class="ph ph-trash"></i>
