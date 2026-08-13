@@ -1,1 +1,64 @@
-<h1>Imóveis</h1>
+<main class="imoveis">
+  <header class="imoveis__cabecalho">
+    <div>
+      <span class="imoveis__kicker">Cadastro</span>
+      <h1>Imóveis e lotes</h1>
+    </div>
+    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+      <i class="ph ph-plus"></i>
+      Novo imóvel
+    </button>
+  </header>
+
+  @if (carregando()) {
+    <p class="imoveis__carregando">Carregando…</p>
+  } @else if (imoveis().length === 0) {
+    <p class="imoveis__vazio">Nenhum imóvel cadastrado ainda.</p>
+  } @else {
+    <div class="imoveis__cards">
+      @for (imovel of imoveis(); track imovel.id) {
+        <article class="card">
+          <div class="card__foto" aria-hidden="true"></div>
+          <div class="card__corpo">
+            <div class="card__meta">
+              <span class="tag" [class]="'tag--' + imovel.status">{{ statusLabel[imovel.status] }}</span>
+              <span class="card__id">{{ imovel.identificador }}</span>
+            </div>
+            <h3>{{ imovel.endereco || '—' }}</h3>
+            <p class="card__tipo">{{ tipoLabel[imovel.tipo] }}</p>
+
+            <div class="card__metricas">
+              <div>
+                <p class="card__metrica-label">Área</p>
+                <p class="card__metrica-valor">
+                  @if (imovel.area !== null) {
+                    {{ imovel.area | number: '1.0-2' }} m²
+                  } @else {
+                    —
+                  }
+                </p>
+              </div>
+              <div>
+                <p class="card__metrica-label">Valor de aquisição</p>
+                <p class="card__metrica-valor">
+                  @if (imovel.valorAquisicaoInicial !== null) {
+                    {{ imovel.valorAquisicaoInicial | currency: 'BRL' }}
+                  } @else {
+                    —
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div class="card__acoes">
+              <button mat-stroked-button type="button" (click)="editar(imovel)">Editar</button>
+              <button mat-icon-button type="button" (click)="inativar(imovel)" aria-label="Inativar imóvel">
+                <i class="ph ph-trash"></i>
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</main>

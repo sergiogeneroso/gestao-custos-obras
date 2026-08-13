@@ -1,0 +1,94 @@
+<div class="dialogo-imovel">
+  <div class="dialogo-imovel__topo">
+    <h2 mat-dialog-title>{{ imovel ? 'Editar imóvel' : 'Novo imóvel' }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <div class="dialogo-imovel__grade">
+        <mat-form-field appearance="outline">
+          <mat-label>Identificador</mat-label>
+          <input matInput formControlName="identificador" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo</mat-label>
+          <mat-select formControlName="tipo">
+            @for (tipo of tipos; track tipo) {
+              <mat-option [value]="tipo">{{ tipoLabel[tipo] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
+          <mat-label>Endereço</mat-label>
+          <input matInput formControlName="endereco" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Área</mat-label>
+          <input matInput type="number" step="0.01" min="0" formControlName="area" />
+          <span matTextSuffix>m²</span>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Valor de aquisição inicial</mat-label>
+          <span matTextPrefix>R$&nbsp;</span>
+          <input
+            matInput
+            type="text"
+            inputmode="decimal"
+            formControlName="valorAquisicaoInicial"
+            (blur)="formatarCampoValor()"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            @for (s of status; track s) {
+              <mat-option [value]="s">{{ statusLabel[s] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
+          <mat-label>Descrição</mat-label>
+          <textarea matInput formControlName="descricao" rows="3"></textarea>
+        </mat-form-field>
+      </div>
+
+      @if (imovel) {
+        <section class="dialogo-imovel__fotos">
+          <h3>Fotos</h3>
+
+          <div class="dialogo-imovel__galeria">
+            @for (foto of fotos(); track foto.id) {
+              <div class="dialogo-imovel__foto">
+                <img [src]="urlsFotos()[foto.id]" [alt]="foto.legenda ?? imovel.identificador" />
+                <button mat-icon-button type="button" (click)="removerFoto(foto)" aria-label="Remover foto">
+                  <i class="ph ph-trash"></i>
+                </button>
+              </div>
+            }
+          </div>
+
+          <label class="dialogo-imovel__upload">
+            <i class="ph ph-upload-simple"></i>
+            {{ enviandoFoto() ? 'Enviando...' : 'Adicionar foto' }}
+            <input type="file" accept="image/*" hidden [disabled]="enviandoFoto()" (change)="enviarFoto($event)" />
+          </label>
+        </section>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Salvar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

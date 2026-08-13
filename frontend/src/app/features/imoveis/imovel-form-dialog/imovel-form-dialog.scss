@@ -1,0 +1,85 @@
+.dialogo-imovel {
+  width: 100%;
+}
+
+.dialogo-imovel__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 0 24px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.dialogo-imovel__grade {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 16px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.dialogo-imovel__campo-largo {
+  grid-column: 1 / -1;
+}
+
+.dialogo-imovel__fotos {
+  margin-top: 8px;
+  border-top: 1px solid rgba(233, 233, 237, 0.16);
+  padding-top: 16px;
+
+  h3 {
+    font-weight: 500;
+    font-size: 15px;
+    margin: 0 0 12px;
+  }
+}
+
+.dialogo-imovel__galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dialogo-imovel__foto {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--mat-sys-corner-medium, 8px);
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-low);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  button {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(22, 24, 38, 0.72);
+  }
+}
+
+.dialogo-imovel__upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px dashed rgba(233, 233, 237, 0.32);
+  border-radius: var(--mat-sys-corner-medium, 8px);
+  font-size: 13.5px;
+  color: #b2b6ca;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-surface);
+  }
+}
