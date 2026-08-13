@@ -12,7 +12,10 @@
   </aside>
 
   <div class="login__form">
-    <span class="login__marca">Gestão de Custos de Obras</span>
+    <div class="login__topo">
+      <span class="login__marca">Gestão de Custos de Obras</span>
+      <a routerLink="/" class="login__voltar">← Voltar ao início</a>
+    </div>
 
     <div class="login__form-conteudo">
       <form [formGroup]="form" (ngSubmit)="entrar()">
