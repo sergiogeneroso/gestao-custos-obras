@@ -2,6 +2,7 @@ import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
 import { DashboardService, ImovelResumo } from './dashboard.service';
 
 const STATUS_LABEL: Record<ImovelResumo['status'], string> = {
@@ -12,7 +13,7 @@ const STATUS_LABEL: Record<ImovelResumo['status'], string> = {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DecimalPipe, MatButtonToggleModule],
+  imports: [CurrencyPipe, DecimalPipe, MatButtonToggleModule, AuthImgDirective],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

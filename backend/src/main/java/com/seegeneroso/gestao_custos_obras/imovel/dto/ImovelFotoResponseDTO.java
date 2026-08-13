@@ -7,6 +7,7 @@ public record ImovelFotoResponseDTO(
         Long imovelId,
         String url,
         String legenda,
-        LocalDateTime dataUpload
+        LocalDateTime dataUpload,
+        Boolean principal
 ) {
 }

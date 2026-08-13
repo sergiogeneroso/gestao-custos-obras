@@ -32,6 +32,7 @@ export interface ImovelResponseDTO {
   status: StatusImovel;
   descricao: string | null;
   ativo: boolean;
+  fotoPrincipalUrl: string | null;
 }
 
 export interface ImovelFotoResponseDTO {
@@ -40,4 +41,5 @@ export interface ImovelFotoResponseDTO {
   url: string;
   legenda: string | null;
   dataUpload: string;
+  principal: boolean;
 }

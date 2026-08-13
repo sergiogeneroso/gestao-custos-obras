@@ -52,6 +52,11 @@
   border-radius: var(--mat-sys-corner-medium, 8px);
   overflow: hidden;
   background: var(--mat-sys-surface-container-low);
+  outline: 2px solid transparent;
+
+  &--principal {
+    outline-color: var(--mat-sys-primary);
+  }
 
   img {
     width: 100%;
@@ -64,6 +69,16 @@
     top: 2px;
     right: 2px;
     background: rgba(22, 24, 38, 0.72);
+  }
+}
+
+.dialogo-imovel__botao-principal {
+  top: 2px;
+  left: 2px;
+  right: auto !important;
+
+  &--ativo {
+    color: #f5c518;
   }
 }
 

@@ -53,6 +53,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected readonly fotos = signal<ImovelFotoResponseDTO[]>([]);
   protected readonly urlsFotos = signal<Record<number, string>>({});
   protected readonly enviandoFoto = signal(false);
+  protected readonly definindoPrincipal = signal(false);
 
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
@@ -144,6 +145,26 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
         this.enviandoFoto.set(false);
         input.value = '';
         this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível enviar a foto.', 'Fechar', { duration: 6000 });
+      },
+    });
+  }
+
+  protected definirComoPrincipal(foto: ImovelFotoResponseDTO): void {
+    if (!this.imovel || foto.principal) {
+      return;
+    }
+
+    this.definindoPrincipal.set(true);
+    this.service.definirFotoPrincipal(this.imovel.id, foto.id).subscribe({
+      next: (fotos) => {
+        this.fotos.set(fotos);
+        this.definindoPrincipal.set(false);
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.definindoPrincipal.set(false);
+        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível definir a foto principal.', 'Fechar', {
+          duration: 6000,
+        });
       },
     });
   }

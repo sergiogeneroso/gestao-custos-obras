@@ -30,4 +30,8 @@ public class ImovelFotoModel {
     @Column(name = "data_upload", nullable = false)
     @Builder.Default
     private LocalDateTime dataUpload = LocalDateTime.now();
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean principal = false;
 }

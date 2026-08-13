@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.imovel;
 
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import jakarta.validation.Valid;
@@ -51,17 +52,22 @@ public class ImovelController {
     }
 
     @PostMapping(value = "/{id}/fotos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO> adicionarFoto(
+    public ResponseEntity<ImovelFotoResponseDTO> adicionarFoto(
             @PathVariable Long id,
             @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
             @RequestParam(value = "legenda", required = false) String legenda) {
-        com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO foto = imovelService.adicionarFoto(id, arquivo, legenda);
+        ImovelFotoResponseDTO foto = imovelService.adicionarFoto(id, arquivo, legenda);
         return ResponseEntity.status(HttpStatus.CREATED).body(foto);
     }
 
     @GetMapping("/{id}/fotos")
-    public ResponseEntity<List<com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO>> listarFotos(@PathVariable Long id) {
+    public ResponseEntity<List<ImovelFotoResponseDTO>> listarFotos(@PathVariable Long id) {
         return ResponseEntity.ok(imovelService.listarFotos(id));
+    }
+
+    @PatchMapping("/{id}/fotos/{fotoId}/principal")
+    public ResponseEntity<List<ImovelFotoResponseDTO>> definirFotoPrincipal(@PathVariable Long id, @PathVariable Long fotoId) {
+        return ResponseEntity.ok(imovelService.definirFotoPrincipal(id, fotoId));
     }
 
     @DeleteMapping("/{id}/fotos/{fotoId}")

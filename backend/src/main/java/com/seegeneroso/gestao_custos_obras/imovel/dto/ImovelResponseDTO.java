@@ -14,5 +14,6 @@ public record ImovelResponseDTO(
         BigDecimal valorAquisicaoInicial,
         StatusImovel status,
         String descricao,
-        Boolean ativo
+        Boolean ativo,
+        String fotoPrincipalUrl
 ) {}

@@ -2,6 +2,7 @@ import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
 import { ImovelDetalheDialog } from './imovel-detalhe-dialog/imovel-detalhe-dialog';
 import { ImovelFormDialog } from './imovel-form-dialog/imovel-form-dialog';
 import { ImovelResponseDTO, STATUS_IMOVEL_LABEL, TIPO_IMOVEL_LABEL } from './imovel.model';
@@ -9,7 +10,7 @@ import { ImoveisService } from './imoveis.service';
 
 @Component({
   selector: 'app-imoveis',
-  imports: [CurrencyPipe, DecimalPipe, MatButtonModule],
+  imports: [CurrencyPipe, DecimalPipe, MatButtonModule, AuthImgDirective],
   templateUrl: './imoveis.html',
   styleUrl: './imoveis.scss',
 })

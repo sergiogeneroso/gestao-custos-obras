@@ -32,7 +32,7 @@ public class ImovelMapper {
         imovel.setDescricao(dto.descricao());
     }
 
-    public ImovelResponseDTO toResponseDTO(ImovelModel imovel) {
+    public ImovelResponseDTO toResponseDTO(ImovelModel imovel, String fotoPrincipalUrl) {
         return new ImovelResponseDTO(
                 imovel.getId(),
                 imovel.getIdentificador(),
@@ -42,7 +42,8 @@ public class ImovelMapper {
                 imovel.getValorAquisicaoInicial(),
                 imovel.getStatus(),
                 imovel.getDescricao(),
-                imovel.getAtivo()
+                imovel.getAtivo(),
+                fotoPrincipalUrl
         );
     }
 }

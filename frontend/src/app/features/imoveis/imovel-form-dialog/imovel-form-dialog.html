@@ -67,8 +67,19 @@
 
           <div class="dialogo-imovel__galeria">
             @for (foto of fotos(); track foto.id) {
-              <div class="dialogo-imovel__foto">
+              <div class="dialogo-imovel__foto" [class.dialogo-imovel__foto--principal]="foto.principal">
                 <img [src]="urlsFotos()[foto.id]" [alt]="foto.legenda ?? imovel.identificador" />
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="dialogo-imovel__botao-principal"
+                  [class.dialogo-imovel__botao-principal--ativo]="foto.principal"
+                  [disabled]="definindoPrincipal() || foto.principal"
+                  (click)="definirComoPrincipal(foto)"
+                  [attr.aria-label]="foto.principal ? 'Foto principal' : 'Definir como foto principal'"
+                >
+                  <i class="ph ph-star"></i>
+                </button>
                 <button mat-icon-button type="button" (click)="removerFoto(foto)" aria-label="Remover foto">
                   <i class="ph ph-trash"></i>
                 </button>

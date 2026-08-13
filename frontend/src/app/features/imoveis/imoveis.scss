@@ -55,8 +55,11 @@
 }
 
 .card__foto {
+  display: block;
+  width: 100%;
   aspect-ratio: 16 / 10;
   background: linear-gradient(135deg, #2b2745, #1b1d2b);
+  object-fit: cover;
 }
 
 .card__corpo {

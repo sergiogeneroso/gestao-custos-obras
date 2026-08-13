@@ -39,6 +39,10 @@ export class ImoveisService {
     return this.http.delete<void>(`${this.baseUrl}/${imovelId}/fotos/${fotoId}`);
   }
 
+  definirFotoPrincipal(imovelId: number, fotoId: number): Observable<ImovelFotoResponseDTO[]> {
+    return this.http.patch<ImovelFotoResponseDTO[]>(`${this.baseUrl}/${imovelId}/fotos/${fotoId}/principal`, null);
+  }
+
   baixarFoto(url: string): Observable<Blob> {
     return this.http.get(url, { responseType: 'blob' });
   }

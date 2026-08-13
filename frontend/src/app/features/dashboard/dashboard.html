@@ -56,7 +56,11 @@
         <div class="dashboard__cards">
           @for (imovel of r.imoveisRecentes; track imovel.id) {
             <article class="card card--imovel">
-              <div class="card__foto" aria-hidden="true"></div>
+              @if (imovel.fotoPrincipalUrl) {
+                <img class="card__foto" [appAuthImg]="imovel.fotoPrincipalUrl" [alt]="imovel.identificador" />
+              } @else {
+                <div class="card__foto" aria-hidden="true"></div>
+              }
               <div class="card__corpo">
                 <div class="card__meta">
                   <span class="tag" [class]="'tag--' + imovel.status">{{ statusLabel(imovel.status) }}</span>

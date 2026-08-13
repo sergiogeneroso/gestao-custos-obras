@@ -12,6 +12,7 @@ interface ImovelResponseDTO {
   area: number;
   status: StatusImovel;
   ativo: boolean;
+  fotoPrincipalUrl: string | null;
 }
 
 interface DespesaResponseDTO {
@@ -30,6 +31,7 @@ export interface ImovelResumo {
   status: StatusImovel;
   gastoRealizado: number;
   custoPorM2: number | null;
+  fotoPrincipalUrl: string | null;
 }
 
 export interface ResumoDashboard {
@@ -84,6 +86,7 @@ export class DashboardService {
           status: imovel.status,
           gastoRealizado,
           custoPorM2: imovel.area > 0 ? gastoRealizado / imovel.area : null,
+          fotoPrincipalUrl: imovel.fotoPrincipalUrl,
         };
       });
 
