@@ -1,22 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
-import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-shell',
-  imports: [
-    RouterOutlet,
-    RouterLink,
-    RouterLinkActive,
-    MatToolbarModule,
-    MatSidenavModule,
-    MatListModule,
-    MatButtonModule,
-  ],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatSidenavModule],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -26,13 +15,24 @@ export class Shell {
 
   protected readonly usuario = this.authService.usuario;
 
+  protected readonly iniciais = computed(() => {
+    const nome = this.usuario()?.nome ?? '';
+    return nome
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((parte) => parte[0]?.toUpperCase())
+      .join('');
+  });
+
   protected readonly links = [
-    { path: 'imoveis', label: 'Imóveis' },
-    { path: 'aportantes', label: 'Aportantes' },
-    { path: 'etapas-projeto', label: 'Etapas do Projeto' },
-    { path: 'despesas', label: 'Despesas' },
-    { path: 'orcamento-etapa', label: 'Orçamento por Etapa' },
-    { path: 'relatorios', label: 'Relatórios' },
+    { path: 'dashboard', label: 'Dashboard', icone: 'ph-squares-four' },
+    { path: 'imoveis', label: 'Imóveis e lotes', icone: 'ph-buildings' },
+    { path: 'despesas', label: 'Despesas', icone: 'ph-receipt' },
+    { path: 'aportantes', label: 'Aportantes', icone: 'ph-users-three' },
+    { path: 'etapas-projeto', label: 'Etapas do projeto', icone: 'ph-list-checks' },
+    { path: 'orcamento-etapa', label: 'Orçamentos', icone: 'ph-scales' },
+    { path: 'relatorios', label: 'Relatórios', icone: 'ph-chart-line-up' },
   ];
 
   protected sair(): void {

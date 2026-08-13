@@ -1,20 +1,134 @@
-.spacer {
+.shell {
+  height: 100vh;
+}
+
+.shell__sidebar {
+  width: 236px;
+  background: var(--mat-sys-surface-container-low, #1b1d2b);
+  border-right: 1px solid rgba(233, 233, 237, 0.16);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 0;
+  box-sizing: border-box;
+}
+
+.shell__marca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 17px 22px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--mat-sys-on-surface);
+}
+
+.shell__marca-dot {
+  width: 9px;
+  height: 9px;
+  background: var(--mat-sys-primary);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.shell__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 8px 11px;
+    border-radius: var(--mat-sys-corner-small, 8px);
+    font-size: 14px;
+    color: #b2b6ca;
+    text-decoration: none;
+
+    i {
+      font-size: 17px;
+    }
+
+    &:hover {
+      background: rgba(233, 233, 237, 0.06);
+    }
+
+    &.ativo {
+      color: var(--mat-sys-on-surface);
+      background: rgba(145, 132, 217, 0.16);
+      box-shadow: inset 2px 0 0 var(--mat-sys-primary);
+
+      i {
+        color: #b5abfc;
+      }
+    }
+  }
+}
+
+.shell__usuario {
+  margin-top: auto;
+  padding: 17px 17px 0;
+  border-top: 1px solid rgba(233, 233, 237, 0.16);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.shell__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #423a6a;
+  color: #d2cefd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.shell__usuario-info {
+  min-width: 0;
   flex: 1;
 }
 
-.usuario {
-  margin-right: 16px;
-  font-size: 0.9rem;
+.shell__usuario-nome {
+  font-size: 13px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.container {
-  height: calc(100vh - 64px);
+.shell__usuario-papel {
+  font-size: 11.5px;
+  margin: 1px 0 0;
+  color: #9397ab;
 }
 
-mat-sidenav {
-  width: 240px;
+.shell__sair {
+  background: none;
+  border: none;
+  color: #9397ab;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--mat-sys-corner-small, 8px);
+  display: flex;
+  flex-shrink: 0;
+
+  i {
+    font-size: 17px;
+  }
+
+  &:hover {
+    background: rgba(233, 233, 237, 0.08);
+    color: var(--mat-sys-on-surface);
+  }
 }
 
-.content {
-  padding: 16px;
+.shell__content {
+  background: var(--mat-sys-background);
 }

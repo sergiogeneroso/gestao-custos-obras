@@ -1,0 +1,71 @@
+<div class="landing">
+  <nav class="landing__nav">
+    <span class="landing__marca">Gestão de Custos de Obras</span>
+    <a href="#vitrine">Imóveis</a>
+    <a href="#capacidades">O que faz</a>
+    <a href="#acesso">Acesso</a>
+    <a routerLink="/login" class="btn-primary landing__entrar">Entrar</a>
+  </nav>
+
+  <section class="landing__hero">
+    <h1>
+      <span>Cada obra, do terreno à chave.</span>
+      <span class="landing__hero-destaque">Cada real, do aporte à nota.</span>
+    </h1>
+    <p>
+      Acompanhe lotes e imóveis em construção com o custo real ao lado do orçado: despesas por
+      etapa, rateio entre aportantes e o custo por metro quadrado atualizado a cada lançamento
+      feito no canteiro.
+    </p>
+    <div class="landing__hero-acoes">
+      <a href="#vitrine" class="btn-primary">Ver a vitrine</a>
+      <a routerLink="/login" class="btn-ghost">Entrar no sistema</a>
+    </div>
+  </section>
+
+  <section class="landing__numeros" aria-label="Números">
+    <div><p>18</p><span>Obras em acompanhamento</span></div>
+    <div><p>12</p><span>Etapas no catálogo</span></div>
+    <div><p>96</p><span>Aportantes cadastrados</span></div>
+    <div><p>100%</p><span>Despesas com comprovante</span></div>
+  </section>
+
+  <section id="vitrine" class="landing__vitrine">
+    <span class="landing__kicker">Últimos imóveis cadastrados</span>
+    <h2>O que está em obra agora</h2>
+    <div class="landing__cards">
+      @for (imovel of vitrine; track imovel.identificador) {
+        <article class="card">
+          <div class="card__foto" aria-hidden="true"></div>
+          <div class="card__corpo">
+            <div class="card__meta">
+              <span class="tag" [class]="'tag--' + imovel.status">{{ imovel.status }}</span>
+              <span class="card__id">{{ imovel.identificador }}</span>
+            </div>
+            <h3>{{ imovel.nome }}</h3>
+            <p>{{ imovel.endereco }}</p>
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section id="capacidades" class="landing__capacidades">
+    <span class="landing__kicker">O que o sistema faz</span>
+    @for (item of capacidades; track item.titulo; let i = $index) {
+      <div class="landing__capacidade">
+        <p class="landing__capacidade-numero">{{ (i + 1).toString().padStart(2, '0') }}</p>
+        <h3>{{ item.titulo }}</h3>
+        <p>{{ item.texto }}</p>
+      </div>
+    }
+  </section>
+
+  <section id="acesso" class="landing__acesso">
+    <h3>Acesse o painel</h3>
+    <p>Entre com o e-mail da sua conta para ver as obras, os lançamentos do dia e o extrato de cada aportante.</p>
+    <a routerLink="/login" class="btn-primary">Entrar</a>
+  </section>
+
+  <footer class="landing__footer">Gestão de Custos de Obras — controle de custos de aquisição e construção.</footer>
+</div>

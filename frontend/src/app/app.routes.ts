@@ -4,15 +4,23 @@ import { Shell } from './core/layout/shell/shell';
 
 export const routes: Routes = [
   {
+    path: '',
+    loadComponent: () => import('./core/layout/landing/landing').then((m) => m.Landing),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./core/auth/login/login').then((m) => m.Login),
   },
   {
-    path: '',
+    path: 'painel',
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'imoveis', pathMatch: 'full' },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+      },
       {
         path: 'imoveis',
         loadComponent: () => import('./features/imoveis/imoveis').then((m) => m.Imoveis),

@@ -1,59 +1,156 @@
-.login {
-  display: flex;
-  min-height: 100vh;
+:host {
+  display: block;
 }
 
-.login__marca {
-  flex: 1;
+.login {
+  display: grid;
+  grid-template-columns: minmax(0, 70fr) minmax(340px, 30fr);
+  min-height: 100vh;
+  background: var(--mat-sys-background);
+  color: var(--mat-sys-on-surface);
+}
+
+.login__institucional {
+  background: radial-gradient(900px 520px at 80% -10%, rgba(53, 59, 128, 0.75), transparent 62%), #262a60;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 64px;
-  color: white;
-  background: linear-gradient(135deg, #1e3a5f, #2f6fed);
-
-  h1 {
-    font-size: 2rem;
-    margin: 0 0 16px;
-  }
-
-  p {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    max-width: 420px;
-  }
+  justify-content: flex-end;
+  padding: 56px clamp(28px, 5vw, 72px);
 }
 
-.login__form {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
+.login__kicker {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(233, 233, 237, 0.64);
+  margin: 0 0 22px;
+}
 
-  form {
-    display: flex;
-    flex-direction: column;
-    width: 320px;
+.login__citacao {
+  font-weight: 500;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  margin: 0 0 42px;
+  max-width: 22ch;
+}
+
+.login__numeros {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+  gap: 42px;
+
+  p {
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0;
   }
 
-  h2 {
-    margin: 0 0 16px;
-  }
-
-  button {
+  span {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(233, 233, 237, 0.64);
     margin-top: 8px;
   }
 }
 
+.login__form {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px clamp(24px, 3.5vw, 56px);
+  background: radial-gradient(900px 600px at -10% 110%, rgba(0, 0, 0, 0.35), transparent 60%), var(--mat-sys-background);
+}
+
+.login__marca {
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.login__form-conteudo {
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  h1 {
+    font-weight: 500;
+    font-size: 36px;
+    line-height: 44px;
+    letter-spacing: -0.015em;
+    margin: 0 0 0 -0.06em;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.login__ajuda {
+  font-size: 15.5px;
+  line-height: 28px;
+  color: rgba(233, 233, 237, 0.78);
+  margin: 14px 0 24px;
+}
+
+.login__opcoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  font-size: 14px;
+
+  a {
+    color: #b5abfc;
+    text-decoration: none;
+
+    &:hover {
+      color: #d2cefd;
+    }
+  }
+}
+
+.login__entrar {
+  margin-top: 8px;
+  min-height: 40px;
+}
+
+.login__suporte {
+  font-size: 13px;
+  line-height: 22px;
+  color: #9397ab;
+  margin: 22px 0 0;
+}
+
 .login__erro {
-  color: #b3261e;
+  color: #ffb4ab;
   font-size: 0.875rem;
   margin: 0 0 8px;
 }
 
+.login__rodape {
+  font-size: 13px;
+  line-height: 22px;
+  color: rgba(233, 233, 237, 0.55);
+  margin: 0;
+}
+
 @media (max-width: 768px) {
-  .login__marca {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login__institucional {
     display: none;
   }
 }
