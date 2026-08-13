@@ -43,11 +43,14 @@ public class ArquivoController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/download/{subpasta}/{nomeArquivo:.+}")
-    public ResponseEntity<Resource> download(
-            @PathVariable String subpasta,
-            @PathVariable String nomeArquivo,
-            HttpServletRequest request) {
+    @GetMapping("/download/{*caminho}")
+    public ResponseEntity<Resource> download(@PathVariable String caminho, HttpServletRequest request) {
+        // ponytail: PathPatternParser não permite {subpasta} cruzar barras (subpasta
+        // pode ser "imoveis/{id}") — captura o caminho inteiro e separa manualmente
+        String caminhoLimpo = caminho.startsWith("/") ? caminho.substring(1) : caminho;
+        int ultimaBarra = caminhoLimpo.lastIndexOf('/');
+        String subpasta = ultimaBarra >= 0 ? caminhoLimpo.substring(0, ultimaBarra) : "";
+        String nomeArquivo = ultimaBarra >= 0 ? caminhoLimpo.substring(ultimaBarra + 1) : caminhoLimpo;
 
         Resource recurso = storageService.carregarComoRecurso(nomeArquivo, subpasta);
 
