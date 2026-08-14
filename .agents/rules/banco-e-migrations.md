@@ -13,7 +13,7 @@ paths:
   numa `V1` baseline única.
 - Nomes de tabela e coluna em `snake_case`
 - Foreign keys explícitas com `REFERENCES`; `ON DELETE RESTRICT` em relações
-  financeiras (ex: `aportante_id` em `despesa_pagamento`)
+  financeiras (ex: `pagador_id` e `beneficiario_id` em `despesa`)
 - Ao adicionar/alterar coluna, atualizar também `docs/MODELO-DADOS.md`
   (diagrama ER) na mesma tarefa
 - (regras pré-pausa, valem de novo quando o Flyway for reativado) migrations

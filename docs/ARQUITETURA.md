@@ -9,9 +9,10 @@ descreve só o `backend/`; o frontend tem sua própria doc em
 
 ## Padrão: package by feature
 
-Cada domínio (`imovel/`, `aportante/`, `etapaProjeto/`, `despesa/`,
-`orcamentoEtapa/`, `relatorio/`, `auth/`) concentra Model, Repository, Service,
-Mapper, Controller e `dto/` no mesmo pacote. `shared/` é exceção deliberada:
+Cada domínio (`imovel/`, `pessoa/`, `fornecedor/`, `categoriaDespesa/`,
+`despesa/`, `contratoFinanceiro/`, `orcamentoCategoria/`, `relatorio/`, `auth/`)
+concentra Model, Repository, Service, Mapper, Controller e `dto/` no mesmo
+pacote. `shared/` é exceção deliberada:
 só o que é genuinamente transversal a 2+ domínios (config, enums,
 exceptions, JWT, Flyway). Ver justificativa completa em `docs/DECISOES.md`
 (ADR-001).
@@ -49,15 +50,24 @@ padrão automaticamente.
 
 ## Endpoints REST
 
-| Domínio       | Base URL               | Status                                    |
-|---------------|-------------------------|-------------------------------------------|
-| Imóvel        | `/api/imoveis`          | CRUD + galeria de fotos (RF06)             |
-| Aportante     | `/api/aportantes`       | CRUD completo                              |
-| EtapaProjeto  | `/api/etapas-projeto`   | CRUD completo                              |
-| Despesa       | `/api/despesas`         | CRUD + PUT + rateio + upload comprovante   |
-| OrcamentoEtapa| `/api/orcamentos-etapa` | CRUD + orçado vs. realizado                |
-| Relatório     | `/api/relatorios`       | GET com filtros + exportação CSV (RF05)    |
-| Auth          | `/api/auth`             | POST /login emite JWT (RNF01)              |
+Alvo do reescopo de Ago 2026 (ADR-019 a ADR-029):
+
+| Domínio            | Base URL                    | Escopo                                        |
+|--------------------|-----------------------------|-----------------------------------------------|
+| Imóvel             | `/api/imoveis`              | CRUD + fotos + documentos + `PATCH` fase/situação |
+| Pessoa             | `/api/pessoas`              | CRUD (substitui Aportante)                     |
+| Fornecedor         | `/api/fornecedores`         | CRUD, composto com Pessoa                      |
+| CategoriaDespesa   | `/api/categorias-despesa`   | CRUD (substitui EtapaProjeto)                  |
+| Despesa            | `/api/despesas`             | CRUD + anexos tipados, sem rateio              |
+| ContratoFinanceiro | `/api/contratos-financeiros`| CRUD + parcelas + quitação antecipada          |
+| Relatório          | `/api/relatorios`           | Resultado, fornecedor, extrato, carteira + CSV |
+| OrcamentoCategoria | `/api/orcamentos-categoria` | Existe no código, **fora do MVP** (ADR-029)    |
+| Auth               | `/api/auth`                 | POST /login emite JWT (RNF01)                  |
+
+As invariantes financeiras e as do ciclo de vida do imóvel não vivem aqui: estão
+em `.agents/rules/regras-negocio-financeiras.md`, `ciclo-vida-imovel.md` e
+`contratos-financeiros.md`, que carregam automaticamente ao editar os pacotes
+correspondentes.
 
 ## Segurança (estado atual)
 

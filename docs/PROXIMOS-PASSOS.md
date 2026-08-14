@@ -25,7 +25,121 @@ Consultar e atualizar ao final de cada sessão de trabalho.
 - Flyway **pausado** (ADR-013) até a modelagem do MVP fechar: `ddl-auto=update`,
   `FlywayConfig` sem `@Configuration`, schema direto pelo Hibernate
 
-## Roadmap do MVP
+## Reescopo de Ago 2026 (ADR-019 a ADR-029)
+
+O objetivo do projeto foi reescrito: de "gestão de despesas de obras" para
+**resultado financeiro de cada imóvel do começo ao fim** (compra do lote, custos
+do ciclo de vida, venda). O roadmap abaixo, das Etapas 7 a 9, reflete o escopo
+antigo e permanece como registro do que já foi feito; o roadmap novo é este:
+
+### Etapa A — Registro das decisões ✅
+- [x] ADR-019 a ADR-029 em `docs/DECISOES.md`
+- [x] Rules novas `ciclo-vida-imovel.md` e `contratos-financeiros.md`;
+      `regras-negocio-financeiras.md` reescrita com a regra de custo
+- [x] `AGENTS.md`, `CLAUDE.md`, `REQUISITOS.md`, `MODELO-DADOS.md` e
+      `ARQUITETURA.md` atualizados
+
+Cada etapa abaixo é retomável de forma independente, numa sessão própria: diz o
+que ler antes, o que fazer e quando está pronta. As Etapas B a D mexem em código
+que se referencia mutuamente, então, se forem feitas em sessões separadas, é
+esperado que o backend só volte a compilar ao final da D.
+
+### Etapa B — Backend: pessoa e fornecedor
+**Ler antes:** ADR-021, ADR-022.
+- [ ] Renomear o pacote `aportante/` → `pessoa/` (7 arquivos: Model, Repository,
+      Service, Mapper, Controller e os dois DTOs); endpoint `/api/pessoas`
+- [ ] `PessoaModel`: `nome`, `tipoPessoa` (enum novo em `shared/enums/`),
+      `documento` (único), `email`, `telefone`, `ativo`. Remover
+      `tipoParticipacao`. Documento sem validação de dígito — comentário
+      `ponytail:` no service
+- [ ] Novo domínio `fornecedor/` pela skill `gerar-crud-dominio`:
+      `@OneToOne` para `PessoaModel` + `areaAtuacao`, `observacoes`, soft delete;
+      endpoint `/api/fornecedores`
+
+**Pronto quando:** `/api/pessoas` e `/api/fornecedores` respondem e nenhuma
+classe referencia `Aportante`.
+
+### Etapa C — Backend: despesa
+**Ler antes:** ADR-023, ADR-027, ADR-028 e
+`.agents/rules/regras-negocio-financeiras.md`.
+- [ ] `DespesaModel`: `imovel` **opcional**; adicionar `pagador` (obrigatório),
+      `beneficiario` (opcional), `faseImovel` (opcional — não existe para gasto
+      geral), `contratoFinanceiro` (opcional) e `ativo`; trocar `etapaProjeto`
+      por `categoriaDespesa`; remover `pagamentos` e `comprovanteUrl`
+- [ ] Apagar `DespesaPagamentoModel`, `DespesaPagamentoRepository` e os dois DTOs
+      de pagamento; `DespesaService` perde todo o laço de rateio e a validação da
+      soma; `deletar()` vira `inativar()`
+- [ ] `DespesaAnexoModel` tipado (COMPROVANTE/NOTA_FISCAL/RECIBO/CONTRATO/OUTRO),
+      espelhando `ImovelFotoModel` e reusando `StorageService`; endpoints de
+      upload, listagem por tipo e exclusão
+- [ ] Filtro de gastos gerais na listagem (`GET /api/despesas?semImovel=true`)
+
+**Pronto quando:** dá para lançar despesa com pagador e beneficiário, anexar
+comprovante e nota fiscal separadamente, e lançar despesa sem imóvel.
+
+### Etapa D — Backend: categoria e imóvel
+**Ler antes:** ADR-020, ADR-024, ADR-026 e `.agents/rules/ciclo-vida-imovel.md`.
+- [ ] Renomear `etapaProjeto/` → `categoriaDespesa/` (endpoint
+      `/api/categorias-despesa`) e `orcamentoEtapa/` → `orcamentoCategoria/`
+- [ ] Seed das categorias: Aquisição, ITBI/Escritura, Documentação, IPTU,
+      Material, Mão de obra, Custos de financiamento, Corretagem, Impostos sobre
+      a venda
+- [ ] `ImovelModel`: `tipo` → `fase` (`FaseImovel`) e `status` → `situacao`
+      (`SituacaoImovel`); `dataInicioLote`, `dataInicioConstrucao`,
+      `dataConclusaoObra`; `custoEstimadoObra`, `previsaoConclusao`;
+      `@Embedded DadosCompra` e `DadosVenda`
+- [ ] `PATCH /api/imoveis/{id}/fase` e `/situacao` — só por aqui a fase e a
+      situação mudam, porque gravam as datas de transição
+- [ ] `ImovelDocumentoModel` tipado, por fase, com endpoints próprios
+
+**Pronto quando:** o backend compila, `./mvnw test` passa, e o ciclo
+lote → construção → casa avança gravando as datas.
+
+### Etapa E — Backend: contratos financeiros
+**Ler antes:** ADR-025 e `.agents/rules/contratos-financeiros.md`.
+- [ ] `contratoFinanceiro/` pela skill `gerar-crud-dominio`:
+      `ContratoFinanceiroModel` (imóvel, tipo, contraparte, valor contratado,
+      situação, data e valor de quitação) e `ParcelaContratoModel` (número,
+      vencimento, valor, `valorJuros`, data e valor de pagamento)
+- [ ] `quitar(id, data, valor)`: registra a quitação e encerra as parcelas em
+      aberto **sem alterar os valores originais delas**
+- [ ] Aviso (sem bloqueio) ao iniciar construção com `PARCELAMENTO_COMPRA` ativo
+
+**Pronto quando:** dá para encadear parcelamento da compra → quitação antecipada
+→ financiamento de construção no mesmo imóvel.
+
+### Etapa F — Backend: relatórios
+**Ler antes:** a regra de custo na ADR-025.
+- [ ] `ExtratoAportanteDTO` → `ExtratoPessoaDTO` (mantendo filtro `> 0` e CSV `;`)
+- [ ] `GET /api/relatorios/resultado-imovel`: despesas por fase, juros pagos,
+      custo total, lucro, margem, tempo por fase, dias em carteira,
+      rentabilidade anualizada, `resultadoProvisorio` e posição dos contratos
+- [ ] `GET /api/relatorios/historico-fornecedor` e `GET /api/relatorios/carteira`
+- [ ] Testes cobrindo: prestação não vira custo, saldo devedor não entra no
+      custo, gasto geral não entra no custo de imóvel nenhum
+
+**Pronto quando:** os testes da regra de custo passam.
+
+### Etapa G — Frontend
+- [ ] Renomear features placeholder (`aportantes/` → `pessoas/`,
+      `etapas-projeto/` → `categorias-despesa/`, `orcamento-etapa/` →
+      `orcamento-categoria/`), novas rotas `fornecedores/` e `contratos/`,
+      ajustar `app.routes.ts`, o menu do `shell.ts` e os textos de landing/login
+- [ ] `imovel.model.ts` e a tela de imóveis com fase, situação e compra/venda
+- [ ] `dashboard.service.ts` passa a consumir `/api/relatorios/carteira` em vez
+      de recalcular no frontend
+- [ ] Telas CRUD de Pessoa, Fornecedor, Despesa e Contratos pela skill
+      `gerar-crud-frontend`
+
+### Etapa H — Schema e skills
+- [ ] Recriar o banco local do zero — `ddl-auto=update` não remove tabelas
+      antigas, e `aportante`, `despesa_pagamento` e `etapa_projeto` ficariam
+      órfãs
+- [ ] Atualizar os exemplos que citam `aportante`/`etapa` em
+      `.agents/skills/gerar-crud-dominio/SKILL.md` e `gerar-crud-frontend/SKILL.md`
+- [ ] Atualizar a estrutura de pastas em `docs/FRONTEND.md`
+
+## Roadmap do MVP (escopo anterior, histórico)
 
 ### Etapa 7 — Autenticação JWT (RNF01) ✅
 - [x] `auth/`: `UsuarioModel`, `UsuarioRepository`, `AuthService`,
@@ -64,10 +178,15 @@ Consultar e atualizar ao final de cada sessão de trabalho.
       (`ROLE_ADMIN`), 5 paletas curadas (Nocturne dark-only + 4 com par
       light/dark, ADR-016/ADR-018), painel admin no frontend pra trocar
 
-## Pós-MVP (fase 2)
+## Módulos pós-MVP (ADR-029)
 
-- [ ] `fornecedor/`: cadastro, histórico, banco de orçamentos
+- [ ] Orçamento por categoria (`orcamentoCategoria/` já existe no código, mas
+      está fora do MVP)
+- [ ] Cotações e banco de orçamentos de fornecedor — o **cadastro** de fornecedor
+      entrou no núcleo (RF08); só as cotações ficaram para depois
 - [ ] Diário de obra (clima, equipe, ocorrências, fotos com timestamp)
 - [ ] OCR de notas fiscais
-- [ ] Alertas de orçamento (e-mail/push)
-- [ ] DRE executiva / projeção de lucro
+- [ ] Alertas de orçamento e de parcelas a vencer (e-mail/push)
+- [ ] Trilha de auditoria (quem alterou o quê e quando)
+- [ ] Reativação do Flyway com baseline V1 única — risco registrado na ADR-029:
+      fica mais caro depois do primeiro imóvel real lançado

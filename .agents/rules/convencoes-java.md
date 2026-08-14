@@ -5,7 +5,7 @@ paths:
 
 # Convenções de Código Java
 
-- Entidades JPA: sufixo `Model` (ex: `ImovelModel`, `AportanteModel`)
+- Entidades JPA: sufixo `Model` (ex: `ImovelModel`, `PessoaModel`)
 - DTOs: sempre `record`, nunca classe mutável; sufixo `RequestDTO`/`ResponseDTO`,
   dentro de `dto/` no pacote do domínio
 - Mapper: classe manual dedicada por domínio (sem MapStruct)

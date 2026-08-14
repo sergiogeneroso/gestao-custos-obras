@@ -185,3 +185,286 @@ saturação baixa do accent do Nocturne.
 **Escopo desta sessão:** aplicado na tela de login, no shell interno (RF05
 Dashboard incluído) e numa landing page nova antes do login — RF07 (troca
 de paleta em runtime) continua pendente, sem mudança nesta ADR.
+
+---
+
+# Reescopo do projeto (Ago 2026)
+
+As ADRs de 019 a 029 foram tomadas numa mesma sessão de reformulação, quando o
+objetivo do projeto foi reescrito. Elas substituem várias decisões anteriores;
+cada uma diz qual e por quê.
+
+## ADR-019 — Reescopo: do "custos de obras" para o ciclo de vida financeiro do imóvel (Ago 2026)
+
+O objetivo original — gestão de despesas de obras — era genérico demais para um
+MVP. O projeto tentava cobrir orçamento por etapa, rateio entre sócios,
+relatórios de obra e custos de construção ao mesmo tempo, sem que nenhum desses
+eixos estivesse completo.
+
+**Decisão:** o objetivo passa a ser acompanhar o **resultado financeiro de cada
+imóvel do começo ao fim** — compra do lote, custos ao longo de todo o ciclo de
+vida (inclusive construção, quando houver) e venda. O que ficar fora desse eixo
+evolui como módulo posterior, não como parte do MVP (ver ADR-029).
+
+**Consequência deliberada:** o pacote raiz (`com.seegeneroso.gestao_custos_obras`)
+e o nome do repositório **não** mudam, apesar do reescopo. Renomear custaria
+todos os imports do projeto sem nenhum ganho funcional.
+
+## ADR-020 — Ciclo de vida do imóvel em dois eixos ortogonais (Ago 2026)
+
+Substitui a modelagem de `TipoImovel` (LOTE/IMOVEL) e `StatusImovel`
+(PLANEJAMENTO/CONSTRUCAO/FINALIZADO), que tratavam a natureza do imóvel como um
+atributo fixo e misturavam natureza com situação comercial no mesmo campo.
+
+No negócio real, compra-se um **lote**, que pode ficar anos nessa condição
+gerando despesas próprias; esse mesmo lote pode virar uma **construção**, com
+despesas específicas; e termina como **casa**. É sempre o mesmo imóvel mudando de
+fase, e construir é opcional — parte da carteira é comprada e revendida sem obra.
+
+**Decisão:** dois campos independentes.
+
+- `fase` (`FaseImovel`: LOTE → CONSTRUCAO → CASA), que **só avança**, nunca
+  retrocede. Todo imóvel começa como lote: não se compra imóvel pronto para
+  reformar neste negócio.
+- `situacao` (`SituacaoImovel`: ADQUIRIDO ⇄ A_VENDA → VENDIDO).
+
+São ortogonais de propósito: um lote pode estar à venda, e a venda pode ocorrer
+**em qualquer fase** — inclusive na planta (LOTE + VENDIDO) ou com a obra em
+andamento (CONSTRUCAO + VENDIDO). **Vender não congela a fase**: a construção
+continua avançando depois da venda e novas despesas de obra ainda chegam. Por
+isso o resultado de um imóvel vendido com obra pendente é **provisório**, e o
+relatório o marca como tal, mostrando apenas o realizado, sem projetar lucro.
+
+**Datas de transição:** o imóvel grava `dataInicioLote`, `dataInicioConstrucao` e
+`dataConclusaoObra` automaticamente quando a fase avança. O enum sozinho diria
+onde o imóvel está, mas nunca quando ele entrou em cada fase — e esse é um dado
+que **não pode ser reconstruído depois**. Sem ele, "quanto tempo ficou parado
+como lote" e "quanto durou a obra" ficariam perdidos para sempre.
+
+**Projeção:** `custoEstimadoObra` e `previsaoConclusao` no imóvel permitem
+comparar estimado com realizado sem trazer de volta o módulo de orçamento por
+etapa (ADR-029).
+
+**Transições são ações próprias**, não parte do PUT de cadastro:
+`PATCH /api/imoveis/{id}/fase` e `PATCH /api/imoveis/{id}/situacao`. Como elas
+gravam as datas que alimentam tempo por fase e rentabilidade, deixá-las num PUT
+genérico seria convite a gravar data errada sem ninguém perceber.
+
+## ADR-021 — Pessoa (PF/PJ) substitui Aportante (Ago 2026)
+
+Substitui a ADR-003, que havia fixado "Aportante" como nome definitivo.
+
+O conceito não corresponde ao negócio: não existem pessoas que "aportam recurso"
+como papel de cadastro. Existem **pessoas** — físicas ou jurídicas — que se
+relacionam com cada despesa em papéis distintos: quem é responsável pelo
+pagamento e quem recebeu o pagamento. A mesma pessoa jurídica pode aparecer em
+papéis diferentes: vender o lote numa operação e fornecer material em outra.
+
+**Decisão:** o domínio `aportante/` vira `pessoa/`, com `tipoPessoa`
+(FISICA/JURIDICA) e `documento` (CPF ou CNPJ, único). O campo
+`tipoParticipacao` deixa de existir — o papel vem do uso, não do cadastro. Uma
+tabela só, sem herança JPA e sem tabela de papéis.
+
+O documento é obrigatório e único, mas **sem validação de dígito verificador** —
+marcado com comentário `ponytail:` no service; entra se dado sujo incomodar.
+
+## ADR-022 — Fornecedor por composição com Pessoa, não por herança JPA (Ago 2026)
+
+Fornecedor é um domínio próprio, e todo fornecedor é uma pessoa. A modelagem
+literal seria `Fornecedor extends Pessoa` (herança JOINED ou SINGLE_TABLE).
+
+**Decisão: composição.** `FornecedorModel` tem uma FK para `PessoaModel` mais
+seus campos próprios (`areaAtuacao`, `observacoes`).
+
+**Motivo:** o JPA não permite mudar o tipo de uma entidade já persistida. Com
+herança, uma linha gravada como Pessoa não poderia ser promovida a Fornecedor
+depois sem recriar o registro com outro id — e nesse negócio isso dói, porque a
+mesma PJ que vendeu o lote pode passar a fornecer material.
+
+**Consequência:** `despesa.beneficiario` referencia **Pessoa**, não Fornecedor.
+Assim também cobre quem recebeu sem ter cadastro de fornecedor — o vendedor do
+lote, o banco, o diarista. O relatório de histórico por fornecedor navega
+pessoa → fornecedor.
+
+## ADR-023 — Despesa: pagador único, beneficiário, fase e imóvel opcional (Ago 2026)
+
+Substitui a ADR-006 (`DespesaPagamento` separado para rateio entre aportantes).
+
+O rateio nunca foi usado e era a regra de negócio mais frágil do projeto — a
+validação "soma dos pagamentos ≤ valor da despesa" existia em dois lugares no
+service e era o ponto onde um erro custaria dinheiro.
+
+**Decisão:** a despesa passa a ter `pagador` (Pessoa, obrigatório) e
+`beneficiario` (Pessoa, opcional — não travar o lançamento rápido no canteiro
+quando não se sabe o fornecedor na hora). A tabela `despesa_pagamento` e a
+validação da soma desaparecem. Dividir um custo entre duas pessoas passa a ser
+dois lançamentos.
+
+**Fase:** a despesa guarda `faseImovel`, a fase **em que foi incorrida** — não a
+fase atual do imóvel — para que lançamento retroativo caia no lugar certo. É
+preenchida com a fase atual do imóvel quando o request não informa.
+
+**Imóvel opcional:** existem gastos que não pertencem a nenhum imóvel — contador,
+combustível, ferramentas e equipamentos reutilizáveis (betoneira, andaime). O
+vínculo com imóvel passa a ser anulável: despesas sem imóvel são gastos gerais,
+aparecem em visão própria e **não entram no custo de nenhum imóvel**, nem são
+rateadas entre eles.
+
+**Mão de obra** é despesa avulsa: cada diária ou medição é um lançamento próprio,
+com a pessoa como beneficiária. Descartada a ideia de contrato de empreitada com
+saldo a pagar — o histórico por fornecedor já responde quanto foi pago a cada um.
+
+Uma mesma compra que sirva a dois imóveis é **dividida à mão** em dois
+lançamentos; não há rateio automático entre imóveis. Despesa aceita **apenas
+valor positivo**; devolução de material se resolve editando ou inativando o
+lançamento original.
+
+## ADR-024 — Compra, venda e meta de venda embutidas no Imóvel (Ago 2026)
+
+Com o reescopo, compra e venda passam a ser o centro do sistema, e não mais um
+campo solto `valorAquisicaoInicial`.
+
+**Decisão:** dois `@Embeddable` no próprio imóvel — `DadosCompra` (valor, data,
+vendedor) e `DadosVenda` (valor, data, comprador, valor pretendido).
+
+**Alternativas descartadas:** uma entidade `Negociacao` separada (acrescentaria
+um join a todo relatório sem contrapartida, já que **não há desmembramento de
+lote nem permuta** neste negócio — um imóvel entra por uma compra e sai por uma
+venda, ele inteiro); e tratar tudo como lançamento financeiro com sinal (perderia
+os campos próprios de imóvel e misturaria semânticas na mesma tela).
+
+**Mitigação do risco:** os campos ficam agrupados em `@Embeddable` justamente
+para que, se um dia a entidade `Negociacao` for necessária, a extração seja
+mecânica em vez de cirurgia no modelo inteiro.
+
+O valor pretendido de venda alimenta o ponto de equilíbrio no relatório de
+resultado, sem exigir um módulo de orçamento.
+
+## ADR-025 — Contratos financeiros encadeados e a regra de custo (Ago 2026)
+
+É o ponto mais sutil do modelo, e o que uma primeira versão desta reformulação
+errou: modelou-se "parcelas da compra" quando o negócio encadeia **vários
+contratos financeiros ao longo da vida do mesmo imóvel**.
+
+O fluxo real: o lote é comprado **parcelado direto com o vendedor**; para obter o
+**financiamento de construção do banco**, é preciso **quitar antecipadamente**
+esse parcelamento, porque o banco exige o terreno livre para dar em garantia; a
+obra corre sob o financiamento; e a estratégia é vender assim que fica pronto,
+**quitando o financiamento à vista**.
+
+**Decisão:** `ContratoFinanceiroModel` (imóvel, tipo — PARCELAMENTO_COMPRA /
+FINANCIAMENTO_CONSTRUCAO / PARCELAMENTO_VENDA —, contraparte, valor contratado,
+situação ATIVO/QUITADO, data e **valor de quitação**) com
+`ParcelaContratoModel` filha (número, vencimento, valor, valor de juros, data e
+valor de pagamento).
+
+A quitação antecipada tem valor próprio, negociado, **independente da soma das
+parcelas em aberto** — e encerrá-la não altera os valores originais das parcelas,
+para que o histórico do que foi contratado continue legível.
+
+**Sem validação de soma das parcelas contra o valor contratado**: juros fazem a
+soma exceder o principal legitimamente, e uma regra assim quebraria em uso normal.
+
+### A regra de custo (não quebrar)
+
+- **Custo do imóvel** = valor de compra + despesas do imóvel (todas as fases,
+  incluindo os custos acessórios do financiamento e o imposto sobre o ganho) +
+  juros efetivamente pagos nas parcelas.
+- **As prestações do financiamento NÃO são despesa.** A obra já foi lançada como
+  despesa; contar as duas dobraria o custo.
+- **O saldo devedor quitado na venda NÃO é custo.** É devolução do principal que
+  pagou despesas já contadas. Aparece no relatório como posição de caixa, nunca
+  somado ao custo.
+- **Gastos gerais (despesa sem imóvel) não entram no custo de imóvel nenhum.**
+
+Como a estratégia é quitar o financiamento à vista na venda, os juros tendem a
+ser pequenos; o que pesa de verdade são os **custos acessórios** — vistoria de
+engenharia a cada medição, avaliação, tarifas, seguro e registro da hipoteca.
+Eles são lançados como despesas comuns, em categoria própria, com a instituição
+como beneficiária e uma FK opcional para o contrato, o que permite responder
+"quanto me custou usar esse financiamento" sem nenhuma entidade nova.
+
+O imposto sobre o ganho na venda também é lançado como despesa manual, em
+categoria própria: cálculo automático dependeria de PF ou PJ, do regime e de
+isenções, virando regra fiscal dentro do sistema, que envelhece mal.
+
+**Descartado:** registrar as liberações do banco por medição — não mudam nem o
+custo (que são as despesas) nem a dívida (que é o contrato).
+
+## ADR-026 — `EtapaProjeto` vira `CategoriaDespesa` (Ago 2026)
+
+Substitui a ADR-004 (nome definitivo `EtapaProjeto`) e mantém a ADR-005 (catálogo
+global, sem FK para imóvel).
+
+"Etapa" é um nome enviesado para obra, e o MVP precisa cobrir igualmente o imóvel
+comprado e revendido sem construção nenhuma. Além disso, com a ADR-020 a **fase
+do imóvel** passou a ser o eixo temporal do custo — sobrepondo-se ao que "etapa"
+sugeria.
+
+**Decisão:** o catálogo global passa a se chamar `CategoriaDespesa` e responde
+apenas pela **natureza do gasto**: Aquisição, ITBI/Escritura, Documentação, IPTU,
+Material, Mão de obra, Custos de financiamento, Corretagem, Impostos sobre a
+venda. Sem hierarquia de categorias — uma FK auto-referente resolve isso depois,
+se necessário.
+
+## ADR-027 — Anexos tipados e múltiplos em imóvel e despesa (Ago 2026)
+
+Substitui o campo `despesa.comprovante_url` (um único arquivo, sem tipo), que não
+permitia guardar o comprovante de pagamento **e** a nota fiscal do mesmo gasto,
+nem listá-los separadamente.
+
+**Decisão:** duas tabelas filhas explícitas, espelhando o padrão que
+`ImovelFotoModel` já estabeleceu e reusando o `StorageService`:
+
+- `DespesaAnexoModel`, com `tipoAnexo` (COMPROVANTE / NOTA_FISCAL / RECIBO /
+  CONTRATO / OUTRO). `RECIBO` existe porque mão de obra raramente vem com nota.
+- `ImovelDocumentoModel`, com `tipoDocumento` (MATRICULA / ESCRITURA / CONTRATO /
+  IPTU / ALVARA / PROJETO / ART / HABITE_SE / OUTRO) e a fase a que pertence —
+  matrícula e IPTU na fase lote, alvará e ART na construção, habite-se na casa.
+
+**Duas tabelas, não uma polimórfica:** são estruturalmente parecidas, mas uma
+tabela `anexo` genérica com discriminador custaria mais em consulta e constraint
+do que economizaria. O tipo é enum com `OUTRO` de escape, não catálogo CRUD:
+filtro confiável sem mais um domínio para manter.
+
+## ADR-028 — Soft delete estendido à Despesa (Ago 2026)
+
+Revoga a decisão anterior de que `DespesaService.deletar()` faria DELETE físico
+até existir um módulo de auditoria. Aquela decisão foi tomada quando não havia
+dado real no sistema.
+
+**Motivo:** com dinheiro de verdade lançado, um relatório fechado no mês passado
+pode mudar sozinho se alguém apagar uma despesa antiga, e um lançamento apagado
+por engano não volta.
+
+**Decisão:** `Despesa` ganha `ativo BOOLEAN` como `Imovel`, `Pessoa` e
+`Fornecedor`, e `deletar()` vira `inativar()`. A regra "nunca DELETE físico em
+entidade financeira" passa a valer sem exceção. Trilha completa de alterações
+(quem mudou o quê e quando) continua fora do escopo enquanto o uso for solo.
+
+## ADR-029 — Escopo do MVP e o que significa "módulo" (Ago 2026)
+
+**Núcleo do MVP:** imóvel com ciclo de vida, compra e venda, contratos
+financeiros, pessoas, fornecedores, categorias, despesas, anexos, e os relatórios
+de resultado por imóvel, histórico por fornecedor, extrato por pessoa e carteira.
+
+**Fora do MVP, como módulos:** orçamento por etapa (o domínio `orcamentoEtapa/`
+continua no repositório, mas sai do roadmap e das telas), cotações e banco de
+orçamentos de fornecedor, diário de obra, OCR de notas fiscais, alertas de
+orçamento e trilha de auditoria.
+
+**"Módulo" aqui não significa infraestrutura nova.** Continua sendo "um novo
+pacote em package by feature", exatamente como a ADR-001 já define — sem Spring
+Modulith, sem microserviço, sem plugin system.
+
+**Casos de uso avaliados e descartados nesta sessão**, registrados para não serem
+reabertos sem necessidade: contrato de empreitada com saldo a pagar, receitas
+fora da venda (aluguel, sinal retido de venda desfeita, venda de sobras), rateio
+automático de despesa entre imóveis, compra de imóvel pronto para reforma,
+cálculo automático de imposto sobre o ganho, orçamento por categoria e liberações
+do banco por medição.
+
+**Sobre o Flyway:** a ADR-013 previa reativá-lo quando a modelagem do MVP
+fechasse, e este reescopo é esse momento. A decisão nesta sessão foi **manter
+pausado**, com o risco registrado: a partir do primeiro imóvel real lançado com
+`ddl-auto=update`, retrofitar a baseline num banco povoado fica mais caro.
