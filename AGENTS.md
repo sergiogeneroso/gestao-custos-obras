@@ -1,7 +1,13 @@
 # Gestão de Custos de Obras — Regras do Projeto
 
-Cadastro de imóveis/lotes com rastreamento de custos de aquisição/construção
-por etapa e por aportante, terminando num relatório consolidado.
+Acompanhamento do **resultado financeiro de cada imóvel do começo ao fim**:
+compra do lote, custos ao longo de todo o ciclo de vida (lote → construção →
+casa, quando houver obra) e venda, terminando num relatório de resultado por
+imóvel e da carteira. Ver ADR-019 em `docs/DECISOES.md`.
+
+O que fica fora desse eixo evolui como módulo posterior — e "módulo" aqui
+significa apenas um novo pacote em package by feature, sem infraestrutura de
+modularidade (ADR-029).
 
 Este arquivo é lido por qualquer agente de IA (Claude Code, Antigravity).
 Regras detalhadas e específicas por tipo de arquivo estão em `.agents/rules/`
@@ -20,9 +26,11 @@ symlink para essa mesma pasta).
 
 ## Onde encontrar o resto
 
-- Convenções de código Java, regras de negócio financeiras, migrations e
-  segurança: `.agents/rules/` (carregadas automaticamente só quando você
-  mexe nos arquivos daquele escopo)
+- Convenções de código Java, regras de negócio financeiras, ciclo de vida do
+  imóvel, contratos financeiros, migrations e segurança: `.agents/rules/`
+  (carregadas automaticamente só quando você mexe nos arquivos daquele escopo).
+  As invariantes financeiras e as do ciclo de vida vivem lá de propósito —
+  `docs/` é lido sob demanda e não protegeria nada sozinho
 - Skill para gerar um novo domínio CRUD: `.agents/skills/gerar-crud-dominio/`
 - Arquitetura completa, requisitos, roadmap, decisões e modelo de dados:
   pasta `docs/` (leia sob demanda, não carregam automaticamente)
