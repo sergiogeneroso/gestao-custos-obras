@@ -4,13 +4,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DespesaRepository extends JpaRepository<DespesaModel, Long> {
 
-    List<DespesaModel> findByImovelId(Long imovelId);
+    List<DespesaModel> findByAtivoTrue();
 
-    List<DespesaModel> findByEtapaProjetoId(Long etapaProjetoId);
+    Optional<DespesaModel> findByIdAndAtivoTrue(Long id);
 
-    List<DespesaModel> findByImovelIdAndEtapaProjetoId(Long imovelId, Long etapaProjetoId);
+    List<DespesaModel> findByImovelIdAndAtivoTrue(Long imovelId);
+
+    List<DespesaModel> findByCategoriaDespesaIdAndAtivoTrue(Long categoriaDespesaId);
+
+    List<DespesaModel> findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(Long imovelId, Long categoriaDespesaId);
+
+    List<DespesaModel> findByImovelIsNullAndAtivoTrue();
 }

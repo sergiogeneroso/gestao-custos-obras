@@ -2,7 +2,7 @@ package com.seegeneroso.gestao_custos_obras.relatorio;
 
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
-import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoAportanteDTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoPessoaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.OrcadoVsRealizadoDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -23,11 +23,11 @@ public class RelatorioController {
     @GetMapping("/custo-por-imovel")
     public ResponseEntity<?> custoPorImovel(
             @RequestParam(required = false) Long imovelId,
-            @RequestParam(required = false) Long etapaProjetoId,
+            @RequestParam(required = false) Long categoriaDespesaId,
             @RequestParam(required = false) LocalDate dataInicio,
             @RequestParam(required = false) LocalDate dataFim,
             @RequestParam(required = false) String format) {
-        List<CustoPorImovelDTO> dados = relatorioService.custoPorImovel(imovelId, etapaProjetoId, dataInicio, dataFim);
+        List<CustoPorImovelDTO> dados = relatorioService.custoPorImovel(imovelId, categoriaDespesaId, dataInicio, dataFim);
         if ("csv".equalsIgnoreCase(format)) {
             StringBuilder sb = new StringBuilder("imovelId;identificador;custoTotal\n");
             dados.forEach(d -> sb.append(d.imovelId()).append(';').append(d.identificador()).append(';').append(d.custoTotal()).append('\n'));
@@ -39,11 +39,11 @@ public class RelatorioController {
     @GetMapping("/custo-por-m2")
     public ResponseEntity<?> custoPorM2(
             @RequestParam(required = false) Long imovelId,
-            @RequestParam(required = false) Long etapaProjetoId,
+            @RequestParam(required = false) Long categoriaDespesaId,
             @RequestParam(required = false) LocalDate dataInicio,
             @RequestParam(required = false) LocalDate dataFim,
             @RequestParam(required = false) String format) {
-        CustoPorM2DTO dado = relatorioService.custoPorM2(imovelId, etapaProjetoId, dataInicio, dataFim);
+        CustoPorM2DTO dado = relatorioService.custoPorM2(imovelId, categoriaDespesaId, dataInicio, dataFim);
         if ("csv".equalsIgnoreCase(format)) {
             StringBuilder sb = new StringBuilder("imovelId;identificador;area;custoTotal;custoPorM2\n");
             sb.append(dado.imovelId()).append(';').append(dado.identificador()).append(';')
@@ -53,19 +53,19 @@ public class RelatorioController {
         return ResponseEntity.ok(dado);
     }
 
-    @GetMapping("/extrato-aportantes")
-    public ResponseEntity<?> extratoAportantes(
+    @GetMapping("/extrato-pessoas")
+    public ResponseEntity<?> extratoPessoas(
             @RequestParam(required = false) Long imovelId,
-            @RequestParam(required = false) Long etapaProjetoId,
-            @RequestParam(required = false) Long aportanteId,
+            @RequestParam(required = false) Long categoriaDespesaId,
+            @RequestParam(required = false) Long pessoaId,
             @RequestParam(required = false) LocalDate dataInicio,
             @RequestParam(required = false) LocalDate dataFim,
             @RequestParam(required = false) String format) {
-        List<ExtratoAportanteDTO> dados = relatorioService.extratoAportantes(imovelId, etapaProjetoId, aportanteId, dataInicio, dataFim);
+        List<ExtratoPessoaDTO> dados = relatorioService.extratoPessoas(imovelId, categoriaDespesaId, pessoaId, dataInicio, dataFim);
         if ("csv".equalsIgnoreCase(format)) {
-            StringBuilder sb = new StringBuilder("aportanteId;nome;totalAportado\n");
-            dados.forEach(d -> sb.append(d.aportanteId()).append(';').append(d.nome()).append(';').append(d.totalAportado()).append('\n'));
-            return csvResponse(sb, "extrato-aportantes.csv");
+            StringBuilder sb = new StringBuilder("pessoaId;nome;totalPago\n");
+            dados.forEach(d -> sb.append(d.pessoaId()).append(';').append(d.nome()).append(';').append(d.totalPago()).append('\n'));
+            return csvResponse(sb, "extrato-pessoas.csv");
         }
         return ResponseEntity.ok(dados);
     }

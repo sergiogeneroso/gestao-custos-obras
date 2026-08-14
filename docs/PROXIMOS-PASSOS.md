@@ -44,66 +44,96 @@ que ler antes, o que fazer e quando está pronta. As Etapas B a D mexem em códi
 que se referencia mutuamente, então, se forem feitas em sessões separadas, é
 esperado que o backend só volte a compilar ao final da D.
 
-### Etapa B — Backend: pessoa e fornecedor
+### Etapa B — Backend: pessoa e fornecedor ✅
 **Ler antes:** ADR-021, ADR-022.
-- [ ] Renomear o pacote `aportante/` → `pessoa/` (7 arquivos: Model, Repository,
+- [x] Renomear o pacote `aportante/` → `pessoa/` (7 arquivos: Model, Repository,
       Service, Mapper, Controller e os dois DTOs); endpoint `/api/pessoas`
-- [ ] `PessoaModel`: `nome`, `tipoPessoa` (enum novo em `shared/enums/`),
+- [x] `PessoaModel`: `nome`, `tipoPessoa` (enum novo em `shared/enums/`),
       `documento` (único), `email`, `telefone`, `ativo`. Remover
       `tipoParticipacao`. Documento sem validação de dígito — comentário
       `ponytail:` no service
-- [ ] Novo domínio `fornecedor/` pela skill `gerar-crud-dominio`:
+- [x] Novo domínio `fornecedor/` pela skill `gerar-crud-dominio`:
       `@OneToOne` para `PessoaModel` + `areaAtuacao`, `observacoes`, soft delete;
       endpoint `/api/fornecedores`
 
 **Pronto quando:** `/api/pessoas` e `/api/fornecedores` respondem e nenhuma
 classe referencia `Aportante`.
 
-### Etapa C — Backend: despesa
+### Etapa C — Backend: despesa ✅
 **Ler antes:** ADR-023, ADR-027, ADR-028 e
 `.agents/rules/regras-negocio-financeiras.md`.
-- [ ] `DespesaModel`: `imovel` **opcional**; adicionar `pagador` (obrigatório),
+- [x] `DespesaModel`: `imovel` **opcional**; adicionar `pagador` (obrigatório),
       `beneficiario` (opcional), `faseImovel` (opcional — não existe para gasto
       geral), `contratoFinanceiro` (opcional) e `ativo`; trocar `etapaProjeto`
       por `categoriaDespesa`; remover `pagamentos` e `comprovanteUrl`
-- [ ] Apagar `DespesaPagamentoModel`, `DespesaPagamentoRepository` e os dois DTOs
+- [x] Apagar `DespesaPagamentoModel`, `DespesaPagamentoRepository` e os dois DTOs
       de pagamento; `DespesaService` perde todo o laço de rateio e a validação da
       soma; `deletar()` vira `inativar()`
-- [ ] `DespesaAnexoModel` tipado (COMPROVANTE/NOTA_FISCAL/RECIBO/CONTRATO/OUTRO),
+- [x] `DespesaAnexoModel` tipado (COMPROVANTE/NOTA_FISCAL/RECIBO/CONTRATO/OUTRO),
       espelhando `ImovelFotoModel` e reusando `StorageService`; endpoints de
       upload, listagem por tipo e exclusão
-- [ ] Filtro de gastos gerais na listagem (`GET /api/despesas?semImovel=true`)
+- [x] Filtro de gastos gerais na listagem (`GET /api/despesas?semImovel=true`)
 
 **Pronto quando:** dá para lançar despesa com pagador e beneficiário, anexar
 comprovante e nota fiscal separadamente, e lançar despesa sem imóvel.
 
-### Etapa D — Backend: categoria e imóvel
+### Etapa D — Backend: categoria e imóvel ✅
 **Ler antes:** ADR-020, ADR-024, ADR-026 e `.agents/rules/ciclo-vida-imovel.md`.
-- [ ] Renomear `etapaProjeto/` → `categoriaDespesa/` (endpoint
+- [x] Renomear `etapaProjeto/` → `categoriaDespesa/` (endpoint
       `/api/categorias-despesa`) e `orcamentoEtapa/` → `orcamentoCategoria/`
-- [ ] Seed das categorias: Aquisição, ITBI/Escritura, Documentação, IPTU,
+- [x] Seed das categorias: Aquisição, ITBI/Escritura, Documentação, IPTU,
       Material, Mão de obra, Custos de financiamento, Corretagem, Impostos sobre
-      a venda
-- [ ] `ImovelModel`: `tipo` → `fase` (`FaseImovel`) e `status` → `situacao`
+      a venda (via `CategoriaDespesaSeedRunner`, já que o Flyway está pausado)
+- [x] `ImovelModel`: `tipo` → `fase` (`FaseImovel`) e `status` → `situacao`
       (`SituacaoImovel`); `dataInicioLote`, `dataInicioConstrucao`,
       `dataConclusaoObra`; `custoEstimadoObra`, `previsaoConclusao`;
       `@Embedded DadosCompra` e `DadosVenda`
-- [ ] `PATCH /api/imoveis/{id}/fase` e `/situacao` — só por aqui a fase e a
+- [x] `PATCH /api/imoveis/{id}/fase` e `/situacao` — só por aqui a fase e a
       situação mudam, porque gravam as datas de transição
-- [ ] `ImovelDocumentoModel` tipado, por fase, com endpoints próprios
+- [x] `ImovelDocumentoModel` tipado, por fase, com endpoints próprios
 
 **Pronto quando:** o backend compila, `./mvnw test` passa, e o ciclo
 lote → construção → casa avança gravando as datas.
 
-### Etapa E — Backend: contratos financeiros
+**Nota da implementação (Ago 2026):** a Etapa C depende de `categoriaDespesa/`
+(renomeação da Etapa D) e de uma FK opcional para `contratoFinanceiro`
+(domínio da Etapa E, ainda não implementada) — por isso o rename de
+`etapaProjeto/` foi antecipado e `contratoFinanceiro/ContratoFinanceiroModel`
+foi criado como **stub mínimo** (só `id`), só para a FK compilar; o CRUD
+completo (tipo, contraparte, parcelas, quitação) continua sendo a Etapa E.
+`relatorio/` também precisou de ajuste mínimo (não é a reescrita da Etapa F)
+para voltar a compilar: `ExtratoAportanteDTO` virou `ExtratoPessoaDTO`
+(usando `despesa.pagador` no lugar do `despesa_pagamento` removido) e os
+parâmetros de etapa viraram `categoriaDespesaId`. O banco local foi recriado
+do zero (`DROP SCHEMA public CASCADE`) porque tinha dados de teste residuais
+que bloqueavam as colunas `NOT NULL` novas — isso apagou o usuário admin
+seedado pela migration V6 (inerte com o Flyway pausado); rodar o `INSERT` do
+`V6__seed_usuario_admin.sql` manualmente para voltar a logar.
+
+### Etapa E — Backend: contratos financeiros ✅
 **Ler antes:** ADR-025 e `.agents/rules/contratos-financeiros.md`.
-- [ ] `contratoFinanceiro/` pela skill `gerar-crud-dominio`:
+- [x] `contratoFinanceiro/` pela skill `gerar-crud-dominio`:
       `ContratoFinanceiroModel` (imóvel, tipo, contraparte, valor contratado,
       situação, data e valor de quitação) e `ParcelaContratoModel` (número,
       vencimento, valor, `valorJuros`, data e valor de pagamento)
-- [ ] `quitar(id, data, valor)`: registra a quitação e encerra as parcelas em
+- [x] `quitar(id, data, valor)`: registra a quitação e encerra as parcelas em
       aberto **sem alterar os valores originais delas**
-- [ ] Aviso (sem bloqueio) ao iniciar construção com `PARCELAMENTO_COMPRA` ativo
+- [x] Aviso (sem bloqueio) ao iniciar construção com `PARCELAMENTO_COMPRA` ativo
+
+**Pronto quando:** dá para encadear parcelamento da compra → quitação antecipada
+→ financiamento de construção no mesmo imóvel.
+
+**Nota da implementação (Ago 2026):** sem `DELETE`/soft delete em
+`ContratoFinanceiro` — a ADR-028 lista soft delete só para `Imovel`, `Pessoa`,
+`Fornecedor` e `Despesa`, e contrato nesse negócio só progride de `ATIVO` para
+`QUITADO`, nunca é removido. `quitar()` só grava os três campos do contrato
+(`situacao`, `dataQuitacao`, `valorQuitacao`) e não toca em nenhuma parcela —
+"encerrar as parcelas em aberto" é tratado como leitura no relatório (parcela
+com vencimento após a quitação deixa de contar como pendente), não como
+mutação de dado, para respeitar a regra de nunca alterar valores originais. O
+aviso de construção viaja como campo `aviso` (nullable) só na
+`ImovelResponseDTO` devolvida por `PATCH /api/imoveis/{id}/fase` — as outras
+respostas de imóvel continuam com `aviso: null`.
 
 **Pronto quando:** dá para encadear parcelamento da compra → quitação antecipada
 → financiamento de construção no mesmo imóvel.

@@ -72,6 +72,7 @@ erDiagram
         NUMERIC valor "14,2"
         NUMERIC valor_juros "14,2"
         DATE data_pagamento "nula = em aberto"
+        NUMERIC valor_pago "14,2 — pode diferir do valor contratado da parcela"
     }
     DESPESA {
         BIGSERIAL id PK

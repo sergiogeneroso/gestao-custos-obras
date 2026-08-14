@@ -1,9 +1,12 @@
 package com.seegeneroso.gestao_custos_obras.despesa;
 
+import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaAnexoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -31,8 +34,9 @@ public class DespesaController {
     @GetMapping
     public ResponseEntity<List<DespesaResponseDTO>> listar(
             @RequestParam(required = false) Long imovelId,
-            @RequestParam(required = false) Long etapaProjetoId) {
-        return ResponseEntity.ok(despesaService.listar(imovelId, etapaProjetoId));
+            @RequestParam(required = false) Long categoriaDespesaId,
+            @RequestParam(required = false) Boolean semImovel) {
+        return ResponseEntity.ok(despesaService.listar(imovelId, categoriaDespesaId, semImovel));
     }
 
     @GetMapping("/imovel/{imovelId}")
@@ -53,15 +57,30 @@ public class DespesaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        despesaService.deletar(id);
+    public ResponseEntity<Void> inativar(@PathVariable Long id) {
+        despesaService.inativar(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(value = "/{id}/comprovante", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DespesaResponseDTO> uploadComprovante(
+    @PostMapping(value = "/{id}/anexos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DespesaAnexoResponseDTO> adicionarAnexo(
             @PathVariable Long id,
-            @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo) {
-        return ResponseEntity.ok(despesaService.uploadComprovante(id, arquivo));
+            @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
+            @RequestParam("tipoAnexo") TipoAnexoDespesa tipoAnexo) {
+        DespesaAnexoResponseDTO anexo = despesaService.adicionarAnexo(id, arquivo, tipoAnexo);
+        return ResponseEntity.status(HttpStatus.CREATED).body(anexo);
+    }
+
+    @GetMapping("/{id}/anexos")
+    public ResponseEntity<List<DespesaAnexoResponseDTO>> listarAnexos(
+            @PathVariable Long id,
+            @RequestParam(required = false) TipoAnexoDespesa tipoAnexo) {
+        return ResponseEntity.ok(despesaService.listarAnexos(id, tipoAnexo));
+    }
+
+    @DeleteMapping("/{id}/anexos/{anexoId}")
+    public ResponseEntity<Void> deletarAnexo(@PathVariable Long id, @PathVariable Long anexoId) {
+        despesaService.deletarAnexo(id, anexoId);
+        return ResponseEntity.noContent().build();
     }
 }

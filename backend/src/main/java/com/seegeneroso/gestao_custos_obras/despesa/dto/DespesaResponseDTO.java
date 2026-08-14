@@ -1,18 +1,24 @@
 package com.seegeneroso.gestao_custos_obras.despesa.dto;
 
+import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 public record DespesaResponseDTO(
         Long id,
         Long imovelId,
         String imovelIdentificador,
-        Long etapaProjetoId,
-        String etapaProjetoNome,
+        Long categoriaDespesaId,
+        String categoriaDespesaNome,
+        Long pagadorId,
+        String pagadorNome,
+        Long beneficiarioId,
+        String beneficiarioNome,
+        Long contratoFinanceiroId,
+        FaseImovel faseImovel,
         BigDecimal valor,
         LocalDate dataPagamento,
         String descricao,
-        String comprovanteUrl,
-        List<DespesaPagamentoResponseDTO> pagamentos
+        Boolean ativo
 ) {}

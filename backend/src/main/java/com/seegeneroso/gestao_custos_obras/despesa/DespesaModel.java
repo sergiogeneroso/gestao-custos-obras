@@ -1,15 +1,16 @@
 package com.seegeneroso.gestao_custos_obras.despesa;
 
-import com.seegeneroso.gestao_custos_obras.etapaProjeto.EtapaProjetoModel;
+import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaModel;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
+import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "despesa")
@@ -24,13 +25,29 @@ public class DespesaModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "imovel_id")
     private ImovelModel imovel;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "etapa_projeto_id")
-    private EtapaProjetoModel etapaProjeto;
+    @JoinColumn(name = "categoria_despesa_id")
+    private CategoriaDespesaModel categoriaDespesa;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "pagador_id")
+    private PessoaModel pagador;
+
+    @ManyToOne
+    @JoinColumn(name = "beneficiario_id")
+    private PessoaModel beneficiario;
+
+    @ManyToOne
+    @JoinColumn(name = "contrato_financeiro_id")
+    private ContratoFinanceiroModel contratoFinanceiro;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fase_imovel", length = 20)
+    private FaseImovel faseImovel;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal valor;
@@ -40,10 +57,7 @@ public class DespesaModel {
 
     private String descricao;
 
-    @Column(name = "comprovante_url", length = 500)
-    private String comprovanteUrl;
-
+    @Column(nullable = false)
     @Builder.Default
-    @OneToMany(mappedBy = "despesa", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DespesaPagamentoModel> pagamentos = new ArrayList<>();
+    private Boolean ativo = true;
 }

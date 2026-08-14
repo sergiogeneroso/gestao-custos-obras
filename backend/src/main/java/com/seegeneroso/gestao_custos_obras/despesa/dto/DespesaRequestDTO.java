@@ -1,19 +1,24 @@
 package com.seegeneroso.gestao_custos_obras.despesa.dto;
 
-import jakarta.validation.Valid;
+import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 public record DespesaRequestDTO(
-        @NotNull(message = "ID do imóvel é obrigatório")
         Long imovelId,
 
-        @NotNull(message = "ID da etapa do projeto é obrigatório")
-        Long etapaProjetoId,
+        @NotNull(message = "Categoria de despesa é obrigatória")
+        Long categoriaDespesaId,
+
+        @NotNull(message = "Pagador é obrigatório")
+        Long pagadorId,
+
+        Long beneficiarioId,
+        Long contratoFinanceiroId,
+        FaseImovel faseImovel,
 
         @NotNull(message = "Valor é obrigatório")
         @Positive(message = "Valor deve ser maior que zero")
@@ -22,9 +27,5 @@ public record DespesaRequestDTO(
         @NotNull(message = "Data de pagamento é obrigatória")
         LocalDate dataPagamento,
 
-        String descricao,
-        String comprovanteUrl,
-
-        List<@Valid DespesaPagamentoRequestDTO> pagamentos
+        String descricao
 ) {}
-

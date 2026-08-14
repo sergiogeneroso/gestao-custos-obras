@@ -1,6 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.relatorio.dto;
 
-import com.seegeneroso.gestao_custos_obras.orcamentoEtapa.dto.OrcamentoEtapaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCategoriaResponseDTO;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -11,6 +11,6 @@ public record OrcadoVsRealizadoDTO(
         BigDecimal valorOrcadoTotal,
         BigDecimal valorRealizadoTotal,
         BigDecimal diferenca,
-        List<OrcamentoEtapaResponseDTO> etapas
+        List<OrcamentoCategoriaResponseDTO> categorias
 ) {
 }

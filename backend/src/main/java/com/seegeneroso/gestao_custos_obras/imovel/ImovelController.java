@@ -1,8 +1,13 @@
 package com.seegeneroso.gestao_custos_obras.imovel;
 
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelDocumentoResponseDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFaseRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoImovel;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -51,6 +56,16 @@ public class ImovelController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/fase")
+    public ResponseEntity<ImovelResponseDTO> avancarFase(@PathVariable Long id, @Valid @RequestBody ImovelFaseRequestDTO dto) {
+        return ResponseEntity.ok(imovelService.avancarFase(id, dto));
+    }
+
+    @PatchMapping("/{id}/situacao")
+    public ResponseEntity<ImovelResponseDTO> alterarSituacao(@PathVariable Long id, @Valid @RequestBody ImovelSituacaoRequestDTO dto) {
+        return ResponseEntity.ok(imovelService.alterarSituacao(id, dto));
+    }
+
     @PostMapping(value = "/{id}/fotos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImovelFotoResponseDTO> adicionarFoto(
             @PathVariable Long id,
@@ -73,6 +88,29 @@ public class ImovelController {
     @DeleteMapping("/{id}/fotos/{fotoId}")
     public ResponseEntity<Void> deletarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
         imovelService.deletarFoto(id, fotoId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{id}/documentos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ImovelDocumentoResponseDTO> adicionarDocumento(
+            @PathVariable Long id,
+            @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
+            @RequestParam("tipoDocumento") TipoDocumentoImovel tipoDocumento,
+            @RequestParam(value = "faseImovel", required = false) FaseImovel faseImovel) {
+        ImovelDocumentoResponseDTO documento = imovelService.adicionarDocumento(id, arquivo, tipoDocumento, faseImovel);
+        return ResponseEntity.status(HttpStatus.CREATED).body(documento);
+    }
+
+    @GetMapping("/{id}/documentos")
+    public ResponseEntity<List<ImovelDocumentoResponseDTO>> listarDocumentos(
+            @PathVariable Long id,
+            @RequestParam(required = false) TipoDocumentoImovel tipoDocumento) {
+        return ResponseEntity.ok(imovelService.listarDocumentos(id, tipoDocumento));
+    }
+
+    @DeleteMapping("/{id}/documentos/{documentoId}")
+    public ResponseEntity<Void> deletarDocumento(@PathVariable Long id, @PathVariable Long documentoId) {
+        imovelService.deletarDocumento(id, documentoId);
         return ResponseEntity.noContent().build();
     }
 }
