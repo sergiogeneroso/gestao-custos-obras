@@ -1,0 +1,30 @@
+:host {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 480px;
+  flex-wrap: wrap;
+}
+
+.busca-toolbar__campo {
+  flex: 1 1 260px;
+  max-width: 380px;
+
+  i {
+    font-size: 17px;
+    color: #9397ab;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    height: 44px;
+  }
+
+  ::ng-deep .mat-mdc-form-field-icon-prefix {
+    display: flex;
+    align-items: center;
+    align-self: stretch;
+    height: auto;
+    padding-inline-start: 12px;
+    padding-inline-end: 6px;
+  }
+}

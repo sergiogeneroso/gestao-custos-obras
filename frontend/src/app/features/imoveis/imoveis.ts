@@ -1,16 +1,35 @@
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
+import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ImovelDetalheDialog } from './imovel-detalhe-dialog/imovel-detalhe-dialog';
 import { ImovelFormDialog } from './imovel-form-dialog/imovel-form-dialog';
-import { ImovelResponseDTO, STATUS_IMOVEL_LABEL, TIPO_IMOVEL_LABEL } from './imovel.model';
+import {
+  ImovelResponseDTO,
+  STATUS_IMOVEL_LABEL,
+  StatusImovel,
+  TIPO_IMOVEL_LABEL,
+  TipoImovel,
+} from './imovel.model';
 import { ImoveisService } from './imoveis.service';
 
 @Component({
   selector: 'app-imoveis',
-  imports: [CurrencyPipe, DecimalPipe, MatButtonModule, AuthImgDirective],
+  imports: [
+    CurrencyPipe,
+    DecimalPipe,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    AuthImgDirective,
+    BuscaToolbar,
+  ],
   templateUrl: './imoveis.html',
   styleUrl: './imoveis.scss',
 })
@@ -22,6 +41,29 @@ export class Imoveis implements OnInit {
   protected readonly carregando = signal(true);
   protected readonly statusLabel = STATUS_IMOVEL_LABEL;
   protected readonly tipoLabel = TIPO_IMOVEL_LABEL;
+
+  protected readonly busca = signal('');
+  protected readonly statusFiltro = signal<StatusImovel | ''>('');
+  protected readonly tipoFiltro = signal<TipoImovel | ''>('');
+  protected readonly layout = signal<'cards' | 'lista'>('cards');
+
+  protected readonly statusOpcoes = Object.entries(STATUS_IMOVEL_LABEL) as [StatusImovel, string][];
+  protected readonly tipoOpcoes = Object.entries(TIPO_IMOVEL_LABEL) as [TipoImovel, string][];
+
+  protected readonly imoveisFiltrados = computed(() => {
+    const termo = this.busca().trim().toLowerCase();
+    const status = this.statusFiltro();
+    const tipo = this.tipoFiltro();
+
+    return this.imoveis().filter((imovel) => {
+      if (status && imovel.status !== status) return false;
+      if (tipo && imovel.tipo !== tipo) return false;
+      if (!termo) return true;
+      return [imovel.identificador, imovel.endereco]
+        .filter((valor): valor is string => !!valor)
+        .some((valor) => valor.toLowerCase().includes(termo));
+    });
+  });
 
   ngOnInit(): void {
     this.carregar();

@@ -1,0 +1,7 @@
+<mat-form-field appearance="outline" class="busca-toolbar__campo" subscriptSizing="dynamic">
+  <mat-label>{{ rotulo() }}</mat-label>
+  <i matPrefix class="ph ph-magnifying-glass"></i>
+  <input matInput [ngModel]="valor()" (ngModelChange)="valor.set($event)" [placeholder]="placeholder()" />
+</mat-form-field>
+
+<ng-content></ng-content>

@@ -4,6 +4,10 @@
   margin-inline: auto;
 }
 
+.icone-secundario {
+  color: #9397ab;
+}
+
 .imoveis__cabecalho {
   display: flex;
   align-items: flex-end;
@@ -41,10 +45,81 @@
   color: #9397ab;
 }
 
+.imoveis__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 17px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.imoveis__filtro {
+  width: 160px;
+  flex: 0 0 auto;
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    height: 44px;
+  }
+}
+
 .imoveis__cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 17px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(233, 233, 237, 0.16);
+  }
+
+  th {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9397ab;
+    font-weight: 500;
+  }
+
+  &__num {
+    text-align: right;
+  }
+
+  &__nome {
+    display: block;
+    font-weight: 500;
+  }
+
+  &__endereco {
+    font-size: 12.5px;
+    color: #9397ab;
+  }
+
+  &__acoes {
+    text-align: right;
+  }
+
+  &__acoes-grupo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__linha {
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(233, 233, 237, 0.06);
+    }
+  }
 }
 
 .card {
