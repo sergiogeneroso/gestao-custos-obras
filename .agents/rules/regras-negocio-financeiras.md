@@ -16,13 +16,22 @@ Errar qualquer um destes pontos faz o resultado do imóvel mentir:
 
 - **Custo do imóvel** = valor de compra + despesas do imóvel (todas as fases,
   incluindo custos acessórios do financiamento e o imposto sobre o ganho) +
-  juros efetivamente pagos nas parcelas dos contratos
-- **Prestação de financiamento NÃO é despesa** — a obra já foi lançada como
-  despesa; contar as duas dobraria o custo
-- **Saldo devedor quitado na venda NÃO é custo** — é devolução do principal que
-  pagou despesas já contadas. Exibir como posição de caixa, nunca somado ao custo
+  juros efetivamente pagos nas parcelas, **quando houver contrato**
 - **Gasto geral (despesa sem imóvel) não entra no custo de imóvel nenhum** e não
   é rateado entre eles
+
+Contratos financeiros são **opcionais**: compra à vista, obra com recurso próprio
+e venda à vista formam um imóvel sem contrato nenhum, que é caso normal. Para
+ele, a regra encolhe para **custo = compra + despesas**, sem juros, sem saldo
+devedor e sem bloco de caixa no relatório.
+
+Havendo contrato, valem também (detalhe em `contratos-financeiros.md`):
+
+- **Prestação NÃO é despesa** — o dinheiro liberado já pagou despesas lançadas;
+  devolvê-lo ao banco não é custo novo. Pagar prestação é dar baixa na parcela
+- **Saldo devedor NÃO é custo** — é posição de caixa, nunca somado ao custo
+- **Na venda parcelada, receber parcela é caixa**, não receita nova: a receita é
+  o valor da venda
 
 ## Valores monetários
 

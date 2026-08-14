@@ -6,37 +6,71 @@ paths:
 
 # Contratos Financeiros (ADR-025)
 
-Um mesmo imóvel **encadeia vários contratos ao longo da vida**, e não um único
-cronograma de parcelas. O fluxo real do negócio é: lote comprado parcelado direto
-com o vendedor → quitação antecipada desse parcelamento (o banco exige o terreno
-livre para dar em garantia) → financiamento de construção do banco → venda, à
-vista ou parcelada, com o financiamento quitado à vista na operação.
+## Contrato é opcional — tudo nesta rule só vale se existir um
 
-Tipos: `PARCELAMENTO_COMPRA`, `FINANCIAMENTO_CONSTRUCAO`, `PARCELAMENTO_VENDA`.
+Financiamento e parcelamento são opcionais em **cada** etapa da vida do imóvel: a
+compra pode ser à vista ou parcelada, a obra pode ser feita com recurso próprio
+ou financiada, e a venda pode ser à vista ou com entrada mais parcelas.
 
-## Regras que não podem ser quebradas
+Um imóvel comprado à vista, construído com recurso próprio e vendido à vista
+**não tem contrato nenhum** — e esse é um caso normal, não uma exceção. Para ele:
+custo = valor de compra + despesas, sem juros a somar, sem saldo devedor e sem
+parcelas a vencer. O relatório mostra só o bloco de custo.
 
-- **Prestação de contrato nunca vira despesa.** As despesas que o financiamento
-  custeou já são o custo; lançar as prestações também dobraria o custo do imóvel
+Quando há contrato, um mesmo imóvel pode **encadear vários ao longo da vida**.
+Um cenário real e completo: lote comprado parcelado direto com o vendedor →
+quitação antecipada desse parcelamento (o banco exige o terreno livre para dar em
+garantia) → financiamento de construção do banco → venda com o financiamento
+quitado à vista na operação. Tipos: `PARCELAMENTO_COMPRA`,
+`FINANCIAMENTO_CONSTRUCAO`, `PARCELAMENTO_VENDA`.
+
+## Custo e caixa são coisas diferentes
+
+Esta é a distinção que o modelo inteiro protege, e onde é fácil errar:
+
+- **Custo** é o que o imóvel consumiu de recursos — a obra custou o que custou,
+  tenha o dinheiro vindo do banco ou do bolso.
+- **Caixa** é quando o dinheiro entra e sai — financiar só muda *quando* você
+  paga, não *quanto* o imóvel custou.
+
+Por isso:
+
+- **Prestação de contrato nunca é lançada como despesa.** O dinheiro que o
+  financiamento liberou já pagou despesas que foram lançadas (material, mão de
+  obra); devolvê-lo ao banco não é custo novo, é devolver o que foi emprestado.
+  Lançar os dois dobraria o custo do imóvel.
 - **Saldo devedor não é custo** — é posição de caixa. Exibir separado, nunca
-  somado ao `custoTotal`
+  somado ao `custoTotal`.
+- **Juros entram no custo**, via `valorJuros` das parcelas efetivamente pagas —
+  só essa parte, nunca a parcela inteira. Juros e tarifas são o custo real de
+  usar o dinheiro do banco.
+- **Na venda parcelada vale o espelho:** a receita é o valor da venda, registrado
+  na venda; receber cada parcela é caixa entrando, não receita nova.
+
+Exemplo: lote 100k + obra 200k lançada como despesa + 3k de vistorias e tarifas,
+com financiamento de 200k quitado por 205k na venda de 380k. Custo = 100 + 200 +
+3 + 5 (juros) = **308k**, lucro **72k**. Somar a quitação ao custo daria 513k e
+um prejuízo inexistente de 133k.
+
+## Regras do contrato
+
 - **A quitação antecipada tem valor próprio, negociado**, independente da soma
   das parcelas em aberto (normalmente menor, com desconto). Registrar
   `dataQuitacao` e `valorQuitacao` no contrato e encerrar as parcelas em aberto
   **sem alterar os valores originais delas** — o histórico do que foi contratado
-  precisa continuar legível
+  precisa continuar legível.
 - **Não validar a soma das parcelas contra o `valorContratado`.** Juros fazem a
-  soma exceder o principal legitimamente; essa validação quebraria em uso normal
-- **Juros entram no custo do imóvel**, via `valorJuros` das parcelas efetivamente
-  pagas — só essa parte, nunca a parcela inteira
+  soma exceder o principal legitimamente; essa validação quebraria em uso normal.
+- Pagar uma prestação é **dar baixa na parcela**, nunca criar uma despesa.
 
 ## Custos acessórios do financiamento
 
 Vistoria de engenharia a cada medição, avaliação, tarifas, seguro e registro da
-hipoteca são **despesas comuns**, na categoria "Custos de financiamento", com a
-instituição como beneficiária e a FK opcional `contratoFinanceiro` preenchida.
-Como a estratégia do negócio é quitar o financiamento à vista logo na venda, são
-esses acessórios — e não os juros — que costumam pesar no resultado.
+hipoteca **são despesas comuns** (não prestações), na categoria "Custos de
+financiamento", com a instituição como beneficiária e a FK opcional
+`contratoFinanceiro` preenchida. Quando a estratégia é quitar o financiamento à
+vista logo na venda, são esses acessórios — e não os juros — que pesam no
+resultado.
 
 **Não registrar liberações do banco por medição:** não mudam nem o custo (que são
 as despesas) nem a dívida (que é o contrato).

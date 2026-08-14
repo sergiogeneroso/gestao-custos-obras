@@ -236,10 +236,17 @@ isso o resultado de um imóvel vendido com obra pendente é **provisório**, e o
 relatório o marca como tal, mostrando apenas o realizado, sem projetar lucro.
 
 **Datas de transição:** o imóvel grava `dataInicioLote`, `dataInicioConstrucao` e
-`dataConclusaoObra` automaticamente quando a fase avança. O enum sozinho diria
-onde o imóvel está, mas nunca quando ele entrou em cada fase — e esse é um dado
-que **não pode ser reconstruído depois**. Sem ele, "quanto tempo ficou parado
-como lote" e "quanto durou a obra" ficariam perdidos para sempre.
+`dataConclusaoObra`. O enum sozinho diria onde o imóvel está, mas nunca quando
+ele entrou em cada fase — e esse é um dado que **não pode ser reconstruído
+depois**. Sem ele, "quanto tempo ficou parado como lote" e "quanto durou a obra"
+ficariam perdidos para sempre.
+
+Essas datas marcam **quando o fato aconteceu**, não quando foi lançado: são
+sempre informadas pelo usuário na ação de transição, com a data de hoje entrando
+apenas como sugestão no formulário, e permanecem editáveis depois. Lançamento
+retroativo é comum — a obra pode ter terminado semanas antes de alguém registrar.
+São obrigatórias (nenhuma transição sem data) e validadas em ordem crescente,
+porque data fora de ordem produziria tempo negativo por fase no relatório.
 
 **Projeção:** `custoEstimadoObra` e `previsaoConclusao` no imóvel permitem
 comparar estimado com realizado sem trazer de volta o módulo de orçamento por
@@ -346,7 +353,15 @@ resultado, sem exigir um módulo de orçamento.
 errou: modelou-se "parcelas da compra" quando o negócio encadeia **vários
 contratos financeiros ao longo da vida do mesmo imóvel**.
 
-O fluxo real: o lote é comprado **parcelado direto com o vendedor**; para obter o
+Financiamento e parcelamento são **opcionais em cada etapa**: a compra pode ser à
+vista ou parcelada, a obra pode sair de recurso próprio ou de financiamento, e a
+venda pode ser à vista ou com entrada mais parcelas. Um imóvel comprado à vista,
+construído com recurso próprio e vendido à vista **não tem contrato nenhum**, e
+esse é um caso normal — para ele, custo = compra + despesas, sem juros, sem saldo
+devedor e sem bloco de caixa no relatório.
+
+Quando há contratos, porém, um mesmo imóvel encadeia vários. Um cenário real e
+completo: o lote é comprado **parcelado direto com o vendedor**; para obter o
 **financiamento de construção do banco**, é preciso **quitar antecipadamente**
 esse parcelamento, porque o banco exige o terreno livre para dar em garantia; a
 obra corre sob o financiamento; e a estratégia é vender assim que fica pronto,
@@ -367,15 +382,30 @@ soma exceder o principal legitimamente, e uma regra assim quebraria em uso norma
 
 ### A regra de custo (não quebrar)
 
+A distinção que sustenta tudo: **custo** é o que o imóvel consumiu de recursos —
+a obra custou o que custou, tenha o dinheiro vindo do banco ou do bolso —,
+enquanto **caixa** é quando o dinheiro entra e sai. Financiar muda *quando* se
+paga, não *quanto* o imóvel custou.
+
 - **Custo do imóvel** = valor de compra + despesas do imóvel (todas as fases,
   incluindo os custos acessórios do financiamento e o imposto sobre o ganho) +
-  juros efetivamente pagos nas parcelas.
-- **As prestações do financiamento NÃO são despesa.** A obra já foi lançada como
-  despesa; contar as duas dobraria o custo.
+  juros efetivamente pagos nas parcelas, quando houver contrato.
+- **As prestações do financiamento NÃO são despesa.** O dinheiro liberado já
+  pagou despesas que foram lançadas; devolvê-lo ao banco não é custo novo.
+  Contar os dois dobraria o custo. Pagar prestação é dar baixa na parcela.
 - **O saldo devedor quitado na venda NÃO é custo.** É devolução do principal que
   pagou despesas já contadas. Aparece no relatório como posição de caixa, nunca
   somado ao custo.
+- **Na venda parcelada vale o espelho:** a receita é o valor da venda, registrado
+  na venda; receber cada parcela é caixa entrando, não receita nova.
 - **Gastos gerais (despesa sem imóvel) não entram no custo de imóvel nenhum.**
+
+Exemplo: lote 100k + obra 200k lançada como despesa + 3k de vistorias, com
+financiamento de 200k quitado por 205k na venda de 380k. Custo = 100 + 200 + 3 +
+5 (juros) = **308k**, lucro **72k**. Somar a quitação ao custo daria 513k e um
+prejuízo inexistente de 133k.
+
+Num imóvel sem contrato nenhum, a regra encolhe para: custo = compra + despesas.
 
 Como a estratégia é quitar o financiamento à vista na venda, os juros tendem a
 ser pequenos; o que pesa de verdade são os **custos acessórios** — vistoria de

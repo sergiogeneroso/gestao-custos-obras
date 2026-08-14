@@ -36,10 +36,24 @@ cometer aqui:
 
 ## Datas de transição
 
-`dataInicioLote`, `dataInicioConstrucao` e `dataConclusaoObra` são preenchidas
-automaticamente quando a fase avança. **Não são decorativas:** alimentam tempo
-por fase, giro e rentabilidade, e são dado que não pode ser reconstruído depois.
-Nunca deixar uma transição de fase acontecer sem gravar a data correspondente.
+`dataInicioLote`, `dataInicioConstrucao` e `dataConclusaoObra` marcam **quando o
+fato aconteceu**, não quando foi lançado no sistema.
+
+- **A data é sempre informada pelo usuário** na ação de transição. A sugestão
+  preenchida no formulário — data de hoje nas transições, data da compra no
+  cadastro do lote — é só um ponto de partida, nunca um valor gravado
+  automaticamente: lançamento retroativo é comum, e a obra pode ter terminado
+  semanas antes de alguém registrar isso
+- **São editáveis depois.** Data de transição gravada errada precisa poder ser
+  corrigida, porque alimenta os relatórios
+- **Obrigatórias:** nenhuma transição de fase acontece sem a data correspondente.
+  Não ser automática não significa poder ficar vazia
+- **Ordem coerente:** `dataInicioLote` ≤ `dataInicioConstrucao` ≤
+  `dataConclusaoObra`. Validar na transição e na edição — data fora de ordem
+  produziria tempo negativo por fase no relatório
+
+**Não são decorativas:** alimentam tempo por fase, giro e rentabilidade, e são
+dado que não pode ser reconstruído depois.
 
 ## Validações de transição
 
