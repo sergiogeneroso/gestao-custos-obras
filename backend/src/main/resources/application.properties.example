@@ -18,6 +18,10 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
+# Sem isso, o Hibernate devolve null (em vez de um objeto com campos null) para um
+# @Embedded cujas colunas estão todas nulas no banco — quebra DadosCompra/DadosVenda
+# em ImovelModel, que o código sempre trata como não-nulos (ImovelService, RelatorioService).
+spring.jpa.properties.hibernate.create_empty_composites.enabled=true
 
 # ==========================
 # Flyway Migrations

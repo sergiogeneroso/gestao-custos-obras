@@ -20,20 +20,28 @@ Mesma filosofia do backend (package by feature, ADR-001), adaptada ao Angular:
 
 ```
 frontend/src/app/
-  core/               # transversal: auth, interceptor JWT, guards, layout base
+  core/
+    auth/             # AuthService, authInterceptor, authGuard, tela de login
+    layout/           # Shell (toolbar/sidenav) e landing page pública
   features/
-    imoveis/          # componentes + service do domínio Imóvel
-    aportantes/
-    etapas-projeto/
-    despesas/
-    orcamento-etapa/
+    imoveis/          # + imovel-detalhe-dialog, imovel-form-dialog,
+                       #   imovel-fase-dialog, imovel-venda-dialog
+    pessoas/          # + pessoa-form-dialog
+    fornecedores/     # + fornecedor-form-dialog
+    categorias-despesa/
+    orcamento-categoria/
+    despesas/         # + despesa-form-dialog
+    contratos/        # + contrato-form-dialog, contrato-detalhe-dialog
+    dashboard/
     relatorios/
   shared/             # componentes de UI genéricos reaproveitados por 2+ features
+                       # (ex.: auth-img, busca-toolbar)
 ```
 
 Cada `features/<dominio>/` concentra os componentes (listagem, formulário,
 detalhe) e o service HTTP daquele domínio — evita pastas `components/`,
-`services/` na raiz.
+`services/` na raiz. Um subdiretório `<dominio-singular>-form-dialog/` (ou
+`-detalhe-dialog/`) por dialog é o padrão para telas com formulário modal.
 
 ## Autenticação e integração com a API
 

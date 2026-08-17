@@ -5,16 +5,19 @@ description: Use esta skill ao criar um novo domínio de negócio no backend (ex
 
 # Gerar CRUD de um novo domínio
 
-Este projeto tem 3 domínios que seguem exatamente o mesmo padrão: `imovel/`,
-`aportante/`, `etapaProjeto/`. Use `imovel/` como referência canônica —
-leia esses arquivos antes de gerar o novo domínio.
+Vários domínios do projeto seguem exatamente o mesmo padrão: `imovel/`,
+`pessoa/`, `fornecedor/`, `categoriaDespesa/`. Use `imovel/` como referência
+canônica — leia esses arquivos antes de gerar o novo domínio. `fornecedor/`
+é o exemplo mais simples (poucos campos, `@OneToOne` para `pessoa/`) se
+preferir um ponto de partida menor.
 
 ## Passo a passo
 
 1. **Pergunte ao usuário, se não estiver claro**: o domínio precisa de soft
-   delete (`ativo BOOLEAN`, como `Imovel`/`Aportante`) ou delete físico
-   (como `EtapaProjeto`)? Precisa de alguma constraint de unicidade
-   (ex: nome único, como `EtapaProjeto.nome`)?
+   delete (`ativo BOOLEAN`, como `Imovel`/`Pessoa`/`Fornecedor`/`Despesa`) ou
+   delete físico (como `CategoriaDespesa`)? Precisa de alguma constraint de
+   unicidade (ex: nome único, como `CategoriaDespesa.nome`, ou documento
+   único, como `Pessoa.documento`)?
 
 2. **Migration** — Flyway está pausado (ADR-013): **não** criar arquivo de
    migration agora, o `{Dominio}Model.java` do passo 3 já basta (Hibernate
@@ -53,5 +56,5 @@ leia esses arquivos antes de gerar o novo domínio.
 - Não criar pacote `model/`, `service/`, `controller/` separados — tudo
   dentro do pacote do domínio (package by feature)
 - Não usar `double`/`float` para qualquer valor monetário
-- Não esquecer `ON DELETE RESTRICT` se a nova tabela referenciar `aportante`
+- Não esquecer `ON DELETE RESTRICT` se a nova tabela referenciar `pessoa`
   ou outra entidade com histórico financeiro

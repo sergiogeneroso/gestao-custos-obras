@@ -159,16 +159,34 @@ liquida o contrato, e o valor negociado (`valorQuitacao`) entra em `totalPago`,
 nunca em `custoTotal`. `rentabilidadeAnualizada` usa `double`/`Math.pow` só por
 ser indicador percentual, com comentário no ponto de uso.
 
-### Etapa G — Frontend
-- [ ] Renomear features placeholder (`aportantes/` → `pessoas/`,
+### Etapa G — Frontend ✅
+- [x] Renomear features placeholder (`aportantes/` → `pessoas/`,
       `etapas-projeto/` → `categorias-despesa/`, `orcamento-etapa/` →
       `orcamento-categoria/`), novas rotas `fornecedores/` e `contratos/`,
       ajustar `app.routes.ts`, o menu do `shell.ts` e os textos de landing/login
-- [ ] `imovel.model.ts` e a tela de imóveis com fase, situação e compra/venda
-- [ ] `dashboard.service.ts` passa a consumir `/api/relatorios/carteira` em vez
+- [x] `imovel.model.ts` e a tela de imóveis com fase, situação e compra/venda
+- [x] `dashboard.service.ts` passa a consumir `/api/relatorios/carteira` em vez
       de recalcular no frontend
-- [ ] Telas CRUD de Pessoa, Fornecedor, Despesa e Contratos pela skill
+- [x] Telas CRUD de Pessoa, Fornecedor, Despesa e Contratos pela skill
       `gerar-crud-frontend`
+
+**Nota da implementação (Ago 2026):** a tela de imóveis ganhou duas ações de
+ciclo de vida que não estavam em nenhum domínio anterior —
+`imovel-fase-dialog/` (PATCH `/fase`, avança para a próxima fase com data) e
+`imovel-venda-dialog/` (PATCH `/situacao=VENDIDO`, pede valor/data/comprador);
+`ADQUIRIDO ⇄ A_VENDA` é uma troca direta sem dialog. `Contratos` foge do
+padrão CRUD da skill porque o backend não tem `PUT`/editar — só `criar`
+(com `FormArray` de parcelas), `quitar` e `pagarParcela` — então
+`contrato-detalhe-dialog` faz a baixa de parcela e a quitação como formulários
+inline, sem dialogs extras. `despesas` reaproveita o padrão de upload de
+`imoveis` (fotos → anexos tipados) porque `DespesaAnexoModel` pede a mesma
+coisa. Bug pré-existente encontrado e corrigido durante a verificação: o
+Hibernate devolvia `null` (em vez de um objeto com campos null) para
+`ImovelModel.compra`/`.venda` quando todas as colunas ficavam nulas no banco
+— `DadosVenda` tem uma associação `@ManyToOne`, fora do que
+`hibernate.create_empty_composites.enabled` cobre. Corrigido com getters
+manuais em `ImovelModel` que nunca devolvem `null` (ver comentário no
+código); a config do Hibernate ficou também, como defesa adicional.
 
 ### Etapa H — Schema e skills
 - [ ] Recriar o banco local do zero — `ddl-auto=update` não remove tabelas

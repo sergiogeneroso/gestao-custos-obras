@@ -67,4 +67,25 @@ public class ImovelModel {
     @Column(nullable = false)
     @Builder.Default
     private Boolean ativo = true;
+
+    // Getters manuais (Lombok não gera os de compra/venda quando já existem): o Hibernate
+    // devolve null para um @Embedded com todas as colunas nulas no banco (em vez do objeto
+    // com campos null que o @Builder.Default promete para uma instância nova), porque
+    // DadosVenda tem uma associação @ManyToOne, fora do que
+    // hibernate.create_empty_composites.enabled cobre. Nunca deixar essa entidade devolver
+    // null aqui é o que garante que ImovelService e RelatorioService podem tratar
+    // imovel.getCompra()/getVenda() como sempre presentes.
+    public DadosCompra getCompra() {
+        if (compra == null) {
+            compra = new DadosCompra();
+        }
+        return compra;
+    }
+
+    public DadosVenda getVenda() {
+        if (venda == null) {
+            venda = new DadosVenda();
+        }
+        return venda;
+    }
 }

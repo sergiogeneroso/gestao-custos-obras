@@ -7,15 +7,20 @@ description: Use esta skill ao criar a tela CRUD Angular (listagem + formulário
 
 Use `features/imoveis/` como referência canônica — leia esses arquivos antes
 de gerar a tela nova. É o domínio mais completo (tem soft delete, enum com
-labels, upload de arquivo); os demais (`aportantes/`, `etapas-projeto/`,
-`despesas/`) seguem o mesmo padrão de listagem + form dialog sem o upload.
+labels, upload de arquivo); os demais (`pessoas/`, `categorias-despesa/`,
+`fornecedores/`) seguem o mesmo padrão de listagem + form dialog sem o
+upload. `despesas/` reaproveita o padrão de upload de `imoveis` (fotos →
+anexos tipados); `contratos/` foge do padrão porque o backend não tem
+`PUT`/editar — só consulte os dois se o domínio novo precisar de algo fora
+do CRUD simples.
 
 ## Passo a passo
 
 1. **Pergunte ao usuário, se não estiver claro**: o domínio tem soft delete
-   (ação "Inativar", como `Imovel`/`Aportante`) ou delete físico (como
-   `EtapaProjeto`)? Algum campo é enum (precisa de `Record<Enum, string>`
-   de labels, como `STATUS_IMOVEL_LABEL`)? Algum campo é monetário (precisa
+   (ação "Inativar", como `Imovel`/`Pessoa`/`Fornecedor`/`Despesa`) ou delete
+   físico (como `CategoriaDespesa`)? Algum campo é enum (precisa de
+   `Record<Enum, string>` de labels, como `STATUS_IMOVEL_LABEL`)? Algum
+   campo é monetário (precisa
    do padrão `matTextPrefix`/formatarMoeda abaixo)? Confirme os campos do
    `{Dominio}ResponseDTO`/`{Dominio}RequestDTO` do backend antes de criar o
    `.model.ts` — não invente campo que não existe na API.
