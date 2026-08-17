@@ -1,0 +1,138 @@
+<div class="detalhe-contrato">
+  <div class="detalhe-contrato__topo">
+    <h2 mat-dialog-title>{{ tipoLabel[contrato().tipo] }}</h2>
+    <button mat-icon-button type="button" mat-dialog-close aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <mat-dialog-content>
+    <div class="detalhe-contrato__tags">
+      <span class="tag" [class]="'tag--' + contrato().situacao">{{ situacaoLabel[contrato().situacao] }}</span>
+    </div>
+
+    <section class="detalhe-contrato__info">
+      <div>
+        <p class="detalhe-contrato__label">Imóvel</p>
+        <p class="detalhe-contrato__valor">{{ contrato().imovelIdentificador }}</p>
+      </div>
+      <div>
+        <p class="detalhe-contrato__label">Contraparte</p>
+        <p class="detalhe-contrato__valor">{{ contrato().contraparteNome }}</p>
+      </div>
+      <div>
+        <p class="detalhe-contrato__label">Valor contratado</p>
+        <p class="detalhe-contrato__valor">{{ contrato().valorContratado | currency: 'BRL' }}</p>
+      </div>
+      @if (contrato().situacao === 'QUITADO') {
+        <div>
+          <p class="detalhe-contrato__label">Quitação</p>
+          <p class="detalhe-contrato__valor">
+            {{ contrato().valorQuitacao | currency: 'BRL' }} em {{ contrato().dataQuitacao | date: 'dd/MM/yyyy' }}
+          </p>
+        </div>
+      }
+    </section>
+
+    @if (contrato().situacao === 'ATIVO') {
+      @if (!quitandoContrato()) {
+        <button mat-stroked-button type="button" color="primary" (click)="iniciarQuitacao()">
+          Quitar contrato antecipadamente
+        </button>
+      } @else {
+        <form [formGroup]="formQuitacao" class="detalhe-contrato__form-inline" (ngSubmit)="confirmarQuitacao()">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Data da quitação</mat-label>
+            <input matInput type="date" formControlName="dataQuitacao" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Valor da quitação</mat-label>
+            <span matTextPrefix>R$&nbsp;</span>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="valorQuitacao"
+              (blur)="formatarCampoValor(formQuitacao.controls.valorQuitacao)"
+            />
+          </mat-form-field>
+          <button mat-stroked-button type="button" (click)="cancelarQuitacao()">Cancelar</button>
+          <button mat-stroked-button type="submit" color="primary" [disabled]="formQuitacao.invalid || salvando()">
+            Confirmar
+          </button>
+        </form>
+      }
+    }
+
+    <section class="detalhe-contrato__parcelas">
+      <h3>Parcelas</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nº</th>
+            <th>Vencimento</th>
+            <th class="table__num">Valor</th>
+            <th class="table__num">Juros</th>
+            <th>Pagamento</th>
+            <th class="table__acoes"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (parcela of contrato().parcelas; track parcela.id) {
+            <tr>
+              <td>{{ parcela.numero }}</td>
+              <td>{{ parcela.dataVencimento | date: 'dd/MM/yyyy' }}</td>
+              <td class="table__num">{{ parcela.valor | currency: 'BRL' }}</td>
+              <td class="table__num">
+                @if (parcela.valorJuros !== null) {
+                  {{ parcela.valorJuros | currency: 'BRL' }}
+                } @else {
+                  —
+                }
+              </td>
+              <td>
+                @if (parcela.dataPagamento) {
+                  {{ parcela.dataPagamento | date: 'dd/MM/yyyy' }} · {{ parcela.valorPago | currency: 'BRL' }}
+                } @else {
+                  Em aberto
+                }
+              </td>
+              <td class="table__acoes">
+                @if (!parcela.dataPagamento && contrato().situacao === 'ATIVO' && parcelaEmBaixa() !== parcela.id) {
+                  <button mat-stroked-button type="button" (click)="iniciarBaixa(parcela)">Dar baixa</button>
+                }
+              </td>
+            </tr>
+            @if (parcelaEmBaixa() === parcela.id) {
+              <tr>
+                <td colspan="6">
+                  <form [formGroup]="formBaixa" class="detalhe-contrato__form-inline" (ngSubmit)="confirmarBaixa(parcela.id)">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Data do pagamento</mat-label>
+                      <input matInput type="date" formControlName="dataPagamento" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Valor pago</mat-label>
+                      <span matTextPrefix>R$&nbsp;</span>
+                      <input
+                        matInput
+                        type="text"
+                        inputmode="decimal"
+                        formControlName="valorPago"
+                        (blur)="formatarCampoValor(formBaixa.controls.valorPago)"
+                      />
+                    </mat-form-field>
+                    <button mat-stroked-button type="button" (click)="cancelarBaixa()">Cancelar</button>
+                    <button mat-stroked-button type="submit" color="primary" [disabled]="formBaixa.invalid || salvando()">
+                      Confirmar
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </section>
+  </mat-dialog-content>
+</div>

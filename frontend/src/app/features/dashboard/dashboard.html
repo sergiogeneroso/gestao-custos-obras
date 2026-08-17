@@ -4,7 +4,7 @@
       <h1>{{ saudacao() }}, {{ primeiroNome() }}</h1>
       @if (resumo(); as r) {
         <p class="dashboard__subtitulo">
-          {{ r.imoveisRecentes.length }} imóveis ativos · {{ r.despesasSemComprovante }} despesas sem comprovante
+          {{ r.imoveisRecentes.length }} imóveis recentes · {{ r.parcelasAVencer30Dias }} parcelas a vencer em 30 dias
         </p>
       }
     </div>
@@ -15,22 +15,28 @@
   } @else if (resumo(); as r) {
     <section class="dashboard__kpis">
       <div class="card">
-        <p class="card__label">Custo lançado no mês</p>
-        <p class="card__valor">{{ r.custoLancadoNoMes | currency: 'BRL' }}</p>
+        <p class="card__label">Total investido</p>
+        <p class="card__valor">{{ r.totalInvestido | currency: 'BRL' }}</p>
       </div>
       <div class="card">
-        <p class="card__label">Custo médio por m²</p>
-        <p class="card__valor">
-          @if (r.custoMedioPorM2 !== null) {
-            {{ r.custoMedioPorM2 | currency: 'BRL' }}
-          } @else {
-            —
-          }
-        </p>
+        <p class="card__label">Total vendido</p>
+        <p class="card__valor">{{ r.totalVendido | currency: 'BRL' }}</p>
       </div>
       <div class="card">
-        <p class="card__label">Despesas sem comprovante</p>
-        <p class="card__valor">{{ r.despesasSemComprovante }}</p>
+        <p class="card__label">Lucro realizado</p>
+        <p class="card__valor">{{ r.lucroRealizado | currency: 'BRL' }}</p>
+      </div>
+      <div class="card">
+        <p class="card__label">Saldo devedor</p>
+        <p class="card__valor">{{ r.saldoDevedorTotal | currency: 'BRL' }}</p>
+      </div>
+      <div class="card">
+        <p class="card__label">Parcelas a vencer (30 dias)</p>
+        <p class="card__valor">{{ r.parcelasAVencer30Dias }}</p>
+      </div>
+      <div class="card">
+        <p class="card__label">Gastos gerais</p>
+        <p class="card__valor">{{ r.gastosGeraisPeriodo | currency: 'BRL' }}</p>
       </div>
     </section>
 
@@ -63,20 +69,20 @@
               }
               <div class="card__corpo">
                 <div class="card__meta">
-                  <span class="tag" [class]="'tag--' + imovel.status">{{ statusLabel(imovel.status) }}</span>
-                  <span class="card__id">{{ imovel.identificador }}</span>
+                  <span class="tag" [class]="'tag--' + imovel.fase">{{ faseLabel[imovel.fase] }}</span>
+                  <span class="tag" [class]="'tag--' + imovel.situacao">{{ situacaoLabel[imovel.situacao] }}</span>
                 </div>
-                <h3>{{ imovel.endereco }}</h3>
+                <h3>{{ imovel.identificador }}</h3>
                 <div class="card__metricas">
                   <div>
-                    <p class="card__metrica-label">Gasto realizado</p>
-                    <p class="card__metrica-valor">{{ imovel.gastoRealizado | currency: 'BRL' }}</p>
+                    <p class="card__metrica-label">Endereço</p>
+                    <p class="card__metrica-valor">{{ imovel.endereco || '—' }}</p>
                   </div>
                   <div>
-                    <p class="card__metrica-label">Custo por m²</p>
+                    <p class="card__metrica-label">Valor de compra</p>
                     <p class="card__metrica-valor">
-                      @if (imovel.custoPorM2 !== null) {
-                        {{ imovel.custoPorM2 | currency: 'BRL' }}
+                      @if (imovel.compraValor !== null) {
+                        {{ imovel.compraValor | currency: 'BRL' }}
                       } @else {
                         —
                       }
@@ -92,10 +98,9 @@
           <thead>
             <tr>
               <th>Imóvel</th>
-              <th>Status</th>
-              <th class="table__num">Área</th>
-              <th class="table__num">Gasto realizado</th>
-              <th class="table__num">Custo por m²</th>
+              <th>Fase</th>
+              <th>Situação</th>
+              <th class="table__num">Valor de compra</th>
             </tr>
           </thead>
           <tbody>
@@ -105,12 +110,11 @@
                   <span class="table__nome">{{ imovel.identificador }}</span>
                   <span class="table__endereco">{{ imovel.endereco }}</span>
                 </td>
-                <td><span class="tag" [class]="'tag--' + imovel.status">{{ statusLabel(imovel.status) }}</span></td>
-                <td class="table__num">{{ imovel.area | number: '1.0-0' }} m²</td>
-                <td class="table__num">{{ imovel.gastoRealizado | currency: 'BRL' }}</td>
+                <td><span class="tag" [class]="'tag--' + imovel.fase">{{ faseLabel[imovel.fase] }}</span></td>
+                <td><span class="tag" [class]="'tag--' + imovel.situacao">{{ situacaoLabel[imovel.situacao] }}</span></td>
                 <td class="table__num">
-                  @if (imovel.custoPorM2 !== null) {
-                    {{ imovel.custoPorM2 | currency: 'BRL' }}
+                  @if (imovel.compraValor !== null) {
+                    {{ imovel.compraValor | currency: 'BRL' }}
                   } @else {
                     —
                   }

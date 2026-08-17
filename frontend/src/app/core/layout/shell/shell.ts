@@ -29,9 +29,11 @@ export class Shell {
     { path: 'dashboard', label: 'Dashboard', icone: 'ph-squares-four' },
     { path: 'imoveis', label: 'Imóveis e lotes', icone: 'ph-buildings' },
     { path: 'despesas', label: 'Despesas', icone: 'ph-receipt' },
-    { path: 'aportantes', label: 'Aportantes', icone: 'ph-users-three' },
-    { path: 'etapas-projeto', label: 'Etapas do projeto', icone: 'ph-list-checks' },
-    { path: 'orcamento-etapa', label: 'Orçamentos', icone: 'ph-scales' },
+    { path: 'pessoas', label: 'Pessoas', icone: 'ph-users-three' },
+    { path: 'fornecedores', label: 'Fornecedores', icone: 'ph-hard-hat' },
+    { path: 'contratos', label: 'Contratos financeiros', icone: 'ph-handshake' },
+    { path: 'categorias-despesa', label: 'Categorias de despesa', icone: 'ph-list-checks' },
+    { path: 'orcamento-categoria', label: 'Orçamentos', icone: 'ph-scales' },
     { path: 'relatorios', label: 'Relatórios', icone: 'ph-chart-line-up' },
   ];
 

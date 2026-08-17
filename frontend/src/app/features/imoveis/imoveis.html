@@ -14,19 +14,19 @@
     <div class="imoveis__toolbar">
       <app-busca-toolbar [(valor)]="busca" rotulo="Buscar imóvel" placeholder="Identificador ou endereço">
         <mat-form-field appearance="outline" class="imoveis__filtro" subscriptSizing="dynamic">
-          <mat-label>Status</mat-label>
-          <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
-            <mat-option value="">Todos</mat-option>
-            @for (opcao of statusOpcoes; track opcao[0]) {
+          <mat-label>Fase</mat-label>
+          <mat-select [value]="faseFiltro()" (selectionChange)="faseFiltro.set($event.value)">
+            <mat-option value="">Todas</mat-option>
+            @for (opcao of faseOpcoes; track opcao[0]) {
               <mat-option [value]="opcao[0]">{{ opcao[1] }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" class="imoveis__filtro" subscriptSizing="dynamic">
-          <mat-label>Tipo</mat-label>
-          <mat-select [value]="tipoFiltro()" (selectionChange)="tipoFiltro.set($event.value)">
-            <mat-option value="">Todos</mat-option>
-            @for (opcao of tipoOpcoes; track opcao[0]) {
+          <mat-label>Situação</mat-label>
+          <mat-select [value]="situacaoFiltro()" (selectionChange)="situacaoFiltro.set($event.value)">
+            <mat-option value="">Todas</mat-option>
+            @for (opcao of situacaoOpcoes; track opcao[0]) {
               <mat-option [value]="opcao[0]">{{ opcao[1] }}</mat-option>
             }
           </mat-select>
@@ -50,10 +50,10 @@
       <thead>
         <tr>
           <th>Imóvel</th>
-          <th>Tipo</th>
-          <th>Status</th>
+          <th>Fase</th>
+          <th>Situação</th>
           <th class="table__num">Área</th>
-          <th class="table__num">Valor de aquisição</th>
+          <th class="table__num">Valor de compra</th>
           <th class="table__acoes"></th>
         </tr>
       </thead>
@@ -64,8 +64,8 @@
               <span class="table__nome">{{ imovel.identificador }}</span>
               <span class="table__endereco">{{ imovel.endereco || '—' }}</span>
             </td>
-            <td>{{ tipoLabel[imovel.tipo] }}</td>
-            <td><span class="tag" [class]="'tag--' + imovel.status">{{ statusLabel[imovel.status] }}</span></td>
+            <td><span class="tag" [class]="'tag--' + imovel.fase">{{ faseLabel[imovel.fase] }}</span></td>
+            <td><span class="tag" [class]="'tag--' + imovel.situacao">{{ situacaoLabel[imovel.situacao] }}</span></td>
             <td class="table__num">
               @if (imovel.area !== null) {
                 {{ imovel.area | number: '1.0-2' }} m²
@@ -74,8 +74,8 @@
               }
             </td>
             <td class="table__num">
-              @if (imovel.valorAquisicaoInicial !== null) {
-                {{ imovel.valorAquisicaoInicial | currency: 'BRL' }}
+              @if (imovel.compraValor !== null) {
+                {{ imovel.compraValor | currency: 'BRL' }}
               } @else {
                 —
               }
@@ -103,11 +103,11 @@
           }
           <div class="card__corpo">
             <div class="card__meta">
-              <span class="tag" [class]="'tag--' + imovel.status">{{ statusLabel[imovel.status] }}</span>
-              <span class="card__id">{{ imovel.identificador }}</span>
+              <span class="tag" [class]="'tag--' + imovel.fase">{{ faseLabel[imovel.fase] }}</span>
+              <span class="tag" [class]="'tag--' + imovel.situacao">{{ situacaoLabel[imovel.situacao] }}</span>
             </div>
-            <h3>{{ imovel.endereco || '—' }}</h3>
-            <p class="card__tipo">{{ tipoLabel[imovel.tipo] }}</p>
+            <h3>{{ imovel.identificador }}</h3>
+            <p class="card__tipo">{{ imovel.endereco || '—' }}</p>
 
             <div class="card__metricas">
               <div>
@@ -121,10 +121,10 @@
                 </p>
               </div>
               <div>
-                <p class="card__metrica-label">Valor de aquisição</p>
+                <p class="card__metrica-label">Valor de compra</p>
                 <p class="card__metrica-valor">
-                  @if (imovel.valorAquisicaoInicial !== null) {
-                    {{ imovel.valorAquisicaoInicial | currency: 'BRL' }}
+                  @if (imovel.compraValor !== null) {
+                    {{ imovel.compraValor | currency: 'BRL' }}
                   } @else {
                     —
                   }

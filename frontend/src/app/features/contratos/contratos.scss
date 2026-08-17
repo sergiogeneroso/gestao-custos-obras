@@ -1,0 +1,101 @@
+.contratos {
+  padding: 34px 42px 70px;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.contratos__cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 17px;
+  flex-wrap: wrap;
+  margin-bottom: 34px;
+
+  h1 {
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 36px;
+    letter-spacing: -0.015em;
+    margin: 0 0 0 -0.05em;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.contratos__kicker {
+  display: block;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mat-sys-primary);
+  margin: 0 0 8px;
+}
+
+.contratos__carregando,
+.contratos__vazio {
+  color: #9397ab;
+}
+
+.contratos__toolbar {
+  margin-bottom: 22px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(233, 233, 237, 0.16);
+  }
+
+  th {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9397ab;
+    font-weight: 500;
+  }
+
+  &__num {
+    text-align: right;
+  }
+
+  &__nome {
+    font-weight: 500;
+  }
+
+  &__linha {
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(233, 233, 237, 0.06);
+    }
+  }
+}
+
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &--ATIVO {
+    background: rgba(255, 196, 84, 0.18);
+    color: #ffd48a;
+  }
+
+  &--QUITADO {
+    background: rgba(94, 214, 150, 0.18);
+    color: #9de8bb;
+  }
+}

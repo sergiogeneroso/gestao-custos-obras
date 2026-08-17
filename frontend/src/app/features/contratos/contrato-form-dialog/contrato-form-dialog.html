@@ -1,0 +1,122 @@
+<div class="dialogo-contrato">
+  <div class="dialogo-contrato__topo">
+    <h2 mat-dialog-title>Novo contrato financeiro</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <div class="dialogo-contrato__grade">
+        <mat-form-field appearance="outline" class="dialogo-contrato__campo-largo">
+          <mat-label>Imóvel</mat-label>
+          <mat-select formControlName="imovelId">
+            @for (imovel of imoveis(); track imovel.id) {
+              <mat-option [value]="imovel.id">{{ imovel.identificador }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo</mat-label>
+          <mat-select formControlName="tipo">
+            @for (tipo of tipos; track tipo) {
+              <mat-option [value]="tipo">{{ tipoLabel[tipo] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Contraparte</mat-label>
+          <mat-select formControlName="contraparteId">
+            @for (pessoa of pessoas(); track pessoa.id) {
+              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-contrato__campo-largo">
+          <mat-label>Valor contratado</mat-label>
+          <span matTextPrefix>R$&nbsp;</span>
+          <input
+            matInput
+            type="text"
+            inputmode="decimal"
+            formControlName="valorContratado"
+            (blur)="formatarCampoValor(form.controls.valorContratado)"
+          />
+        </mat-form-field>
+      </div>
+
+      <section class="dialogo-contrato__parcelas">
+        <div class="dialogo-contrato__parcelas-cabecalho">
+          <h3>Cronograma de parcelas</h3>
+          <button mat-stroked-button type="button" (click)="adicionarParcela()">
+            <i class="ph ph-plus"></i>
+            Adicionar parcela
+          </button>
+        </div>
+
+        @for (parcela of parcelas.controls; track parcela; let i = $index) {
+          <div class="dialogo-contrato__parcela" [formGroup]="parcela">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Nº</mat-label>
+              <input matInput type="number" min="1" formControlName="numero" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Vencimento</mat-label>
+              <input matInput type="date" formControlName="dataVencimento" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Valor</mat-label>
+              <span matTextPrefix>R$&nbsp;</span>
+              <input
+                matInput
+                type="text"
+                inputmode="decimal"
+                formControlName="valor"
+                (blur)="formatarCampoValor(parcela.controls.valor)"
+              />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Juros</mat-label>
+              <span matTextPrefix>R$&nbsp;</span>
+              <input
+                matInput
+                type="text"
+                inputmode="decimal"
+                formControlName="valorJuros"
+                (blur)="formatarCampoValor(parcela.controls.valorJuros)"
+              />
+            </mat-form-field>
+
+            <button
+              mat-icon-button
+              type="button"
+              [disabled]="parcelas.length === 1"
+              (click)="removerParcela(i)"
+              aria-label="Remover parcela"
+            >
+              <i class="ph ph-trash"></i>
+            </button>
+          </div>
+        }
+      </section>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button
+        mat-stroked-button
+        type="submit"
+        color="primary"
+        [disabled]="form.invalid || parcelas.invalid || salvando()"
+      >
+        {{ salvando() ? 'Salvando...' : 'Criar contrato' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

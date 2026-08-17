@@ -1,0 +1,39 @@
+<div class="dialogo-fornecedor">
+  <div class="dialogo-fornecedor__topo">
+    <h2 mat-dialog-title>{{ fornecedor ? 'Editar fornecedor' : 'Novo fornecedor' }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <div class="dialogo-fornecedor__grade">
+        <mat-form-field appearance="outline" class="dialogo-fornecedor__campo-largo">
+          <mat-label>Pessoa</mat-label>
+          <mat-select formControlName="pessoaId">
+            @for (pessoa of pessoas(); track pessoa.id) {
+              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-fornecedor__campo-largo">
+          <mat-label>Área de atuação</mat-label>
+          <input matInput formControlName="areaAtuacao" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-fornecedor__campo-largo">
+          <mat-label>Observações</mat-label>
+          <textarea matInput formControlName="observacoes" rows="3"></textarea>
+        </mat-form-field>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Salvar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

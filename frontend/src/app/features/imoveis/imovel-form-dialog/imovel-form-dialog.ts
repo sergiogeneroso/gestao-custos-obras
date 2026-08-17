@@ -7,15 +7,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import {
-  ImovelFotoResponseDTO,
-  ImovelRequestDTO,
-  ImovelResponseDTO,
-  STATUS_IMOVEL_LABEL,
-  StatusImovel,
-  TIPO_IMOVEL_LABEL,
-  TipoImovel,
-} from '../imovel.model';
+import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
+import { PessoasService } from '../../pessoas/pessoas.service';
+import { ImovelFotoResponseDTO, ImovelRequestDTO, ImovelResponseDTO } from '../imovel.model';
 import { ImoveisService } from '../imoveis.service';
 
 export interface ImovelFormDialogData {
@@ -38,17 +32,14 @@ export interface ImovelFormDialogData {
 export class ImovelFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ImoveisService);
+  private readonly pessoasService = inject(PessoasService);
   private readonly dialogRef = inject(MatDialogRef<ImovelFormDialog>);
   private readonly snackBar = inject(MatSnackBar);
   protected readonly data = inject<ImovelFormDialogData>(MAT_DIALOG_DATA);
 
   protected readonly imovel = this.data.imovel;
 
-  protected readonly tipos: TipoImovel[] = ['LOTE', 'IMOVEL'];
-  protected readonly status: StatusImovel[] = ['PLANEJAMENTO', 'CONSTRUCAO', 'FINALIZADO'];
-  protected readonly tipoLabel = TIPO_IMOVEL_LABEL;
-  protected readonly statusLabel = STATUS_IMOVEL_LABEL;
-
+  protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
   protected readonly salvando = signal(false);
   protected readonly fotos = signal<ImovelFotoResponseDTO[]>([]);
   protected readonly urlsFotos = signal<Record<number, string>>({});
@@ -57,15 +48,23 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
-    tipo: [this.imovel?.tipo ?? ('IMOVEL' as TipoImovel), Validators.required],
     endereco: [this.imovel?.endereco ?? ''],
     area: [this.imovel?.area ?? null, Validators.min(0)],
-    valorAquisicaoInicial: [this.formatarMoeda(this.imovel?.valorAquisicaoInicial ?? null)],
-    status: [this.imovel?.status ?? ('PLANEJAMENTO' as StatusImovel), Validators.required],
+    dataInicioLote: [this.imovel?.dataInicioLote ?? this.hoje(), Validators.required],
+    dataInicioConstrucao: [this.imovel?.dataInicioConstrucao ?? ''],
+    dataConclusaoObra: [this.imovel?.dataConclusaoObra ?? ''],
+    custoEstimadoObra: [this.formatarMoeda(this.imovel?.custoEstimadoObra ?? null)],
+    previsaoConclusao: [this.imovel?.previsaoConclusao ?? ''],
+    compraValor: [this.formatarMoeda(this.imovel?.compraValor ?? null)],
+    compraData: [this.imovel?.compraData ?? ''],
+    compraVendedorId: [this.imovel?.compraVendedorId ?? null],
+    vendaValorPretendido: [this.formatarMoeda(this.imovel?.vendaValorPretendido ?? null)],
     descricao: [this.imovel?.descricao ?? ''],
   });
 
   ngOnInit(): void {
+    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+
     if (this.imovel) {
       this.service.listarFotos(this.imovel.id).subscribe((fotos) => {
         this.fotos.set(fotos);
@@ -88,7 +87,13 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     const bruto = this.form.getRawValue();
     const dto = {
       ...bruto,
-      valorAquisicaoInicial: this.parseMoeda(bruto.valorAquisicaoInicial),
+      dataInicioConstrucao: bruto.dataInicioConstrucao || null,
+      dataConclusaoObra: bruto.dataConclusaoObra || null,
+      previsaoConclusao: bruto.previsaoConclusao || null,
+      compraData: bruto.compraData || null,
+      custoEstimadoObra: this.parseMoeda(bruto.custoEstimadoObra),
+      compraValor: this.parseMoeda(bruto.compraValor),
+      vendaValorPretendido: this.parseMoeda(bruto.vendaValorPretendido),
     } as ImovelRequestDTO;
     const requisicao = this.imovel ? this.service.atualizar(this.imovel.id, dto) : this.service.criar(dto);
 
@@ -109,9 +114,13 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     this.dialogRef.close();
   }
 
-  protected formatarCampoValor(): void {
-    const controle = this.form.controls.valorAquisicaoInicial;
-    controle.setValue(this.formatarMoeda(this.parseMoeda(controle.value)), { emitEvent: false });
+  protected formatarCampoValor(controle: 'custoEstimadoObra' | 'compraValor' | 'vendaValorPretendido'): void {
+    const campo = this.form.controls[controle];
+    campo.setValue(this.formatarMoeda(this.parseMoeda(campo.value)), { emitEvent: false });
+  }
+
+  private hoje(): string {
+    return new Date().toISOString().slice(0, 10);
   }
 
   private formatarMoeda(valor: number | null): string {

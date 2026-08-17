@@ -1,0 +1,49 @@
+<main class="contratos">
+  <header class="contratos__cabecalho">
+    <div>
+      <span class="contratos__kicker">Cadastro</span>
+      <h1>Contratos financeiros</h1>
+    </div>
+    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+      <i class="ph ph-plus"></i>
+      Novo contrato
+    </button>
+  </header>
+
+  @if (!carregando() && contratos().length > 0) {
+    <div class="contratos__toolbar">
+      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar contrato" placeholder="Imóvel ou contraparte" />
+    </div>
+  }
+
+  @if (carregando()) {
+    <p class="contratos__carregando">Carregando…</p>
+  } @else if (contratos().length === 0) {
+    <p class="contratos__vazio">Nenhum contrato cadastrado ainda.</p>
+  } @else if (contratosFiltrados().length === 0) {
+    <p class="contratos__vazio">Nenhum contrato encontrado para a busca.</p>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Imóvel</th>
+          <th>Tipo</th>
+          <th>Contraparte</th>
+          <th class="table__num">Valor contratado</th>
+          <th>Situação</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (contrato of contratosFiltrados(); track contrato.id) {
+          <tr class="table__linha" (click)="verDetalhe(contrato)">
+            <td class="table__nome">{{ contrato.imovelIdentificador }}</td>
+            <td>{{ tipoLabel[contrato.tipo] }}</td>
+            <td>{{ contrato.contraparteNome }}</td>
+            <td class="table__num">{{ contrato.valorContratado | currency: 'BRL' }}</td>
+            <td><span class="tag" [class]="'tag--' + contrato.situacao">{{ situacaoLabel[contrato.situacao] }}</span></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

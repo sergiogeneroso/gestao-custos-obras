@@ -204,18 +204,33 @@
   font-size: 12px;
   font-weight: 500;
 
+  &--LOTE {
+    border: 1px solid rgba(233, 233, 237, 0.32);
+    color: #b2b6ca;
+  }
+
   &--CONSTRUCAO {
     background: rgba(145, 132, 217, 0.18);
     color: #d2cefd;
   }
 
-  &--PLANEJAMENTO {
+  &--CASA {
+    background: rgba(233, 233, 237, 0.12);
+    color: #b2b6ca;
+  }
+
+  &--ADQUIRIDO {
     border: 1px solid rgba(233, 233, 237, 0.32);
     color: #b2b6ca;
   }
 
-  &--FINALIZADO {
-    background: rgba(233, 233, 237, 0.12);
-    color: #b2b6ca;
+  &--A_VENDA {
+    background: rgba(255, 196, 84, 0.18);
+    color: #ffd48a;
+  }
+
+  &--VENDIDO {
+    background: rgba(94, 214, 150, 0.18);
+    color: #9de8bb;
   }
 }

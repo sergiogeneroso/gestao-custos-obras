@@ -2,7 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ImovelFotoResponseDTO, ImovelRequestDTO, ImovelResponseDTO } from './imovel.model';
+import {
+  ImovelFaseRequestDTO,
+  ImovelFotoResponseDTO,
+  ImovelRequestDTO,
+  ImovelResponseDTO,
+  ImovelSituacaoRequestDTO,
+} from './imovel.model';
 
 @Injectable({ providedIn: 'root' })
 export class ImoveisService {
@@ -23,6 +29,14 @@ export class ImoveisService {
 
   inativar(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  avancarFase(id: number, dto: ImovelFaseRequestDTO): Observable<ImovelResponseDTO> {
+    return this.http.patch<ImovelResponseDTO>(`${this.baseUrl}/${id}/fase`, dto);
+  }
+
+  alterarSituacao(id: number, dto: ImovelSituacaoRequestDTO): Observable<ImovelResponseDTO> {
+    return this.http.patch<ImovelResponseDTO>(`${this.baseUrl}/${id}/situacao`, dto);
   }
 
   listarFotos(imovelId: number): Observable<ImovelFotoResponseDTO[]> {

@@ -1,19 +1,14 @@
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
-import { DashboardService, ImovelResumo } from './dashboard.service';
-
-const STATUS_LABEL: Record<ImovelResumo['status'], string> = {
-  PLANEJAMENTO: 'Planejamento',
-  CONSTRUCAO: 'Construção',
-  FINALIZADO: 'Finalizado',
-};
+import { FASE_IMOVEL_LABEL, SITUACAO_IMOVEL_LABEL } from '../imoveis/imovel.model';
+import { DashboardService, ResumoDashboard } from './dashboard.service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CurrencyPipe, DecimalPipe, MatButtonToggleModule, AuthImgDirective],
+  imports: [CurrencyPipe, MatButtonToggleModule, AuthImgDirective],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -23,12 +18,9 @@ export class Dashboard implements OnInit {
 
   protected readonly usuario = this.authService.usuario;
   protected readonly carregando = signal(true);
-  protected readonly resumo = signal<{
-    custoLancadoNoMes: number;
-    custoMedioPorM2: number | null;
-    despesasSemComprovante: number;
-    imoveisRecentes: ImovelResumo[];
-  } | null>(null);
+  protected readonly resumo = signal<ResumoDashboard | null>(null);
+  protected readonly faseLabel = FASE_IMOVEL_LABEL;
+  protected readonly situacaoLabel = SITUACAO_IMOVEL_LABEL;
 
   protected readonly layout = signal<'cards' | 'lista'>('cards');
 
@@ -46,9 +38,5 @@ export class Dashboard implements OnInit {
       this.resumo.set(resumo);
       this.carregando.set(false);
     });
-  }
-
-  protected statusLabel(status: ImovelResumo['status']): string {
-    return STATUS_LABEL[status];
   }
 }

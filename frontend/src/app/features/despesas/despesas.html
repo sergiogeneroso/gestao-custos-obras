@@ -1,1 +1,65 @@
-<h1>Despesas</h1>
+<main class="despesas">
+  <header class="despesas__cabecalho">
+    <div>
+      <span class="despesas__kicker">Cadastro</span>
+      <h1>Despesas</h1>
+    </div>
+    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+      <i class="ph ph-plus"></i>
+      Nova despesa
+    </button>
+  </header>
+
+  @if (!carregando() && despesas().length > 0) {
+    <div class="despesas__toolbar">
+      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar despesa" placeholder="Categoria, pessoa ou imóvel" />
+      <mat-button-toggle-group [value]="filtro()" (change)="filtro.set($event.value)" aria-label="Filtrar por vínculo">
+        <mat-button-toggle value="todas">Todas</mat-button-toggle>
+        <mat-button-toggle value="imovel">Do imóvel</mat-button-toggle>
+        <mat-button-toggle value="geral">Gastos gerais</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  }
+
+  @if (carregando()) {
+    <p class="despesas__carregando">Carregando…</p>
+  } @else if (despesas().length === 0) {
+    <p class="despesas__vazio">Nenhuma despesa cadastrada ainda.</p>
+  } @else if (despesasFiltradas().length === 0) {
+    <p class="despesas__vazio">Nenhuma despesa encontrada para os filtros aplicados.</p>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Categoria</th>
+          <th>Imóvel</th>
+          <th>Pagador</th>
+          <th>Beneficiário</th>
+          <th class="table__num">Valor</th>
+          <th class="table__acoes"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (despesa of despesasFiltradas(); track despesa.id) {
+          <tr class="table__linha" (click)="editar(despesa)">
+            <td>{{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ despesa.categoriaDespesaNome }}</td>
+            <td>{{ despesa.imovelIdentificador || 'Gasto geral' }}</td>
+            <td>{{ despesa.pagadorNome }}</td>
+            <td>{{ despesa.beneficiarioNome || '—' }}</td>
+            <td class="table__num">{{ despesa.valor | currency: 'BRL' }}</td>
+            <td class="table__acoes" (click)="$event.stopPropagation()">
+              <div class="table__acoes-grupo">
+                <button mat-stroked-button type="button" (click)="editar(despesa)">Editar</button>
+                <button mat-icon-button type="button" (click)="inativar(despesa)" aria-label="Inativar despesa">
+                  <i class="ph ph-trash icone-secundario"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

@@ -10,19 +10,19 @@ import { RouterLink } from '@angular/router';
 export class Landing {
   protected readonly capacidades = [
     {
-      titulo: 'Despesa por etapa',
+      titulo: 'Ciclo de vida do imóvel',
       texto:
-        'Cada lançamento entra amarrado a um imóvel e a uma etapa do catálogo — fundação, alvenaria, acabamento — com comprovante anexado. O custo da obra deixa de ser um total e passa a ser uma sequência auditável.',
+        'Compra-se um lote, que pode virar construção e terminar como casa — sempre o mesmo imóvel, com o custo separado por fase. Construir é opcional: parte da carteira é comprada e revendida sem obra.',
     },
     {
-      titulo: 'Rateio entre aportantes',
+      titulo: 'Pessoas, sem rateio automático',
       texto:
-        'Uma despesa pode ser dividida entre vários aportantes, e a soma dos pagamentos nunca ultrapassa o valor lançado. Cada aportante tem extrato próprio, exportável em CSV.',
+        'Cada despesa tem um pagador e, quando já se sabe, um beneficiário — o fornecedor, o banco, o vendedor do lote. Cada pessoa tem extrato próprio, exportável em CSV.',
     },
     {
-      titulo: 'Orçado contra realizado',
+      titulo: 'Resultado por imóvel',
       texto:
-        'Cada etapa é orçada uma vez por imóvel; o realizado sobe sozinho conforme as despesas entram. O custo por m² acompanha, e o desvio aparece antes do fim da obra, não depois.',
+        'Valor de compra, despesas de todas as fases e juros efetivamente pagos compõem o custo; a venda fecha o resultado com lucro, margem e rentabilidade anualizada.',
     },
   ];
 

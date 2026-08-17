@@ -26,23 +26,31 @@ export const routes: Routes = [
         loadComponent: () => import('./features/imoveis/imoveis').then((m) => m.Imoveis),
       },
       {
-        path: 'aportantes',
-        loadComponent: () =>
-          import('./features/aportantes/aportantes').then((m) => m.Aportantes),
+        path: 'pessoas',
+        loadComponent: () => import('./features/pessoas/pessoas').then((m) => m.Pessoas),
       },
       {
-        path: 'etapas-projeto',
+        path: 'fornecedores',
         loadComponent: () =>
-          import('./features/etapas-projeto/etapas-projeto').then((m) => m.EtapasProjeto),
+          import('./features/fornecedores/fornecedores').then((m) => m.Fornecedores),
+      },
+      {
+        path: 'categorias-despesa',
+        loadComponent: () =>
+          import('./features/categorias-despesa/categorias-despesa').then((m) => m.CategoriasDespesa),
       },
       {
         path: 'despesas',
         loadComponent: () => import('./features/despesas/despesas').then((m) => m.Despesas),
       },
       {
-        path: 'orcamento-etapa',
+        path: 'contratos',
+        loadComponent: () => import('./features/contratos/contratos').then((m) => m.Contratos),
+      },
+      {
+        path: 'orcamento-categoria',
         loadComponent: () =>
-          import('./features/orcamento-etapa/orcamento-etapa').then((m) => m.OrcamentoEtapa),
+          import('./features/orcamento-categoria/orcamento-categoria').then((m) => m.OrcamentoCategoria),
       },
       {
         path: 'relatorios',

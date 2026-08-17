@@ -1,0 +1,54 @@
+<main class="fornecedores">
+  <header class="fornecedores__cabecalho">
+    <div>
+      <span class="fornecedores__kicker">Cadastro</span>
+      <h1>Fornecedores</h1>
+    </div>
+    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+      <i class="ph ph-plus"></i>
+      Novo fornecedor
+    </button>
+  </header>
+
+  @if (!carregando() && fornecedores().length > 0) {
+    <div class="fornecedores__toolbar">
+      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar fornecedor" placeholder="Nome ou área de atuação" />
+    </div>
+  }
+
+  @if (carregando()) {
+    <p class="fornecedores__carregando">Carregando…</p>
+  } @else if (fornecedores().length === 0) {
+    <p class="fornecedores__vazio">Nenhum fornecedor cadastrado ainda.</p>
+  } @else if (fornecedoresFiltrados().length === 0) {
+    <p class="fornecedores__vazio">Nenhum fornecedor encontrado para a busca.</p>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Área de atuação</th>
+          <th>Observações</th>
+          <th class="table__acoes"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fornecedor of fornecedoresFiltrados(); track fornecedor.id) {
+          <tr>
+            <td class="table__nome">{{ fornecedor.pessoaNome }}</td>
+            <td>{{ fornecedor.areaAtuacao || '—' }}</td>
+            <td>{{ fornecedor.observacoes || '—' }}</td>
+            <td class="table__acoes">
+              <div class="table__acoes-grupo">
+                <button mat-stroked-button type="button" (click)="editar(fornecedor)">Editar</button>
+                <button mat-icon-button type="button" (click)="inativar(fornecedor)" aria-label="Inativar fornecedor">
+                  <i class="ph ph-trash icone-secundario"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

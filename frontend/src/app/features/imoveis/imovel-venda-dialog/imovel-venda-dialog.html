@@ -1,0 +1,40 @@
+<div class="dialogo-venda">
+  <div class="dialogo-venda__topo">
+    <h2 mat-dialog-title>Registrar venda</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <p>Registrar a venda do imóvel "{{ imovel.identificador }}".</p>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Valor de venda</mat-label>
+        <span matTextPrefix>R$&nbsp;</span>
+        <input matInput type="text" inputmode="decimal" formControlName="valorVenda" (blur)="formatarCampoValor()" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Data da venda</mat-label>
+        <input matInput type="date" formControlName="dataVenda" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Comprador</mat-label>
+        <mat-select formControlName="compradorId">
+          @for (pessoa of pessoas(); track pessoa.id) {
+            <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Confirmar venda' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

@@ -1,0 +1,85 @@
+.pessoas {
+  padding: 34px 42px 70px;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.icone-secundario {
+  color: #9397ab;
+}
+
+.pessoas__cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 17px;
+  flex-wrap: wrap;
+  margin-bottom: 34px;
+
+  h1 {
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 36px;
+    letter-spacing: -0.015em;
+    margin: 0 0 0 -0.05em;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.pessoas__kicker {
+  display: block;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mat-sys-primary);
+  margin: 0 0 8px;
+}
+
+.pessoas__carregando,
+.pessoas__vazio {
+  color: #9397ab;
+}
+
+.pessoas__toolbar {
+  margin-bottom: 22px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(233, 233, 237, 0.16);
+  }
+
+  th {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9397ab;
+    font-weight: 500;
+  }
+
+  &__nome {
+    font-weight: 500;
+  }
+
+  &__acoes {
+    text-align: right;
+  }
+
+  &__acoes-grupo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+}

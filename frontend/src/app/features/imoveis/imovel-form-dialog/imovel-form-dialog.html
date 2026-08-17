@@ -15,12 +15,8 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Tipo</mat-label>
-          <mat-select formControlName="tipo">
-            @for (tipo of tipos; track tipo) {
-              <mat-option [value]="tipo">{{ tipoLabel[tipo] }}</mat-option>
-            }
-          </mat-select>
+          <mat-label>Data de início como lote</mat-label>
+          <input matInput type="date" formControlName="dataInicioLote" />
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
@@ -35,24 +31,69 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Valor de aquisição inicial</mat-label>
+          <mat-label>Custo estimado da obra</mat-label>
           <span matTextPrefix>R$&nbsp;</span>
           <input
             matInput
             type="text"
             inputmode="decimal"
-            formControlName="valorAquisicaoInicial"
-            (blur)="formatarCampoValor()"
+            formControlName="custoEstimadoObra"
+            (blur)="formatarCampoValor('custoEstimadoObra')"
           />
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="status">
-            @for (s of status; track s) {
-              <mat-option [value]="s">{{ statusLabel[s] }}</mat-option>
+          <mat-label>Previsão de conclusão da obra</mat-label>
+          <input matInput type="date" formControlName="previsaoConclusao" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Data de início da construção</mat-label>
+          <input matInput type="date" formControlName="dataInicioConstrucao" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Data de conclusão da obra</mat-label>
+          <input matInput type="date" formControlName="dataConclusaoObra" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Valor de compra</mat-label>
+          <span matTextPrefix>R$&nbsp;</span>
+          <input
+            matInput
+            type="text"
+            inputmode="decimal"
+            formControlName="compraValor"
+            (blur)="formatarCampoValor('compraValor')"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Data da compra</mat-label>
+          <input matInput type="date" formControlName="compraData" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
+          <mat-label>Vendedor</mat-label>
+          <mat-select formControlName="compraVendedorId">
+            <mat-option [value]="null">—</mat-option>
+            @for (pessoa of pessoas(); track pessoa.id) {
+              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
             }
           </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
+          <mat-label>Valor de venda pretendido</mat-label>
+          <span matTextPrefix>R$&nbsp;</span>
+          <input
+            matInput
+            type="text"
+            inputmode="decimal"
+            formControlName="vendaValorPretendido"
+            (blur)="formatarCampoValor('vendaValorPretendido')"
+          />
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">

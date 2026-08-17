@@ -1,0 +1,135 @@
+<div class="dialogo-despesa">
+  <div class="dialogo-despesa__topo">
+    <h2 mat-dialog-title>{{ despesa ? 'Editar despesa' : 'Nova despesa' }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <div class="dialogo-despesa__grade">
+        <mat-form-field appearance="outline" class="dialogo-despesa__campo-largo">
+          <mat-label>Imóvel</mat-label>
+          <mat-select formControlName="imovelId">
+            <mat-option [value]="null">— (gasto geral)</mat-option>
+            @for (imovel of imoveis(); track imovel.id) {
+              <mat-option [value]="imovel.id">{{ imovel.identificador }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Categoria</mat-label>
+          <mat-select formControlName="categoriaDespesaId">
+            @for (categoria of categorias(); track categoria.id) {
+              <mat-option [value]="categoria.id">{{ categoria.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Fase do imóvel</mat-label>
+          <mat-select formControlName="faseImovel" [disabled]="!form.controls.imovelId.value">
+            <mat-option [value]="null">Automática</mat-option>
+            @for (fase of fases; track fase) {
+              <mat-option [value]="fase">{{ faseLabel[fase] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Pagador</mat-label>
+          <mat-select formControlName="pagadorId">
+            @for (pessoa of pessoas(); track pessoa.id) {
+              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Beneficiário</mat-label>
+          <mat-select formControlName="beneficiarioId">
+            <mat-option [value]="null">—</mat-option>
+            @for (pessoa of pessoas(); track pessoa.id) {
+              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-despesa__campo-largo">
+          <mat-label>Contrato financeiro</mat-label>
+          <mat-select formControlName="contratoFinanceiroId" [disabled]="!form.controls.imovelId.value">
+            <mat-option [value]="null">—</mat-option>
+            @for (contrato of contratos(); track contrato.id) {
+              <mat-option [value]="contrato.id">
+                {{ tipoContratoLabel[contrato.tipo] }} — {{ contrato.contraparteNome }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Valor</mat-label>
+          <span matTextPrefix>R$&nbsp;</span>
+          <input matInput type="text" inputmode="decimal" formControlName="valor" (blur)="formatarCampoValor()" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Data de pagamento</mat-label>
+          <input matInput type="date" formControlName="dataPagamento" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-despesa__campo-largo">
+          <mat-label>Descrição</mat-label>
+          <textarea matInput formControlName="descricao" rows="2"></textarea>
+        </mat-form-field>
+      </div>
+
+      @if (despesa) {
+        <section class="dialogo-despesa__anexos">
+          <h3>Anexos</h3>
+
+          @if (anexos().length > 0) {
+            <ul class="dialogo-despesa__lista-anexos">
+              @for (anexo of anexos(); track anexo.id) {
+                <li>
+                  <button mat-button type="button" (click)="abrirAnexo(anexo)">
+                    <i class="ph ph-paperclip"></i>
+                    {{ tipoAnexoLabel[anexo.tipoAnexo] }}
+                  </button>
+                  <button mat-icon-button type="button" (click)="removerAnexo(anexo)" aria-label="Remover anexo">
+                    <i class="ph ph-trash"></i>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <div class="dialogo-despesa__upload">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Tipo do anexo</mat-label>
+              <mat-select [value]="tipoAnexoSelecionado()" (selectionChange)="tipoAnexoSelecionado.set($event.value)">
+                @for (tipo of tiposAnexo; track tipo) {
+                  <mat-option [value]="tipo">{{ tipoAnexoLabel[tipo] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <label class="dialogo-despesa__upload-botao">
+              <i class="ph ph-upload-simple"></i>
+              {{ enviandoAnexo() ? 'Enviando...' : 'Adicionar anexo' }}
+              <input type="file" hidden [disabled]="enviandoAnexo()" (change)="enviarAnexo($event)" />
+            </label>
+          </div>
+        </section>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Salvar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>
