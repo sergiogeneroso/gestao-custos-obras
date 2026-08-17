@@ -1,1 +1,52 @@
-<h1>Categorias de Despesa</h1>
+<main class="categorias-despesa">
+  <header class="categorias-despesa__cabecalho">
+    <div>
+      <span class="categorias-despesa__kicker">Cadastro</span>
+      <h1>Categorias de Despesa</h1>
+    </div>
+    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+      <i class="ph ph-plus"></i>
+      Nova categoria
+    </button>
+  </header>
+
+  @if (!carregando() && categorias().length > 0) {
+    <div class="categorias-despesa__toolbar">
+      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar categoria" placeholder="Nome ou descrição" />
+    </div>
+  }
+
+  @if (carregando()) {
+    <p class="categorias-despesa__carregando">Carregando…</p>
+  } @else if (categorias().length === 0) {
+    <p class="categorias-despesa__vazio">Nenhuma categoria cadastrada ainda.</p>
+  } @else if (categoriasFiltradas().length === 0) {
+    <p class="categorias-despesa__vazio">Nenhuma categoria encontrada para a busca.</p>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th class="table__acoes"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (categoria of categoriasFiltradas(); track categoria.id) {
+          <tr>
+            <td class="table__nome">{{ categoria.nome }}</td>
+            <td>{{ categoria.descricao || '—' }}</td>
+            <td class="table__acoes">
+              <div class="table__acoes-grupo">
+                <button mat-stroked-button type="button" (click)="editar(categoria)">Editar</button>
+                <button mat-icon-button type="button" (click)="excluir(categoria)" aria-label="Excluir categoria">
+                  <i class="ph ph-trash icone-secundario"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

@@ -167,8 +167,8 @@ ser indicador percentual, com comentário no ponto de uso.
 - [x] `imovel.model.ts` e a tela de imóveis com fase, situação e compra/venda
 - [x] `dashboard.service.ts` passa a consumir `/api/relatorios/carteira` em vez
       de recalcular no frontend
-- [x] Telas CRUD de Pessoa, Fornecedor, Despesa e Contratos pela skill
-      `gerar-crud-frontend`
+- [x] Telas CRUD de Pessoa, Fornecedor, Despesa, Contratos e Categoria de
+      Despesa pela skill `gerar-crud-frontend`
 
 **Nota da implementação (Ago 2026):** a tela de imóveis ganhou duas ações de
 ciclo de vida que não estavam em nenhum domínio anterior —
@@ -187,6 +187,10 @@ Hibernate devolvia `null` (em vez de um objeto com campos null) para
 `hibernate.create_empty_composites.enabled` cobre. Corrigido com getters
 manuais em `ImovelModel` que nunca devolvem `null` (ver comentário no
 código); a config do Hibernate ficou também, como defesa adicional.
+`categorias-despesa` (placeholder desde a Etapa D) ganhou a tela completa
+depois: é o único CRUD com delete físico (`DELETE` real, sem `ativo`), então
+o botão de exclusão chama `excluir()`/`service.deletar()` em vez do
+`inativar()` dos demais domínios.
 
 ### Etapa H — Schema e skills
 - [ ] Recriar o banco local do zero — `ddl-auto=update` não remove tabelas

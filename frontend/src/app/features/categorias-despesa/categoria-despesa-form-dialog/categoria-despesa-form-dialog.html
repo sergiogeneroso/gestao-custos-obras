@@ -1,0 +1,30 @@
+<div class="dialogo-categoria">
+  <div class="dialogo-categoria__topo">
+    <h2 mat-dialog-title>{{ categoria ? 'Editar categoria' : 'Nova categoria' }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <div class="dialogo-categoria__grade">
+        <mat-form-field appearance="outline" class="dialogo-categoria__campo-largo">
+          <mat-label>Nome</mat-label>
+          <input matInput formControlName="nome" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-categoria__campo-largo">
+          <mat-label>Descrição</mat-label>
+          <textarea matInput formControlName="descricao" rows="3"></textarea>
+        </mat-form-field>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Salvar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

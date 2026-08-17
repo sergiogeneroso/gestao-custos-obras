@@ -1,0 +1,28 @@
+.dialogo-categoria {
+  width: 100%;
+}
+
+.dialogo-categoria__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 0 24px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.dialogo-categoria__grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 16px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.dialogo-categoria__campo-largo {
+  grid-column: 1 / -1;
+}
