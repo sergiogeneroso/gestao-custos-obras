@@ -138,17 +138,26 @@ respostas de imóvel continuam com `aviso: null`.
 **Pronto quando:** dá para encadear parcelamento da compra → quitação antecipada
 → financiamento de construção no mesmo imóvel.
 
-### Etapa F — Backend: relatórios
+### Etapa F — Backend: relatórios ✅
 **Ler antes:** a regra de custo na ADR-025.
-- [ ] `ExtratoAportanteDTO` → `ExtratoPessoaDTO` (mantendo filtro `> 0` e CSV `;`)
-- [ ] `GET /api/relatorios/resultado-imovel`: despesas por fase, juros pagos,
+- [x] `ExtratoAportanteDTO` → `ExtratoPessoaDTO` (mantendo filtro `> 0` e CSV `;`)
+- [x] `GET /api/relatorios/resultado-imovel`: despesas por fase, juros pagos,
       custo total, lucro, margem, tempo por fase, dias em carteira,
       rentabilidade anualizada, `resultadoProvisorio` e posição dos contratos
-- [ ] `GET /api/relatorios/historico-fornecedor` e `GET /api/relatorios/carteira`
-- [ ] Testes cobrindo: prestação não vira custo, saldo devedor não entra no
+- [x] `GET /api/relatorios/historico-fornecedor` e `GET /api/relatorios/carteira`
+- [x] Testes cobrindo: prestação não vira custo, saldo devedor não entra no
       custo, gasto geral não entra no custo de imóvel nenhum
 
 **Pronto quando:** os testes da regra de custo passam.
+
+**Nota da implementação (Ago 2026):** `extratoPessoas` e `historicoFornecedor`
+compartilham um helper privado `extratoPorPapel` (parametrizado por
+`DespesaModel::getPagador`/`getBeneficiario`) para não duplicar a soma de
+dinheiro em dois lugares. `margem` é lucro sobre o valor de venda (não sobre o
+custo). `saldoDevedor` de um contrato `QUITADO` é sempre zero — a quitação
+liquida o contrato, e o valor negociado (`valorQuitacao`) entra em `totalPago`,
+nunca em `custoTotal`. `rentabilidadeAnualizada` usa `double`/`Math.pow` só por
+ser indicador percentual, com comentário no ponto de uso.
 
 ### Etapa G — Frontend
 - [ ] Renomear features placeholder (`aportantes/` → `pessoas/`,

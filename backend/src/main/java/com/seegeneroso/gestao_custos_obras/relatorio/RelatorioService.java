@@ -1,5 +1,8 @@
 package com.seegeneroso.gestao_custos_obras.relatorio;
 
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ParcelaContratoModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
@@ -8,10 +11,16 @@ import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoria
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCategoriaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoPessoaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.OrcadoVsRealizadoDTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.PosicaoContratoDTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
+import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
+import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-// Adaptação mínima para compilar após o reescopo de Ago 2026 (ADR-019 a ADR-029).
-// A reescrita completa (juros, custos acessórios de contrato, resultado por imóvel) é a Etapa F.
 @Service
 @RequiredArgsConstructor
 public class RelatorioService {
@@ -33,6 +45,7 @@ public class RelatorioService {
     private final ImovelRepository imovelRepository;
     private final PessoaRepository pessoaRepository;
     private final DespesaRepository despesaRepository;
+    private final ContratoFinanceiroRepository contratoFinanceiroRepository;
     private final OrcamentoCategoriaService orcamentoCategoriaService;
 
     @Transactional(readOnly = true)
@@ -68,21 +81,13 @@ public class RelatorioService {
     @Transactional(readOnly = true)
     public List<ExtratoPessoaDTO> extratoPessoas(Long imovelId, Long categoriaDespesaId, Long pessoaId,
                                                  LocalDate dataInicio, LocalDate dataFim) {
-        List<PessoaModel> pessoas = pessoaId != null
-                ? List.of(buscarPessoaAtiva(pessoaId))
-                : pessoaRepository.findByAtivoTrue();
+        return extratoPorPapel(DespesaModel::getPagador, pessoaId, imovelId, categoriaDespesaId, dataInicio, dataFim);
+    }
 
-        return pessoas.stream()
-                .map(pessoa -> {
-                    BigDecimal total = despesaRepository.findByAtivoTrue().stream()
-                            .filter(d -> d.getPagador() != null && d.getPagador().getId().equals(pessoa.getId()))
-                            .filter(d -> despesaAtendeFiltros(d, imovelId, categoriaDespesaId, dataInicio, dataFim))
-                            .map(DespesaModel::getValor)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    return new ExtratoPessoaDTO(pessoa.getId(), pessoa.getNome(), total);
-                })
-                .filter(dto -> dto.totalPago().compareTo(BigDecimal.ZERO) > 0)
-                .toList();
+    @Transactional(readOnly = true)
+    public List<ExtratoPessoaDTO> historicoFornecedor(Long imovelId, Long categoriaDespesaId, Long pessoaId,
+                                                       LocalDate dataInicio, LocalDate dataFim) {
+        return extratoPorPapel(DespesaModel::getBeneficiario, pessoaId, imovelId, categoriaDespesaId, dataInicio, dataFim);
     }
 
     @Transactional(readOnly = true)
@@ -107,6 +112,195 @@ public class RelatorioService {
                 imovelId, imovel.getIdentificador(),
                 valorOrcadoTotal, valorRealizadoTotal, diferenca, categorias
         );
+    }
+
+    // A regra de custo (ADR-025, .agents/rules/regras-negocio-financeiras.md e contratos-financeiros.md):
+    // custoTotal = valor de compra + despesas do imóvel (todas as fases) + juros efetivamente pagos nas
+    // parcelas. Prestação de contrato NUNCA é despesa e saldo devedor/valorQuitacao NUNCA entram aqui —
+    // são posição de caixa, expostos à parte em PosicaoContratoDTO. Gasto geral (despesa sem imóvel) não
+    // entra no custo de imóvel nenhum porque nunca é buscado por findByImovelIdAndAtivoTrue.
+    @Transactional(readOnly = true)
+    public ResultadoImovelDTO resultadoImovel(Long imovelId) {
+        ImovelModel imovel = buscarImovelAtivo(imovelId);
+        List<DespesaModel> despesas = despesaRepository.findByImovelIdAndAtivoTrue(imovelId);
+        List<ContratoFinanceiroModel> contratos = contratoFinanceiroRepository.findByImovelId(imovelId);
+
+        Map<FaseImovel, BigDecimal> despesasPorFase = despesas.stream()
+                .collect(Collectors.groupingBy(DespesaModel::getFaseImovel,
+                        Collectors.reducing(BigDecimal.ZERO, DespesaModel::getValor, BigDecimal::add)));
+        BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal jurosPagos = jurosPagos(contratos);
+        BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos);
+
+        boolean vendido = imovel.getSituacao() == SituacaoImovel.VENDIDO;
+        LocalDate fimCarteira = vendido && imovel.getVenda().getData() != null
+                ? imovel.getVenda().getData() : LocalDate.now();
+        long diasEmCarteira = ChronoUnit.DAYS.between(imovel.getDataInicioLote(), fimCarteira);
+
+        BigDecimal lucro = null;
+        BigDecimal margem = null;
+        if (vendido && imovel.getVenda().getValor() != null) {
+            lucro = imovel.getVenda().getValor().subtract(custoTotal);
+            if (imovel.getVenda().getValor().compareTo(BigDecimal.ZERO) > 0) {
+                margem = lucro.divide(imovel.getVenda().getValor(), 4, RoundingMode.HALF_UP);
+            }
+        }
+
+        // rentabilidadeAnualizada é indicador percentual, não valor monetário — exceção documentada
+        // à proibição de double de .agents/rules/regras-negocio-financeiras.md.
+        Double rentabilidadeAnualizada = null;
+        if (lucro != null && diasEmCarteira > 0 && custoTotal.compareTo(BigDecimal.ZERO) > 0) {
+            double roi = lucro.divide(custoTotal, 10, RoundingMode.HALF_UP).doubleValue();
+            rentabilidadeAnualizada = Math.pow(1 + roi, 365.0 / diasEmCarteira) - 1;
+        }
+
+        boolean resultadoProvisorio = vendido && imovel.getFase() != FaseImovel.CASA;
+
+        return new ResultadoImovelDTO(
+                imovel.getId(), imovel.getIdentificador(), imovel.getFase(), imovel.getSituacao(),
+                imovel.getCompra().getValor(),
+                despesasPorFase, totalDespesas, jurosPagos, custoTotal,
+                imovel.getCustoEstimadoObra(), imovel.getPrevisaoConclusao(),
+                despesasPorFase.getOrDefault(FaseImovel.CONSTRUCAO, BigDecimal.ZERO),
+                imovel.getVenda().getValor(), imovel.getVenda().getValorPretendido(), imovel.getVenda().getData(),
+                lucro, margem, diasEmCarteira, tempoPorFase(imovel), rentabilidadeAnualizada, resultadoProvisorio,
+                contratos.stream().map(this::posicaoContrato).toList()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public CarteiraDTO carteira(LocalDate dataInicio, LocalDate dataFim) {
+        List<ImovelModel> imoveis = imovelRepository.findByAtivoTrue();
+        LocalDate hoje = LocalDate.now();
+        LocalDate limite30 = hoje.plusDays(30);
+
+        BigDecimal totalInvestido = BigDecimal.ZERO;
+        BigDecimal totalVendido = BigDecimal.ZERO;
+        BigDecimal lucroRealizado = BigDecimal.ZERO;
+        BigDecimal saldoDevedorTotal = BigDecimal.ZERO;
+        long parcelasAVencer = 0;
+        Map<FaseImovel, Long> imoveisPorFase = new EnumMap<>(FaseImovel.class);
+        Map<SituacaoImovel, Long> imoveisPorSituacao = new EnumMap<>(SituacaoImovel.class);
+
+        for (ImovelModel imovel : imoveis) {
+            imoveisPorFase.merge(imovel.getFase(), 1L, Long::sum);
+            imoveisPorSituacao.merge(imovel.getSituacao(), 1L, Long::sum);
+
+            List<DespesaModel> despesas = despesaRepository.findByImovelIdAndAtivoTrue(imovel.getId());
+            BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
+            List<ContratoFinanceiroModel> contratos = contratoFinanceiroRepository.findByImovelId(imovel.getId());
+            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos(contratos));
+            totalInvestido = totalInvestido.add(custoTotal);
+
+            if (imovel.getSituacao() == SituacaoImovel.VENDIDO && imovel.getVenda().getValor() != null) {
+                totalVendido = totalVendido.add(imovel.getVenda().getValor());
+                lucroRealizado = lucroRealizado.add(imovel.getVenda().getValor().subtract(custoTotal));
+            }
+
+            for (ContratoFinanceiroModel contrato : contratos) {
+                saldoDevedorTotal = saldoDevedorTotal.add(saldoDevedorContrato(contrato));
+                if (contrato.getSituacao() == SituacaoContrato.ATIVO) {
+                    for (ParcelaContratoModel parcela : contrato.getParcelas()) {
+                        if (parcela.getDataPagamento() == null
+                                && !parcela.getDataVencimento().isBefore(hoje)
+                                && !parcela.getDataVencimento().isAfter(limite30)) {
+                            parcelasAVencer++;
+                        }
+                    }
+                }
+            }
+        }
+
+        BigDecimal gastosGeraisPeriodo = despesaRepository.findByImovelIsNullAndAtivoTrue().stream()
+                .filter(d -> despesaAtendeFiltros(d, null, null, dataInicio, dataFim))
+                .map(DespesaModel::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new CarteiraDTO(totalInvestido, totalVendido, lucroRealizado, imoveisPorFase, imoveisPorSituacao,
+                saldoDevedorTotal, parcelasAVencer, gastosGeraisPeriodo);
+    }
+
+    private BigDecimal jurosPagos(List<ContratoFinanceiroModel> contratos) {
+        return contratos.stream()
+                .flatMap(c -> c.getParcelas().stream())
+                .filter(p -> p.getDataPagamento() != null)
+                .map(ParcelaContratoModel::getValorJuros)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal custoTotal(ImovelModel imovel, BigDecimal totalDespesas, BigDecimal jurosPagos) {
+        BigDecimal valorCompra = imovel.getCompra().getValor() != null ? imovel.getCompra().getValor() : BigDecimal.ZERO;
+        return valorCompra.add(totalDespesas).add(jurosPagos);
+    }
+
+    private BigDecimal saldoDevedorContrato(ContratoFinanceiroModel contrato) {
+        if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
+            return BigDecimal.ZERO;
+        }
+        return contrato.getParcelas().stream()
+                .filter(p -> p.getDataPagamento() == null)
+                .map(ParcelaContratoModel::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private PosicaoContratoDTO posicaoContrato(ContratoFinanceiroModel contrato) {
+        BigDecimal totalPagoParcelas = contrato.getParcelas().stream()
+                .filter(p -> p.getDataPagamento() != null)
+                .map(ParcelaContratoModel::getValorPago)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        boolean quitado = contrato.getSituacao() == SituacaoContrato.QUITADO;
+        BigDecimal totalPago = quitado && contrato.getValorQuitacao() != null
+                ? totalPagoParcelas.add(contrato.getValorQuitacao())
+                : totalPagoParcelas;
+
+        return new PosicaoContratoDTO(
+                contrato.getId(), contrato.getTipo(),
+                contrato.getContraparte() != null ? contrato.getContraparte().getNome() : null,
+                contrato.getSituacao(), contrato.getValorContratado(), totalPago, saldoDevedorContrato(contrato));
+    }
+
+    private Map<FaseImovel, Long> tempoPorFase(ImovelModel imovel) {
+        LocalDate hoje = LocalDate.now();
+        Map<FaseImovel, Long> tempo = new EnumMap<>(FaseImovel.class);
+
+        LocalDate fimLote = imovel.getDataInicioConstrucao() != null ? imovel.getDataInicioConstrucao() : hoje;
+        tempo.put(FaseImovel.LOTE, ChronoUnit.DAYS.between(imovel.getDataInicioLote(), fimLote));
+
+        if (imovel.getDataInicioConstrucao() != null) {
+            LocalDate fimConstrucao = imovel.getDataConclusaoObra() != null ? imovel.getDataConclusaoObra() : hoje;
+            tempo.put(FaseImovel.CONSTRUCAO, ChronoUnit.DAYS.between(imovel.getDataInicioConstrucao(), fimConstrucao));
+        }
+
+        if (imovel.getDataConclusaoObra() != null) {
+            boolean vendido = imovel.getSituacao() == SituacaoImovel.VENDIDO && imovel.getVenda().getData() != null;
+            LocalDate fimCasa = vendido ? imovel.getVenda().getData() : hoje;
+            tempo.put(FaseImovel.CASA, ChronoUnit.DAYS.between(imovel.getDataConclusaoObra(), fimCasa));
+        }
+
+        return tempo;
+    }
+
+    private List<ExtratoPessoaDTO> extratoPorPapel(Function<DespesaModel, PessoaModel> papel, Long pessoaId,
+                                                    Long imovelId, Long categoriaDespesaId,
+                                                    LocalDate dataInicio, LocalDate dataFim) {
+        List<PessoaModel> pessoas = pessoaId != null
+                ? List.of(buscarPessoaAtiva(pessoaId))
+                : pessoaRepository.findByAtivoTrue();
+        List<DespesaModel> despesasAtivas = despesaRepository.findByAtivoTrue();
+
+        return pessoas.stream()
+                .map(pessoa -> {
+                    BigDecimal total = despesasAtivas.stream()
+                            .filter(d -> papel.apply(d) != null && papel.apply(d).getId().equals(pessoa.getId()))
+                            .filter(d -> despesaAtendeFiltros(d, imovelId, categoriaDespesaId, dataInicio, dataFim))
+                            .map(DespesaModel::getValor)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return new ExtratoPessoaDTO(pessoa.getId(), pessoa.getNome(), total);
+                })
+                .filter(dto -> dto.totalPago().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
     }
 
     private BigDecimal somarDespesas(Long imovelId, Long categoriaDespesaId,

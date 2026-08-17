@@ -1,9 +1,11 @@
 package com.seegeneroso.gestao_custos_obras.relatorio;
 
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoPessoaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.OrcadoVsRealizadoDTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -81,6 +83,59 @@ public class RelatorioController {
                     .append(dado.valorOrcadoTotal()).append(';').append(dado.valorRealizadoTotal()).append(';')
                     .append(dado.diferenca()).append('\n');
             return csvResponse(sb, "orcado-vs-realizado.csv");
+        }
+        return ResponseEntity.ok(dado);
+    }
+
+    @GetMapping("/resultado-imovel")
+    public ResponseEntity<?> resultadoImovel(
+            @RequestParam Long imovelId,
+            @RequestParam(required = false) String format) {
+        ResultadoImovelDTO dado = relatorioService.resultadoImovel(imovelId);
+        if ("csv".equalsIgnoreCase(format)) {
+            StringBuilder sb = new StringBuilder(
+                    "imovelId;identificador;valorCompra;totalDespesas;jurosPagos;custoTotal;valorVenda;lucro;margem;diasEmCarteira;rentabilidadeAnualizada;resultadoProvisorio\n");
+            sb.append(dado.imovelId()).append(';').append(dado.identificador()).append(';')
+                    .append(dado.valorCompra()).append(';').append(dado.totalDespesas()).append(';')
+                    .append(dado.jurosPagos()).append(';').append(dado.custoTotal()).append(';')
+                    .append(dado.valorVenda()).append(';').append(dado.lucro()).append(';')
+                    .append(dado.margem()).append(';').append(dado.diasEmCarteira()).append(';')
+                    .append(dado.rentabilidadeAnualizada()).append(';').append(dado.resultadoProvisorio()).append('\n');
+            return csvResponse(sb, "resultado-imovel.csv");
+        }
+        return ResponseEntity.ok(dado);
+    }
+
+    @GetMapping("/historico-fornecedor")
+    public ResponseEntity<?> historicoFornecedor(
+            @RequestParam(required = false) Long imovelId,
+            @RequestParam(required = false) Long categoriaDespesaId,
+            @RequestParam(required = false) Long pessoaId,
+            @RequestParam(required = false) LocalDate dataInicio,
+            @RequestParam(required = false) LocalDate dataFim,
+            @RequestParam(required = false) String format) {
+        List<ExtratoPessoaDTO> dados = relatorioService.historicoFornecedor(imovelId, categoriaDespesaId, pessoaId, dataInicio, dataFim);
+        if ("csv".equalsIgnoreCase(format)) {
+            StringBuilder sb = new StringBuilder("pessoaId;nome;totalPago\n");
+            dados.forEach(d -> sb.append(d.pessoaId()).append(';').append(d.nome()).append(';').append(d.totalPago()).append('\n'));
+            return csvResponse(sb, "historico-fornecedor.csv");
+        }
+        return ResponseEntity.ok(dados);
+    }
+
+    @GetMapping("/carteira")
+    public ResponseEntity<?> carteira(
+            @RequestParam(required = false) LocalDate dataInicio,
+            @RequestParam(required = false) LocalDate dataFim,
+            @RequestParam(required = false) String format) {
+        CarteiraDTO dado = relatorioService.carteira(dataInicio, dataFim);
+        if ("csv".equalsIgnoreCase(format)) {
+            StringBuilder sb = new StringBuilder(
+                    "totalInvestido;totalVendido;lucroRealizado;saldoDevedorTotal;parcelasAVencer30Dias;gastosGeraisPeriodo\n");
+            sb.append(dado.totalInvestido()).append(';').append(dado.totalVendido()).append(';')
+                    .append(dado.lucroRealizado()).append(';').append(dado.saldoDevedorTotal()).append(';')
+                    .append(dado.parcelasAVencer30Dias()).append(';').append(dado.gastosGeraisPeriodo()).append('\n');
+            return csvResponse(sb, "carteira.csv");
         }
         return ResponseEntity.ok(dado);
     }
