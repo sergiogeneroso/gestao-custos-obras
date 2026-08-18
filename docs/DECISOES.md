@@ -498,3 +498,27 @@ do banco por medição.
 fechasse, e este reescopo é esse momento. A decisão nesta sessão foi **manter
 pausado**, com o risco registrado: a partir do primeiro imóvel real lançado com
 `ddl-auto=update`, retrofitar a baseline num banco povoado fica mais caro.
+
+## ADR-030 — Área do lote e área construída são campos distintos (Ago 2026)
+
+`ImovelModel` tinha um único campo `area`, herdado da modelagem anterior, em que
+"lote" e "imóvel" eram tipos fixos e mutuamente exclusivos. Com o ciclo de vida
+da ADR-020 (`LOTE → CONSTRUCAO → CASA` no mesmo registro), um campo só passou a
+misturar duas medidas diferentes: a metragem do terreno, conhecida na compra, e a
+metragem construída, que só existe a partir da obra e nem sempre é conhecida
+quando ela começa.
+
+**Decisão:** `area` vira `areaLote` e o imóvel ganha `areaConstruida`, ambas
+opcionais. Nenhuma das duas é obrigatória em nenhuma transição de fase —
+lançamento retroativo e obra iniciada sem projeto fechado são normais aqui.
+
+**Consequência nos relatórios:** `custo-por-m2` passa a devolver dois
+indicadores. O `custoPorM2` continua sendo as despesas do imóvel sobre a área do
+lote, e entra `custoObraPorM2` — despesas da fase `CONSTRUCAO` sobre a área
+construída, que é a métrica comparável entre obras. Dividir o custo total pela
+área do lote, como era feito antes, produzia um número sem significado para um
+imóvel com casa pronta.
+
+**Migração:** com o Flyway pausado (ADR-013), o `ddl-auto=update` criou as
+colunas novas sem remover `area`; os dados foram copiados para `area_lote` e a
+coluna antiga foi derrubada à mão no banco de desenvolvimento.

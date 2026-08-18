@@ -23,7 +23,8 @@ export const PROXIMA_FASE: Record<FaseImovel, FaseImovel | null> = {
 export interface ImovelRequestDTO {
   identificador: string;
   endereco: string | null;
-  area: number | null;
+  areaLote: number | null;
+  areaConstruida: number | null;
   dataInicioLote: string;
   dataInicioConstrucao: string | null;
   dataConclusaoObra: string | null;
@@ -42,7 +43,8 @@ export interface ImovelResponseDTO {
   fase: FaseImovel;
   situacao: SituacaoImovel;
   endereco: string | null;
-  area: number | null;
+  areaLote: number | null;
+  areaConstruida: number | null;
   dataInicioLote: string;
   dataInicioConstrucao: string | null;
   dataConclusaoObra: string | null;

@@ -52,7 +52,7 @@
           <th>Imóvel</th>
           <th>Fase</th>
           <th>Situação</th>
-          <th class="table__num">Área</th>
+          <th class="table__num">Área do lote</th>
           <th class="table__num">Valor de compra</th>
           <th class="table__acoes"></th>
         </tr>
@@ -67,8 +67,8 @@
             <td><span class="tag" [class]="'tag--' + imovel.fase">{{ faseLabel[imovel.fase] }}</span></td>
             <td><span class="tag" [class]="'tag--' + imovel.situacao">{{ situacaoLabel[imovel.situacao] }}</span></td>
             <td class="table__num">
-              @if (imovel.area !== null) {
-                {{ imovel.area | number: '1.0-2' }} m²
+              @if (imovel.areaLote !== null) {
+                {{ imovel.areaLote | number: '1.0-2' }} m²
               } @else {
                 —
               }
@@ -111,10 +111,10 @@
 
             <div class="card__metricas">
               <div>
-                <p class="card__metrica-label">Área</p>
+                <p class="card__metrica-label">Área do lote</p>
                 <p class="card__metrica-valor">
-                  @if (imovel.area !== null) {
-                    {{ imovel.area | number: '1.0-2' }} m²
+                  @if (imovel.areaLote !== null) {
+                    {{ imovel.areaLote | number: '1.0-2' }} m²
                   } @else {
                     —
                   }

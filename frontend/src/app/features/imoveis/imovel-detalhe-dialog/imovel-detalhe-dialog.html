@@ -68,15 +68,21 @@
 
     <section class="detalhe-imovel__info">
       <div>
-        <p class="detalhe-imovel__label">Área</p>
+        <p class="detalhe-imovel__label">Área do lote</p>
         <p class="detalhe-imovel__valor">
-          @if (imovel().area !== null) {
-            {{ imovel().area | number: '1.0-2' }} m²
+          @if (imovel().areaLote !== null) {
+            {{ imovel().areaLote | number: '1.0-2' }} m²
           } @else {
             —
           }
         </p>
       </div>
+      @if (imovel().areaConstruida !== null) {
+        <div>
+          <p class="detalhe-imovel__label">Área construída</p>
+          <p class="detalhe-imovel__valor">{{ imovel().areaConstruida | number: '1.0-2' }} m²</p>
+        </div>
+      }
       <div>
         <p class="detalhe-imovel__label">Data de início como lote</p>
         <p class="detalhe-imovel__valor">{{ imovel().dataInicioLote | date: 'dd/MM/yyyy' }}</p>

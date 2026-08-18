@@ -49,7 +49,8 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
     endereco: [this.imovel?.endereco ?? ''],
-    area: [this.imovel?.area ?? null, Validators.min(0)],
+    areaLote: [this.imovel?.areaLote ?? null, Validators.min(0)],
+    areaConstruida: [this.imovel?.areaConstruida ?? null, Validators.min(0)],
     dataInicioLote: [this.imovel?.dataInicioLote ?? this.hoje(), Validators.required],
     dataInicioConstrucao: [this.imovel?.dataInicioConstrucao ?? ''],
     dataConclusaoObra: [this.imovel?.dataConclusaoObra ?? ''],

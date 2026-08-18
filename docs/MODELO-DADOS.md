@@ -36,6 +36,8 @@ erDiagram
         VARCHAR identificador
         VARCHAR fase "LOTE, CONSTRUCAO, CASA"
         VARCHAR situacao "ADQUIRIDO, A_VENDA, VENDIDO"
+        NUMERIC area_lote "10,2"
+        NUMERIC area_construida "10,2"
         DATE data_inicio_lote
         DATE data_inicio_construcao
         DATE data_conclusao_obra
