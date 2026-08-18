@@ -1,0 +1,280 @@
+.resultado {
+  padding: 34px 42px 70px;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.resultado__cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 17px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+
+  h1 {
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 36px;
+    letter-spacing: -0.015em;
+    margin: 0 0 0 -0.05em;
+  }
+}
+
+.resultado__kicker {
+  display: block;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mat-sys-primary);
+  margin: 0 0 8px;
+}
+
+.resultado__acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.resultado__seletor {
+  min-width: 210px;
+}
+
+.resultado__carregando,
+.resultado__vazio {
+  color: #9397ab;
+}
+
+.resultado__tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.resultado__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(255, 196, 84, 0.12);
+  color: #ffd48a;
+  border-radius: var(--mat-sys-corner-medium, 8px);
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 21px;
+  margin: 0 0 24px;
+
+  i {
+    font-size: 18px;
+    line-height: 21px;
+  }
+}
+
+.resultado__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 17px;
+  margin-bottom: 34px;
+}
+
+.card {
+  background: var(--mat-sys-surface-container);
+  border-radius: var(--mat-sys-corner-medium, 8px);
+  padding: 16px;
+}
+
+.card__label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9397ab;
+  margin: 0 0 8px;
+}
+
+.card__valor {
+  font-weight: 500;
+  font-size: 26px;
+  margin: 0;
+
+  &--negativo {
+    color: #ff9d9d;
+  }
+}
+
+.resultado__bloco {
+  margin-bottom: 34px;
+
+  h2 {
+    font-size: 17px;
+    font-weight: 500;
+    margin: 0 0 12px;
+  }
+}
+
+.resultado__nota {
+  font-size: 13px;
+  line-height: 20px;
+  color: #9397ab;
+  margin: 10px 0 0;
+}
+
+.resultado__rotulo-saldo {
+  display: block;
+  font-size: 11.5px;
+  color: #9397ab;
+}
+
+.resultado__impressao {
+  display: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(233, 233, 237, 0.16);
+  }
+
+  th {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9397ab;
+    font-weight: 500;
+  }
+
+  &__num {
+    text-align: right;
+  }
+
+  &__total {
+    font-weight: 600;
+
+    td {
+      border-bottom: none;
+      border-top: 1px solid rgba(233, 233, 237, 0.32);
+    }
+  }
+}
+
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &--LOTE,
+  &--ADQUIRIDO {
+    border: 1px solid rgba(233, 233, 237, 0.32);
+    color: #b2b6ca;
+  }
+
+  &--CONSTRUCAO {
+    background: rgba(145, 132, 217, 0.18);
+    color: #d2cefd;
+  }
+
+  &--CASA {
+    background: rgba(233, 233, 237, 0.12);
+    color: #b2b6ca;
+  }
+
+  &--A_VENDA,
+  &--ATIVO {
+    background: rgba(255, 196, 84, 0.18);
+    color: #ffd48a;
+  }
+
+  &--VENDIDO,
+  &--QUITADO {
+    background: rgba(94, 214, 150, 0.18);
+    color: #9de8bb;
+  }
+}
+
+// O tema é dark; no papel vira preto sobre branco. O menu do shell é escondido
+// pelo @media print de styles.scss, que é de onde dá para alcançá-lo.
+@media print {
+  .resultado {
+    padding: 0;
+    max-width: none;
+    color: #000;
+  }
+
+  .resultado__cabecalho,
+  .resultado__acoes {
+    display: none;
+  }
+
+  .resultado__impressao {
+    display: block;
+    margin-bottom: 18px;
+
+    h2 {
+      font-size: 20px;
+      margin: 0 0 4px;
+    }
+
+    p {
+      font-size: 12px;
+      color: #444;
+      margin: 0;
+    }
+  }
+
+  .resultado__kpis {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .card {
+    background: none;
+    border: 1px solid #bbb;
+    break-inside: avoid;
+  }
+
+  .card__label,
+  .resultado__nota,
+  .resultado__rotulo-saldo,
+  .table th {
+    color: #444;
+  }
+
+  .card__valor {
+    font-size: 18px;
+    color: #000;
+
+    &--negativo {
+      color: #a00000;
+    }
+  }
+
+  .resultado__bloco,
+  .table {
+    break-inside: avoid;
+  }
+
+  .resultado__aviso {
+    background: none;
+    border: 1px solid #a07000;
+    color: #7a5500;
+  }
+
+  .table th,
+  .table td {
+    border-bottom: 1px solid #ccc;
+    color: #000;
+  }
+
+  .tag {
+    border: 1px solid #888 !important;
+    background: none !important;
+    color: #000 !important;
+  }
+}

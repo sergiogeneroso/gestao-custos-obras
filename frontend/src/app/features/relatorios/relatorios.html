@@ -1,1 +1,230 @@
-<h1>Relatórios</h1>
+<main class="resultado">
+  <header class="resultado__cabecalho">
+    <div>
+      <span class="resultado__kicker">Relatório</span>
+      <h1>Resultado por imóvel</h1>
+    </div>
+
+    <div class="resultado__acoes">
+      <mat-form-field appearance="outline" class="resultado__seletor" subscriptSizing="dynamic">
+        <mat-label>Imóvel</mat-label>
+        <mat-select
+          [value]="imovelSelecionadoId()"
+          (selectionChange)="selecionar($event.value)"
+          [disabled]="imoveis().length === 0"
+        >
+          @for (imovel of imoveis(); track imovel.id) {
+            <mat-option [value]="imovel.id">{{ imovel.identificador }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button type="button" [disabled]="!resultado()" (click)="exportarCsv()">
+        <i class="ph ph-file-csv"></i>
+        Exportar CSV
+      </button>
+      <button mat-stroked-button type="button" color="primary" [disabled]="!resultado()" (click)="salvarPdf()">
+        <i class="ph ph-file-pdf"></i>
+        Salvar em PDF
+      </button>
+    </div>
+  </header>
+
+  @if (carregando()) {
+    <p class="resultado__carregando">Carregando…</p>
+  } @else if (imoveis().length === 0) {
+    <p class="resultado__vazio">Nenhum imóvel cadastrado ainda.</p>
+  } @else if (resultado(); as r) {
+    <!-- Só aparece no papel: no navegador o imóvel já está no seletor acima. -->
+    <div class="resultado__impressao">
+      <h2>{{ r.identificador }} — resultado do imóvel</h2>
+      <p>Emitido em {{ hoje | date: 'dd/MM/yyyy' }}</p>
+    </div>
+
+    <div class="resultado__tags">
+      <span class="tag" [class]="'tag--' + r.fase">{{ faseLabel[r.fase] }}</span>
+      <span class="tag" [class]="'tag--' + r.situacao">{{ situacaoLabel[r.situacao] }}</span>
+    </div>
+
+    @if (r.resultadoProvisorio) {
+      <p class="resultado__aviso">
+        <i class="ph ph-warning"></i>
+        Imóvel vendido com a obra ainda em andamento: o resultado é provisório, porque novas despesas de
+        construção ainda devem chegar.
+      </p>
+    }
+
+    <section class="resultado__kpis">
+      <div class="card">
+        <p class="card__label">Custo total</p>
+        <p class="card__valor">{{ r.custoTotal | currency: 'BRL' }}</p>
+      </div>
+      <div class="card">
+        <p class="card__label">{{ r.valorVenda !== null ? 'Valor de venda' : 'Venda pretendida' }}</p>
+        <p class="card__valor">
+          @if (r.valorVenda !== null) {
+            {{ r.valorVenda | currency: 'BRL' }}
+          } @else if (r.valorVendaPretendido !== null) {
+            {{ r.valorVendaPretendido | currency: 'BRL' }}
+          } @else {
+            —
+          }
+        </p>
+      </div>
+      <div class="card">
+        <p class="card__label">Lucro</p>
+        <p class="card__valor" [class.card__valor--negativo]="(r.lucro ?? 0) < 0">
+          @if (r.lucro !== null) {
+            {{ r.lucro | currency: 'BRL' }}
+          } @else {
+            —
+          }
+        </p>
+      </div>
+      <div class="card">
+        <p class="card__label">Margem</p>
+        <p class="card__valor">
+          @if (r.margem !== null) {
+            {{ r.margem | percent: '1.0-2' }}
+          } @else {
+            —
+          }
+        </p>
+      </div>
+      <div class="card">
+        <p class="card__label">Rentabilidade anualizada</p>
+        <p class="card__valor">
+          @if (r.rentabilidadeAnualizada !== null) {
+            {{ r.rentabilidadeAnualizada | percent: '1.0-2' }}
+          } @else {
+            —
+          }
+        </p>
+      </div>
+      <div class="card">
+        <p class="card__label">Dias em carteira</p>
+        <p class="card__valor">{{ r.diasEmCarteira | number: '1.0-0' }}</p>
+      </div>
+    </section>
+
+    <section class="resultado__bloco">
+      <h2>Composição do custo</h2>
+      <table class="table">
+        <tbody>
+          <tr>
+            <td>Compra do lote</td>
+            <td class="table__num">{{ r.valorCompra ?? 0 | currency: 'BRL' }}</td>
+          </tr>
+          @for (fase of fases; track fase) {
+            @if (r.despesasPorFase[fase]; as valor) {
+              <tr>
+                <td>Despesas — {{ faseLabel[fase] }}</td>
+                <td class="table__num">{{ valor | currency: 'BRL' }}</td>
+              </tr>
+            }
+          }
+          @if (r.jurosPagos > 0) {
+            <tr>
+              <td>Juros pagos em parcelas</td>
+              <td class="table__num">{{ r.jurosPagos | currency: 'BRL' }}</td>
+            </tr>
+          }
+          <tr class="table__total">
+            <td>Custo total</td>
+            <td class="table__num">{{ r.custoTotal | currency: 'BRL' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      @if (r.valorVenda !== null) {
+        <p class="resultado__nota">Vendido em {{ r.dataVenda | date: 'dd/MM/yyyy' }}.</p>
+      }
+    </section>
+
+    @if (temBlocoObra()) {
+      <section class="resultado__bloco">
+        <h2>Obra</h2>
+        <table class="table">
+          <tbody>
+            <tr>
+              <td>Custo estimado</td>
+              <td class="table__num">
+                @if (r.custoEstimadoObra !== null) {
+                  {{ r.custoEstimadoObra | currency: 'BRL' }}
+                } @else {
+                  —
+                }
+              </td>
+            </tr>
+            <tr>
+              <td>Custo real</td>
+              <td class="table__num">{{ r.custoRealObra | currency: 'BRL' }}</td>
+            </tr>
+            @if (r.previsaoConclusao !== null) {
+              <tr>
+                <td>Previsão de conclusão</td>
+                <td class="table__num">{{ r.previsaoConclusao | date: 'dd/MM/yyyy' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    <section class="resultado__bloco">
+      <h2>Tempo por fase</h2>
+      <table class="table">
+        <tbody>
+          @for (fase of fases; track fase) {
+            @if (r.tempoPorFase[fase] !== undefined) {
+              <tr>
+                <td>{{ faseLabel[fase] }}</td>
+                <td class="table__num">{{ r.tempoPorFase[fase] === 1 ? '1 dia' : (r.tempoPorFase[fase] | number: '1.0-0') + ' dias' }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </section>
+
+    @if (r.contratos.length > 0) {
+      <section class="resultado__bloco">
+        <h2>Contratos financeiros</h2>
+        <p class="resultado__nota">
+          Posição de caixa: nem o total pago nem o saldo entram no custo do imóvel — só os juros das
+          parcelas pagas, já somados acima.
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Contraparte</th>
+              <th>Situação</th>
+              <th class="table__num">Contratado</th>
+              <th class="table__num">Total pago</th>
+              <th class="table__num">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (contrato of r.contratos; track contrato.contratoId) {
+              <tr>
+                <td>{{ tipoContratoLabel[contrato.tipo] }}</td>
+                <td>{{ contrato.contraparteNome || '—' }}</td>
+                <td>
+                  <span class="tag" [class]="'tag--' + contrato.situacao">
+                    {{ situacaoContratoLabel[contrato.situacao] }}
+                  </span>
+                </td>
+                <td class="table__num">{{ contrato.valorContratado | currency: 'BRL' }}</td>
+                <td class="table__num">{{ contrato.totalPago | currency: 'BRL' }}</td>
+                <td class="table__num">
+                  {{ contrato.saldoDevedor | currency: 'BRL' }}
+                  <span class="resultado__rotulo-saldo">{{ rotuloSaldo(contrato) }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  }
+</main>

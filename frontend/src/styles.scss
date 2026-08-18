@@ -63,3 +63,25 @@ body {
   height: 100%;
 }
 /* You can add global styles to this file, and also import other style files */
+
+// Impressão: o "Salvar em PDF" da tela de resultado (features/relatorios/) usa o
+// diálogo do navegador. O menu lateral vive no Shell, fora do componente que
+// imprime, então só dá para escondê-lo daqui.
+@media print {
+  body {
+    color-scheme: light;
+    background: #fff;
+    color: #000;
+  }
+
+  .shell__sidebar,
+  mat-sidenav {
+    display: none !important;
+  }
+
+  .mat-drawer-content,
+  .mat-sidenav-content {
+    margin: 0 !important;
+    background: #fff !important;
+  }
+}
