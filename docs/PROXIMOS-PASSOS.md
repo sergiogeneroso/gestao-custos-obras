@@ -29,8 +29,10 @@ Consultar e atualizar ao final de cada sessão de trabalho.
 
 O objetivo do projeto foi reescrito: de "gestão de despesas de obras" para
 **resultado financeiro de cada imóvel do começo ao fim** (compra do lote, custos
-do ciclo de vida, venda). O roadmap abaixo, das Etapas 7 a 9, reflete o escopo
-antigo e permanece como registro do que já foi feito; o roadmap novo é este:
+do ciclo de vida, venda). O roadmap anterior (Etapas 7 a 9) foi removido deste
+arquivo em Ago 2026 por já estar cumprido ou superado — o que continua valendo
+dele está em "Pendências antigas ainda válidas", no fim. O roadmap atual começa
+aqui e continua em "Revisão do domínio Imóvel":
 
 ### Etapa A — Registro das decisões ✅
 - [x] ADR-019 a ADR-029 em `docs/DECISOES.md`
@@ -85,7 +87,7 @@ comprovante e nota fiscal separadamente, e lançar despesa sem imóvel.
       Material, Mão de obra, Custos de financiamento, Corretagem, Impostos sobre
       a venda (via `CategoriaDespesaSeedRunner`, já que o Flyway está pausado)
 - [x] `ImovelModel`: `tipo` → `fase` (`FaseImovel`) e `status` → `situacao`
-      (`SituacaoImovel`); `dataInicioLote`, `dataInicioConstrucao`,
+      (`SituacaoImovel`); `dataInicioLote` (removida depois pela ADR-032), `dataInicioConstrucao`,
       `dataConclusaoObra`; `custoEstimadoObra`, `previsaoConclusao`;
       `@Embedded DadosCompra` e `DadosVenda`
 - [x] `PATCH /api/imoveis/{id}/fase` e `/situacao` — só por aqui a fase e a
@@ -200,44 +202,93 @@ o botão de exclusão chama `excluir()`/`service.deletar()` em vez do
       `.agents/skills/gerar-crud-dominio/SKILL.md` e `gerar-crud-frontend/SKILL.md`
 - [ ] Atualizar a estrutura de pastas em `docs/FRONTEND.md`
 
-## Roadmap do MVP (escopo anterior, histórico)
+## Revisão do domínio Imóvel (Ago 2026)
 
-### Etapa 7 — Autenticação JWT (RNF01) ✅
-- [x] `auth/`: `UsuarioModel`, `UsuarioRepository`, `AuthService`,
-      `AuthController` (`/api/auth/login`)
-- [x] Substituir HTTP Basic por filtro stateless JWT + role no token
-      (`ROLE_<role>` no `Authentication`; regras `.hasRole(...)` por
-      domínio ficam pendentes para a fase 2, quando os outros tipos de
-      role forem definidos)
+Origem: análise do domínio `imovel` contra o uso real do cliente — cadastro do
+lote, conversão em construção, conclusão como casa e venda. Cada etapa abaixo é
+fechável e revisável sozinha, na ordem em que estão.
 
-### Etapa 8 — Testes
-- [ ] Testes unitários de cada Service
-- [ ] Testes de integração de Controllers (`MockMvc`)
+### Etapa I — Parcelamento de venda não é dívida ✅
+- [x] `ehDivida()` em `RelatorioService` como único ponto de decisão: juros de
+      `PARCELAMENTO_VENDA` saem do `custoTotal` (o comprador é quem paga) e as
+      parcelas em aberto viram "a receber", não saldo devedor
+- [x] `CarteiraDTO` ganha `saldoAReceberTotal` e `parcelasAReceber30Dias`;
+      dashboard mostra o card "A receber"
+- [x] Regra registrada em `.agents/rules/contratos-financeiros.md`; dois testes
 
-### Etapa 9 — Frontend Angular
-- [x] Setup Angular + Angular Material
-- [x] Estrutura de pastas (`core/`, `features/<domínio>/`, `shared/`) +
-      roteamento base: `Shell` (toolbar/sidenav) em `core/layout/`, rotas
-      lazy (`loadComponent`) por domínio em `app.routes.ts`, placeholders
-      em `features/*`
-- [x] Login + AuthGuard: `core/auth/` (`AuthService` com signal de usuário +
-      `localStorage`, `authInterceptor` funcional injeta Bearer,
-      `authGuard` protege o `Shell`), tela de login split-screen
-      (`core/auth/login/`). Testado ponta a ponta com o seed admin
-      (login → área logada → logout)
-- [x] Design system Nocturne adotado como tema default (ADR-018): paleta,
-      Inter, ícones Phosphor, raio/densidade globais, landing page pública
-      em `/`, `Shell` movido pra `/painel`
-- [x] Dashboard (`features/dashboard/`): KPIs (custo lançado no mês, custo
-      médio por m², despesas sem comprovante) e 3 imóveis mais recentes,
-      alternável cards/lista — dados montados no frontend a partir de
-      `GET /api/imoveis` + `GET /api/despesas`, sem endpoint novo. Gráficos
-      (Custo Total, Orçado vs. Realizado, ADR-017/Chart.js) ainda pendentes
-- [ ] Telas CRUD (Imóveis, Aportantes, Etapas, Orçamento)
-- [ ] Lançamento de despesas mobile-friendly (canteiro de obras)
-- [ ] RF07 — tema configurável: endpoint de config no backend
-      (`ROLE_ADMIN`), 5 paletas curadas (Nocturne dark-only + 4 com par
-      light/dark, ADR-016/ADR-018), painel admin no frontend pra trocar
+### Etapa J — Área do lote × área construída ✅ (ADR-030)
+- [x] `area` → `areaLote`, mais `areaConstruida`; migração manual da coluna
+- [x] `custo-por-m2` passa a devolver `custoObraPorM2` (despesas da fase
+      `CONSTRUCAO` ÷ área construída) além do custo por m² de lote
+
+### Etapa K — Tela de resultado por imóvel ✅
+- [x] `features/relatorios/` deixa de ser placeholder: seletor de imóvel, KPIs,
+      composição do custo, obra, tempo por fase e posição dos contratos
+- [x] Exportação CSV e "Salvar em PDF" via impressão do navegador (`@media
+      print` em `relatorios.scss` e `styles.scss`), sem dependência nova
+
+### Etapa L — Backend: propriedades por fase (ADR-031, ADR-032, ADR-033)
+**Ler antes:** ADR-031 a ADR-033 e `.agents/rules/ciclo-vida-imovel.md`.
+- [ ] `DadosLote`, `DadosConstrucao` e `DadosCasa` como `@Embedded` em
+      `ImovelModel`, reaproveitando as colunas que já existem (`area_lote`,
+      `area_construida`, `data_inicio_construcao`, `custo_estimado_obra`,
+      `previsao_conclusao`, `data_conclusao_obra`) e acrescentando as novas
+- [ ] `DadosConstrucao` tem `@ManyToOne` para `Pessoa` (responsável técnico), então
+      precisa do mesmo getter manual que `compra`/`venda` já têm — sem ele o
+      Hibernate devolve `null` para o embeddable todo-nulo
+- [ ] Remover `dataInicioLote`; `compra.data` vira obrigatória e assume o papel de
+      marco inicial em `RelatorioService` (dias em carteira e tempo por fase)
+- [ ] `PATCH /fase` passa a aceitar os dados da fase de destino e
+      `PATCH /situacao` o valor pretendido; `POST` só aceita dados do lote
+- [ ] Migração manual no banco de dev (Flyway pausado): copiar `data_inicio_lote`
+      para `compra_data` onde estiver nula e derrubar a coluna
+
+**Pronto quando:** dá para cadastrar um lote com matrícula e inscrição municipal,
+avançar para construção informando alvará e ART, e concluir com habite-se.
+
+### Etapa M — Frontend: cadastro e transições por fase
+- [ ] Formulário de criação só com os campos do lote
+- [ ] `imovel-fase-dialog` pede os dados da fase de destino junto com a data
+- [ ] Colocar à venda deixa de ser troca direta e passa a pedir o valor pretendido
+- [ ] O `PUT` (editar) mostra apenas as fases já alcançadas pelo imóvel
+
+### Etapa N — Bloco financeiro no detalhe do imóvel
+- [ ] Custo acumulado, despesas do imóvel, contratos e atalho para o resultado —
+      hoje o detalhe mostra fotos e cadastro, sem nenhuma informação de custo
+- [ ] Lançar despesa a partir do imóvel, sem passar pela tela global
+
+### Etapa O — Documentos do imóvel
+- [ ] Tela de documentos: o backend tem `POST/GET/DELETE
+      /api/imoveis/{id}/documentos` desde a Etapa D e o frontend nunca ganhou tela
+- [ ] `ImovelDocumentoModel` ganha nome original do arquivo, descrição e data de
+      emissão/validade — hoje a lista mostra só tipo e URL
+
+### Etapa P — Datas: validar no PUT e na edição
+- [ ] `ImovelService.atualizar` valida a ordem `compra.data ≤
+      dataInicioConstrucao ≤ dataConclusaoObra`, que hoje só é checada na
+      transição, contrariando a rule do ciclo de vida
+- [ ] Datas incoerentes com a fase atual (conclusão preenchida num lote) deixam de
+      passar
+
+### Etapa Q — Ajustes pontuais do resultado
+- [ ] `resultadoProvisorio` para de acusar lote revendido sem obra — hoje
+      `vendido && fase != CASA` marca para sempre um imóvel cujo ciclo fechou
+- [ ] Valor de compra aparece na composição por fase (hoje `despesasPorFase`
+      exclui a própria compra do lote)
+- [ ] Guarda contra `fase_imovel` nula no `groupingBy` de `resultadoImovel`
+- [ ] `identificador` único no banco e checagem case-insensitive
+
+## Pendências antigas ainda válidas
+
+Do roadmap anterior ao reescopo, removido daqui por já estar cumprido ou
+superado; sobrou o que continua valendo:
+
+- [ ] Testes unitários dos demais services e de integração dos controllers
+      (`MockMvc`) — hoje só `RelatorioServiceTest` existe
+- [ ] Lançamento de despesa mobile-friendly (uso no canteiro)
+- [ ] RF07 — tema configurável: endpoint de config (`ROLE_ADMIN`), 5 paletas
+      curadas (ADR-016/ADR-018) e painel para trocar
+- [ ] Gráficos do dashboard (Custo Total, Orçado vs. Realizado — ADR-017/Chart.js)
 
 ## Módulos pós-MVP (ADR-029)
 

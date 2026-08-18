@@ -522,3 +522,86 @@ imóvel com casa pronta.
 **Migração:** com o Flyway pausado (ADR-013), o `ddl-auto=update` criou as
 colunas novas sem remover `area`; os dados foram copiados para `area_lote` e a
 coluna antiga foi derrubada à mão no banco de desenvolvimento.
+
+## ADR-031 — Propriedades por fase agrupadas em `@Embedded` (Ago 2026)
+
+O `ImovelModel` nasceu com os campos financeiros do ciclo e quase nenhum dado
+**documental**: os documentos existiam só como arquivo anexado
+(`ImovelDocumentoModel`), sem nenhum número pesquisável. Não dava para conferir
+um IPTU lançado, achar o imóvel pela matrícula ou saber se o alvará venceu sem
+abrir PDF.
+
+**Decisão:** cada fase do ciclo ganha suas propriedades próprias, agrupadas em um
+`@Embedded` dedicado dentro de `imovel` — `DadosLote`, `DadosConstrucao` e
+`DadosCasa` —, seguindo o padrão que `DadosCompra` e `DadosVenda` já usam:
+
+- **`DadosLote`**: matrícula, cartório/CRI e data do registro; inscrição
+  municipal (IPTU); e a área do lote, que passa a morar aqui mantendo a coluna
+  `area_lote`.
+- **`DadosConstrucao`**: área construída, data de início, previsão de conclusão e
+  custo estimado (colunas já existentes); número, emissão e validade do alvará;
+  número da ART/RRT e o responsável técnico (FK para `Pessoa`, reusando o
+  cadastro existente); CNO — a matrícula da obra na Receita, sem a qual não se
+  emite a CND para averbar.
+- **`DadosCasa`**: data de conclusão da obra (coluna já existente); número e data
+  do habite-se; data de averbação da construção na matrícula; e as
+  características de venda — quartos, suítes, banheiros e vagas.
+
+**O endereço fica todo na raiz do imóvel, no formato convencional**: logradouro,
+número, bairro, cidade, UF, CEP e uma observação livre para complemento ou ponto
+de referência. Chegou a ser considerado decompor a localização em
+loteamento/quadra/lote dentro de `DadosLote`, e isso foi descartado: quem
+identifica o imóvel juridicamente é a matrícula, o endereço serve para achar o
+imóvel no mundo, e ele vale igual em todas as fases.
+
+**Uma tabela, não três.** Tabelas 1:1 por fase (`imovel_lote`, …) normalizariam
+os nulos das fases não atingidas, mas custariam três joins, três repositórios e
+ciclo de vida próprio num sistema de uso solo com dezenas de imóveis. O
+agrupamento lógico que se queria vem do `@Embedded`, sem esse preço. JSONB foi
+descartado por perder tipagem, validação e consulta.
+
+**Cuidado herdado:** o Hibernate devolve `null` para um `@Embedded` com todas as
+colunas nulas quando ele tem associação `@ManyToOne` — foi o que motivou os
+getters manuais de `compra`/`venda` em `ImovelModel`. `DadosConstrucao` tem
+`responsavelTecnico`, então precisa do mesmo tratamento.
+
+## ADR-032 — A data da compra é o marco inicial do ciclo (Ago 2026)
+
+`ImovelModel` tinha `dataInicioLote` (obrigatória) e `compra.data` (opcional)
+como campos distintos. Neste negócio eles são o mesmo fato: todo imóvel começa
+como lote (ADR-020) e entra na carteira quando é comprado. Manter os dois
+permitia divergência silenciosa — um imóvel cuja carteira começa numa data e cuja
+compra aconteceu em outra —, e o `RelatorioService` usava `dataInicioLote` para
+dias em carteira e início da fase LOTE, enquanto a tela mostrava a data da compra.
+
+**Decisão:** `dataInicioLote` é removida. `compra.data` passa a ser obrigatória e
+vira o marco inicial da carteira e da fase LOTE. Onde o código lia
+`getDataInicioLote()`, passa a ler `getCompra().getData()`.
+
+**Consequência:** a ordem coerente das datas de transição vira
+`compra.data ≤ dataInicioConstrucao ≤ dataConclusaoObra`.
+
+## ADR-033 — O cadastro pede só o que é do lote (Ago 2026)
+
+O formulário de imóvel pedia, na criação, campos que só existem em fases
+futuras: área construída, custo estimado da obra, previsão de conclusão, datas de
+construção e valor de venda pretendido. Como todo imóvel nasce lote, esses campos
+apareciam vazios e sem sentido no único momento em que o cadastro acontece — e
+convidavam a registrar estimativa como se fosse fato.
+
+**Decisão:** cada propriedade é pedida no momento do fluxo a que pertence.
+
+- **Cadastro (`POST`)**: identificador, localização, dados registrais e
+  tributários do lote, área do lote, compra (valor, data, vendedor) e descrição.
+- **`PATCH /fase` para `CONSTRUCAO`**: além da data, os dados da construção —
+  área construída, custo estimado, previsão, alvará, ART e CNO.
+- **`PATCH /fase` para `CASA`**: além da data, habite-se, averbação e as
+  características do imóvel.
+- **`PATCH /situacao` para `A_VENDA`**: o valor de venda pretendido, que hoje é
+  uma troca de situação sem formulário nenhum.
+
+Os campos continuam **editáveis depois** pelo `PUT` de cadastro, que passa a
+expor apenas as fases já alcançadas pelo imóvel — corrigir dado lançado errado
+continua sendo possível, conforme a regra de ciclo de vida. Nenhum desses campos
+vira obrigatório na transição: alvará sai depois do início da obra, CNO idem, e a
+metragem final às vezes só fecha no habite-se.

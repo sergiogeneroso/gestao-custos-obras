@@ -14,7 +14,21 @@ para não invalidar referências; vários tiveram o conteúdo reescrito.
 ## Requisitos Funcionais (RF)
 
 ### RF01 — Imóveis e ciclo de vida 🔄 Em reformulação
-Campos: identificador, endereço, área (m²), descrição.
+Campos gerais: identificador, descrição e endereço completo — logradouro,
+número, bairro, cidade, UF, CEP e observação do endereço.
+
+**Propriedades por fase** (ADR-031), agrupadas em `@Embedded` no próprio imóvel:
+- **Lote**: matrícula, cartório e data do registro; inscrição municipal (IPTU);
+  área do lote (m²).
+- **Construção**: área construída (m²), data de início, previsão de conclusão e
+  custo estimado; alvará (número, emissão, validade); ART/RRT e responsável
+  técnico; CNO.
+- **Casa**: data de conclusão da obra; habite-se (número e data); data de
+  averbação na matrícula; quartos, suítes, banheiros e vagas.
+
+Cada uma é pedida no fluxo a que pertence, nunca toda no cadastro (ADR-033): o
+cadastro só aceita dados do lote, a transição de fase leva os dados da fase de
+destino, e o valor de venda pretendido entra ao colocar à venda.
 
 **Ciclo de vida em dois eixos independentes** (ADR-020):
 - `fase`: LOTE → CONSTRUCAO → CASA, só avança. Todo imóvel começa como lote;
@@ -23,8 +37,10 @@ Campos: identificador, endereço, área (m²), descrição.
   fase, inclusive na planta, e não congela a fase.
 
 **Compra e venda** (ADR-024): valor, data e contraparte de cada uma, mais o
-valor pretendido de venda. **Datas de transição** de fase e **projeção da obra**
-(custo estimado e previsão de conclusão) gravadas no imóvel.
+valor pretendido de venda. A **data da compra é obrigatória** e é o marco
+inicial da carteira e da fase LOTE — não existe `dataInicioLote` separada
+(ADR-032). As demais datas de transição são informadas pelo usuário na ação
+correspondente.
 
 Ações: criar, listar, editar, inativar (soft delete), avançar fase, mudar
 situação. `/api/imoveis`

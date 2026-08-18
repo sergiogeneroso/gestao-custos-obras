@@ -36,15 +36,38 @@ erDiagram
         VARCHAR identificador
         VARCHAR fase "LOTE, CONSTRUCAO, CASA"
         VARCHAR situacao "ADQUIRIDO, A_VENDA, VENDIDO"
+        VARCHAR endereco "logradouro"
+        VARCHAR numero
+        VARCHAR bairro
+        VARCHAR cidade
+        VARCHAR uf
+        VARCHAR cep
+        VARCHAR observacao_endereco "complemento, referência"
+        VARCHAR lote_matricula "DadosLote"
+        VARCHAR lote_cartorio
+        DATE lote_data_registro
+        VARCHAR lote_inscricao_municipal
         NUMERIC area_lote "10,2"
-        NUMERIC area_construida "10,2"
-        DATE data_inicio_lote
+        NUMERIC area_construida "10,2 — DadosConstrucao"
         DATE data_inicio_construcao
-        DATE data_conclusao_obra
         NUMERIC custo_estimado_obra "14,2"
         DATE previsao_conclusao
+        VARCHAR construcao_alvara_numero
+        DATE construcao_alvara_emissao
+        DATE construcao_alvara_validade
+        VARCHAR construcao_art_numero
+        BIGINT construcao_responsavel_tecnico_id FK
+        VARCHAR construcao_cno
+        DATE data_conclusao_obra "DadosCasa"
+        VARCHAR casa_habite_se_numero
+        DATE casa_habite_se_data
+        DATE casa_data_averbacao
+        INT casa_quartos
+        INT casa_suites
+        INT casa_banheiros
+        INT casa_vagas_garagem
         NUMERIC compra_valor "14,2"
-        DATE compra_data
+        DATE compra_data "marco inicial do ciclo (ADR-032)"
         BIGINT compra_vendedor_id FK
         NUMERIC venda_valor "14,2"
         DATE venda_data
@@ -128,8 +151,18 @@ erDiagram
   ferramentas) que não entra no custo de nenhum imóvel (ADR-023)
 - `despesa.fase_imovel` guarda a fase **em que a despesa foi incorrida**, não a
   fase atual do imóvel — é o que faz lançamento retroativo cair no lugar certo
-- `imovel.fase` só avança; as três datas de transição são gravadas
-  automaticamente e não podem ser reconstruídas depois (ADR-020)
+- `imovel.fase` só avança; as datas de transição são **informadas pelo usuário**
+  na ação de transição — nunca gravadas automaticamente — e não podem ser
+  reconstruídas depois (ADR-020)
+- `imovel.compra_data` é o **marco inicial** da carteira e da fase LOTE; não
+  existe `data_inicio_lote` separada (ADR-032)
+- As colunas com prefixo `lote_`, `construcao_` e `casa_` são os `@Embedded`
+  `DadosLote`/`DadosConstrucao`/`DadosCasa` (ADR-031) — agrupamento lógico numa
+  tabela só, sem tabela por fase. Nulos nas fases ainda não atingidas são
+  esperados, e nenhum desses campos é obrigatório na transição
+- O endereço fica todo na raiz, no formato convencional (logradouro, número,
+  bairro, cidade, UF, CEP e uma observação livre), porque vale para o imóvel
+  inteiro e não muda quando a fase avança
 - `contrato_financeiro.valor_quitacao` é o valor **negociado** da quitação
   antecipada, independente da soma das parcelas em aberto — e quitar não altera
   os valores originais das parcelas (ADR-025)

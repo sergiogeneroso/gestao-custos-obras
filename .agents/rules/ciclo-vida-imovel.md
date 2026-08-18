@@ -34,10 +34,31 @@ cometer aqui:
   `PATCH /api/imoveis/{id}/fase` e `PATCH /api/imoveis/{id}/situacao`, porque
   essas ações gravam as datas de transição
 
+## Cada fase tem propriedades próprias, pedidas no fluxo dela (ADR-031, ADR-033)
+
+O imóvel guarda, além do financeiro, os dados documentais de cada fase, agrupados
+em `@Embedded`: `DadosLote` (matrícula, cartório, data do registro, inscrição
+municipal, área do lote), `DadosConstrucao` (área
+construída, início, previsão, custo estimado, alvará, ART e responsável técnico,
+CNO) e `DadosCasa` (conclusão da obra, habite-se, averbação, quartos/suítes/
+banheiros/vagas).
+
+- **O cadastro só pede o que é do lote.** Todo imóvel nasce `LOTE`: campos de
+  construção, de casa e de venda não aparecem na criação
+- **Cada propriedade é pedida no fluxo a que pertence** — os dados da construção
+  no `PATCH /fase` para `CONSTRUCAO`, os da casa no `PATCH /fase` para `CASA`, e
+  o valor de venda pretendido no `PATCH /situacao` para `A_VENDA`
+- **Nenhum desses campos é obrigatório na transição.** Alvará e CNO saem depois
+  do início da obra, e a metragem final às vezes só fecha no habite-se
+- **Todos continuam editáveis pelo `PUT`**, que expõe as fases já alcançadas —
+  corrigir dado lançado errado não pode depender de refazer a transição
+
 ## Datas de transição
 
-`dataInicioLote`, `dataInicioConstrucao` e `dataConclusaoObra` marcam **quando o
-fato aconteceu**, não quando foi lançado no sistema.
+`compra.data`, `dataInicioConstrucao` e `dataConclusaoObra` marcam **quando o
+fato aconteceu**, não quando foi lançado no sistema. **Não existe
+`dataInicioLote`**: a data da compra é o marco inicial da carteira e da fase
+LOTE, e é obrigatória (ADR-032).
 
 - **A data é sempre informada pelo usuário** na ação de transição. A sugestão
   preenchida no formulário — data de hoje nas transições, data da compra no
@@ -48,7 +69,7 @@ fato aconteceu**, não quando foi lançado no sistema.
   corrigida, porque alimenta os relatórios
 - **Obrigatórias:** nenhuma transição de fase acontece sem a data correspondente.
   Não ser automática não significa poder ficar vazia
-- **Ordem coerente:** `dataInicioLote` ≤ `dataInicioConstrucao` ≤
+- **Ordem coerente:** `compra.data` ≤ `dataInicioConstrucao` ≤
   `dataConclusaoObra`. Validar na transição e na edição — data fora de ordem
   produziria tempo negativo por fase no relatório
 
