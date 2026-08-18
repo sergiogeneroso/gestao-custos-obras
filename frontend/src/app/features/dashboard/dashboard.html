@@ -4,7 +4,8 @@
       <h1>{{ saudacao() }}, {{ primeiroNome() }}</h1>
       @if (resumo(); as r) {
         <p class="dashboard__subtitulo">
-          {{ r.imoveisRecentes.length }} imóveis recentes · {{ r.parcelasAVencer30Dias }} parcelas a vencer em 30 dias
+          {{ r.imoveisRecentes.length }} imóveis recentes · {{ r.parcelasAVencer30Dias }} parcelas a vencer ·
+          {{ r.parcelasAReceber30Dias }} a receber em 30 dias
         </p>
       }
     </div>
@@ -29,6 +30,10 @@
       <div class="card">
         <p class="card__label">Saldo devedor</p>
         <p class="card__valor">{{ r.saldoDevedorTotal | currency: 'BRL' }}</p>
+      </div>
+      <div class="card">
+        <p class="card__label">A receber</p>
+        <p class="card__valor">{{ r.saldoAReceberTotal | currency: 'BRL' }}</p>
       </div>
       <div class="card">
         <p class="card__label">Parcelas a vencer (30 dias)</p>

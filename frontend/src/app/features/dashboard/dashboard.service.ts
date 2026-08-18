@@ -11,7 +11,9 @@ interface CarteiraDTO {
   imoveisPorFase: Partial<Record<FaseImovel, number>>;
   imoveisPorSituacao: Partial<Record<SituacaoImovel, number>>;
   saldoDevedorTotal: number;
+  saldoAReceberTotal: number;
   parcelasAVencer30Dias: number;
+  parcelasAReceber30Dias: number;
   gastosGeraisPeriodo: number;
 }
 

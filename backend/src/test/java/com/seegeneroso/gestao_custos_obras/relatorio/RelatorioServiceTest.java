@@ -11,6 +11,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaService;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
@@ -173,6 +174,53 @@ class RelatorioServiceTest {
         assertThat(resultado.custoTotal()).isEqualByComparingTo("100000");
         assertThat(resultado.contratos().get(0).totalPago()).isEqualByComparingTo("205000");
         assertThat(resultado.contratos().get(0).saldoDevedor()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void jurosDeParcelamentoDeVendaNaoEntramNoCusto() {
+        // No PARCELAMENTO_VENDA quem paga é o comprador: o juro da parcela recebida entrou no caixa,
+        // somá-lo ao custo derrubaria o lucro a cada parcela paga pelo comprador.
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.getVenda().setValor(new BigDecimal("150000"));
+        imovel.getVenda().setData(LocalDate.now());
+        ParcelaContratoModel recebida = parcela(new BigDecimal("8000"), new BigDecimal("500"),
+                LocalDate.now(), new BigDecimal("8000"));
+        ContratoFinanceiroModel contrato = contrato(TipoContratoFinanceiro.PARCELAMENTO_VENDA,
+                SituacaoContrato.ATIVO, new BigDecimal("160000"), null, null, recebida);
+
+        mockar(imovel, List.of(), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.jurosPagos()).isEqualByComparingTo("0");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("100000");
+        assertThat(resultado.lucro()).isEqualByComparingTo("50000");
+    }
+
+    @Test
+    void parcelamentoDeVendaContaComoAReceberNaoComoDivida() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        ParcelaContratoModel aReceber = parcela(new BigDecimal("8000"), new BigDecimal("500"), null, null);
+        ContratoFinanceiroModel contratoVenda = contrato(TipoContratoFinanceiro.PARCELAMENTO_VENDA,
+                SituacaoContrato.ATIVO, new BigDecimal("160000"), null, null, aReceber);
+        ParcelaContratoModel aPagar = parcela(new BigDecimal("3000"), new BigDecimal("100"), null, null);
+        ContratoFinanceiroModel contratoCompra = contrato(TipoContratoFinanceiro.PARCELAMENTO_COMPRA,
+                SituacaoContrato.ATIVO, new BigDecimal("60000"), null, null, aPagar);
+
+        when(imovelRepository.findByAtivoTrue()).thenReturn(List.of(imovel));
+        when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(List.of());
+        when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of(contratoVenda, contratoCompra));
+        when(despesaRepository.findByImovelIsNullAndAtivoTrue()).thenReturn(List.of());
+
+        CarteiraDTO carteira = relatorioService.carteira(null, null);
+
+        assertThat(carteira.saldoDevedorTotal()).isEqualByComparingTo("3000");
+        assertThat(carteira.saldoAReceberTotal()).isEqualByComparingTo("8000");
+        assertThat(carteira.parcelasAVencer30Dias()).isEqualTo(1L);
+        assertThat(carteira.parcelasAReceber30Dias()).isEqualTo(1L);
+        // o juro da parcela de venda também não pode inflar o custo somado na carteira
+        assertThat(carteira.totalInvestido()).isEqualByComparingTo("100000");
     }
 
     private void mockar(ImovelModel imovel, List<DespesaModel> despesas, List<ContratoFinanceiroModel> contratos) {

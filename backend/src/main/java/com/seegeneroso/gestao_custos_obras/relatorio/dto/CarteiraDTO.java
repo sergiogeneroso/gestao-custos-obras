@@ -13,7 +13,9 @@ public record CarteiraDTO(
         Map<FaseImovel, Long> imoveisPorFase,
         Map<SituacaoImovel, Long> imoveisPorSituacao,
         BigDecimal saldoDevedorTotal,
+        BigDecimal saldoAReceberTotal,
         Long parcelasAVencer30Dias,
+        Long parcelasAReceber30Dias,
         BigDecimal gastosGeraisPeriodo
 ) {
 }

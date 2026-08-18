@@ -21,6 +21,7 @@ import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import lombok.RequiredArgsConstructor;
@@ -178,7 +179,9 @@ public class RelatorioService {
         BigDecimal totalVendido = BigDecimal.ZERO;
         BigDecimal lucroRealizado = BigDecimal.ZERO;
         BigDecimal saldoDevedorTotal = BigDecimal.ZERO;
+        BigDecimal saldoAReceberTotal = BigDecimal.ZERO;
         long parcelasAVencer = 0;
+        long parcelasAReceber = 0;
         Map<FaseImovel, Long> imoveisPorFase = new EnumMap<>(FaseImovel.class);
         Map<SituacaoImovel, Long> imoveisPorSituacao = new EnumMap<>(SituacaoImovel.class);
 
@@ -198,15 +201,12 @@ public class RelatorioService {
             }
 
             for (ContratoFinanceiroModel contrato : contratos) {
-                saldoDevedorTotal = saldoDevedorTotal.add(saldoDevedorContrato(contrato));
-                if (contrato.getSituacao() == SituacaoContrato.ATIVO) {
-                    for (ParcelaContratoModel parcela : contrato.getParcelas()) {
-                        if (parcela.getDataPagamento() == null
-                                && !parcela.getDataVencimento().isBefore(hoje)
-                                && !parcela.getDataVencimento().isAfter(limite30)) {
-                            parcelasAVencer++;
-                        }
-                    }
+                if (ehDivida(contrato)) {
+                    saldoDevedorTotal = saldoDevedorTotal.add(saldoEmAberto(contrato));
+                    parcelasAVencer += contarParcelasEmAberto(contrato, hoje, limite30);
+                } else {
+                    saldoAReceberTotal = saldoAReceberTotal.add(saldoEmAberto(contrato));
+                    parcelasAReceber += contarParcelasEmAberto(contrato, hoje, limite30);
                 }
             }
         }
@@ -217,11 +217,19 @@ public class RelatorioService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new CarteiraDTO(totalInvestido, totalVendido, lucroRealizado, imoveisPorFase, imoveisPorSituacao,
-                saldoDevedorTotal, parcelasAVencer, gastosGeraisPeriodo);
+                saldoDevedorTotal, saldoAReceberTotal, parcelasAVencer, parcelasAReceber, gastosGeraisPeriodo);
+    }
+
+    // O tipo do contrato decide de que lado ele conta: PARCELAMENTO_VENDA é crédito contra o
+    // comprador, não dívida do imóvel — os juros que ele paga não são custo, e o que ele ainda
+    // deve é "a receber", nunca saldo devedor. Ver .agents/rules/contratos-financeiros.md.
+    private boolean ehDivida(ContratoFinanceiroModel contrato) {
+        return contrato.getTipo() != TipoContratoFinanceiro.PARCELAMENTO_VENDA;
     }
 
     private BigDecimal jurosPagos(List<ContratoFinanceiroModel> contratos) {
         return contratos.stream()
+                .filter(this::ehDivida)
                 .flatMap(c -> c.getParcelas().stream())
                 .filter(p -> p.getDataPagamento() != null)
                 .map(ParcelaContratoModel::getValorJuros)
@@ -234,7 +242,9 @@ public class RelatorioService {
         return valorCompra.add(totalDespesas).add(jurosPagos);
     }
 
-    private BigDecimal saldoDevedorContrato(ContratoFinanceiroModel contrato) {
+    // Soma das parcelas ainda não baixadas — a pagar num contrato de dívida, a receber num
+    // PARCELAMENTO_VENDA. Quem chama é que decide de que lado somar (ver ehDivida).
+    private BigDecimal saldoEmAberto(ContratoFinanceiroModel contrato) {
         if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
             return BigDecimal.ZERO;
         }
@@ -242,6 +252,16 @@ public class RelatorioService {
                 .filter(p -> p.getDataPagamento() == null)
                 .map(ParcelaContratoModel::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private long contarParcelasEmAberto(ContratoFinanceiroModel contrato, LocalDate hoje, LocalDate limite) {
+        if (contrato.getSituacao() != SituacaoContrato.ATIVO) {
+            return 0;
+        }
+        return contrato.getParcelas().stream()
+                .filter(p -> p.getDataPagamento() == null)
+                .filter(p -> !p.getDataVencimento().isBefore(hoje) && !p.getDataVencimento().isAfter(limite))
+                .count();
     }
 
     private PosicaoContratoDTO posicaoContrato(ContratoFinanceiroModel contrato) {
@@ -258,7 +278,7 @@ public class RelatorioService {
         return new PosicaoContratoDTO(
                 contrato.getId(), contrato.getTipo(),
                 contrato.getContraparte() != null ? contrato.getContraparte().getNome() : null,
-                contrato.getSituacao(), contrato.getValorContratado(), totalPago, saldoDevedorContrato(contrato));
+                contrato.getSituacao(), contrato.getValorContratado(), totalPago, saldoEmAberto(contrato));
     }
 
     private Map<FaseImovel, Long> tempoPorFase(ImovelModel imovel) {

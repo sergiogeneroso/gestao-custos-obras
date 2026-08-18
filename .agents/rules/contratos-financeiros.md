@@ -46,6 +46,13 @@ Por isso:
   usar o dinheiro do banco.
 - **Na venda parcelada vale o espelho:** a receita é o valor da venda, registrado
   na venda; receber cada parcela é caixa entrando, não receita nova.
+- **`PARCELAMENTO_VENDA` é crédito, não dívida — o tipo do contrato decide de que
+  lado ele conta.** Os dois outros tipos são dinheiro que você deve; este é
+  dinheiro que o comprador te deve. Portanto: o `valorJuros` das parcelas
+  recebidas **nunca** entra em `jurosPagos`/`custoTotal` (é juro que entrou no
+  caixa, e somá-lo ao custo derruba o lucro a cada parcela que o comprador paga),
+  e as parcelas em aberto são **a receber**, nunca saldo devedor nem parcela a
+  vencer. Em `RelatorioService` isso vive num único ponto de decisão, `ehDivida`.
 
 Exemplo: lote 100k + obra 200k lançada como despesa + 3k de vistorias e tarifas,
 com financiamento de 200k quitado por 205k na venda de 380k. Custo = 100 + 200 +
