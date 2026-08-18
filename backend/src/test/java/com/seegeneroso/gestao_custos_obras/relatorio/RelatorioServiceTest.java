@@ -12,6 +12,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaService;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
@@ -223,6 +224,41 @@ class RelatorioServiceTest {
         assertThat(carteira.totalInvestido()).isEqualByComparingTo("100000");
     }
 
+    @Test
+    void custoObraPorM2UsaAreaConstruidaESoDespesasDaConstrucao() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        DespesaModel despesaLote = despesa(imovel, FaseImovel.LOTE, new BigDecimal("10000"));
+        DespesaModel despesaObra = despesa(imovel, FaseImovel.CONSTRUCAO, new BigDecimal("200000"));
+
+        mockarSemContratos(imovel, List.of(despesaLote, despesaObra));
+
+        CustoPorM2DTO custo = relatorioService.custoPorM2(1L, null, null, null);
+
+        // custoPorM2 mede o imóvel sobre a área do lote; custoObraPorM2 só a obra sobre o construído
+        assertThat(custo.custoTotal()).isEqualByComparingTo("210000");
+        assertThat(custo.custoPorM2()).isEqualByComparingTo("420.00");
+        assertThat(custo.custoObra()).isEqualByComparingTo("200000");
+        assertThat(custo.custoObraPorM2()).isEqualByComparingTo("2000.00");
+    }
+
+    @Test
+    void custoObraPorM2ENuloSemAreaConstruida() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        imovel.setAreaConstruida(null);
+        mockarSemContratos(imovel, List.of(despesa(imovel, FaseImovel.CONSTRUCAO, new BigDecimal("200000"))));
+
+        CustoPorM2DTO custo = relatorioService.custoPorM2(1L, null, null, null);
+
+        assertThat(custo.custoObra()).isEqualByComparingTo("200000");
+        assertThat(custo.custoObraPorM2()).isNull();
+    }
+
+    // custoPorM2 não consulta contratos — stubar findByImovelId aqui viraria UnnecessaryStubbing.
+    private void mockarSemContratos(ImovelModel imovel, List<DespesaModel> despesas) {
+        when(imovelRepository.findByIdAndAtivoTrue(anyLong())).thenReturn(java.util.Optional.of(imovel));
+        when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(despesas);
+    }
+
     private void mockar(ImovelModel imovel, List<DespesaModel> despesas, List<ContratoFinanceiroModel> contratos) {
         when(imovelRepository.findByIdAndAtivoTrue(anyLong())).thenReturn(java.util.Optional.of(imovel));
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(despesas);
@@ -236,6 +272,8 @@ class RelatorioServiceTest {
                 .fase(FaseImovel.LOTE)
                 .situacao(SituacaoImovel.ADQUIRIDO)
                 .dataInicioLote(LocalDate.now().minusDays(100))
+                .areaLote(new BigDecimal("500"))
+                .areaConstruida(new BigDecimal("100"))
                 .compra(DadosCompra.builder().valor(valorCompra).data(LocalDate.now().minusDays(100)).build())
                 .venda(new DadosVenda())
                 .ativo(true)

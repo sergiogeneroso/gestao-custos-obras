@@ -22,7 +22,8 @@ public class ImovelMapper {
         return ImovelModel.builder()
                 .identificador(dto.identificador())
                 .endereco(dto.endereco())
-                .area(dto.area())
+                .areaLote(dto.areaLote())
+                .areaConstruida(dto.areaConstruida())
                 .dataInicioLote(dto.dataInicioLote())
                 .dataInicioConstrucao(dto.dataInicioConstrucao())
                 .dataConclusaoObra(dto.dataConclusaoObra())
@@ -37,7 +38,8 @@ public class ImovelMapper {
     public void updateEntityFromDto(ImovelRequestDTO dto, PessoaModel vendedor, ImovelModel imovel) {
         imovel.setIdentificador(dto.identificador());
         imovel.setEndereco(dto.endereco());
-        imovel.setArea(dto.area());
+        imovel.setAreaLote(dto.areaLote());
+        imovel.setAreaConstruida(dto.areaConstruida());
         imovel.setDataInicioLote(dto.dataInicioLote());
         imovel.setDataInicioConstrucao(dto.dataInicioConstrucao());
         imovel.setDataConclusaoObra(dto.dataConclusaoObra());
@@ -66,7 +68,8 @@ public class ImovelMapper {
                 imovel.getFase(),
                 imovel.getSituacao(),
                 imovel.getEndereco(),
-                imovel.getArea(),
+                imovel.getAreaLote(),
+                imovel.getAreaConstruida(),
                 imovel.getDataInicioLote(),
                 imovel.getDataInicioConstrucao(),
                 imovel.getDataConclusaoObra(),

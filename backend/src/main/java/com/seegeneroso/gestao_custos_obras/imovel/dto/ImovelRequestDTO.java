@@ -12,7 +12,8 @@ public record ImovelRequestDTO(
         String identificador,
 
         String endereco,
-        BigDecimal area,
+        BigDecimal areaLote,
+        BigDecimal areaConstruida,
 
         @NotNull(message = "Data de início como lote é obrigatória")
         LocalDate dataInicioLote,

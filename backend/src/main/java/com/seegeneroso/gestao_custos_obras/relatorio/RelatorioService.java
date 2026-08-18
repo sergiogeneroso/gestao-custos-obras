@@ -58,7 +58,7 @@ public class RelatorioService {
 
         return imoveis.stream()
                 .map(imovel -> {
-                    BigDecimal custoTotal = somarDespesas(imovel.getId(), categoriaDespesaId, dataInicio, dataFim);
+                    BigDecimal custoTotal = somarDespesas(imovel.getId(), categoriaDespesaId, dataInicio, dataFim, null);
                     return new CustoPorImovelDTO(imovel.getId(), imovel.getIdentificador(), custoTotal);
                 })
                 .toList();
@@ -71,12 +71,23 @@ public class RelatorioService {
             throw new RegraDeNegocioException("Informe o imovelId para o relatório de custo por m².");
         }
         ImovelModel imovel = buscarImovelAtivo(imovelId);
-        BigDecimal custoTotal = somarDespesas(imovelId, categoriaDespesaId, dataInicio, dataFim);
-        BigDecimal area = imovel.getArea();
-        BigDecimal custoPorM2 = (area != null && area.compareTo(BigDecimal.ZERO) > 0)
-                ? custoTotal.divide(area, 2, RoundingMode.HALF_UP)
+        BigDecimal custoTotal = somarDespesas(imovelId, categoriaDespesaId, dataInicio, dataFim, null);
+        BigDecimal custoObra = somarDespesas(imovelId, categoriaDespesaId, dataInicio, dataFim, FaseImovel.CONSTRUCAO);
+
+        // Dois indicadores porque as metragens medem coisas diferentes (ADR-030): o custo do imóvel
+        // sobre a área do lote, e o custo da obra sobre a área construída — este último é o que
+        // compara uma construção com outra.
+        BigDecimal custoPorM2 = dividirPorArea(custoTotal, imovel.getAreaLote());
+        BigDecimal custoObraPorM2 = dividirPorArea(custoObra, imovel.getAreaConstruida());
+
+        return new CustoPorM2DTO(imovelId, imovel.getIdentificador(), imovel.getAreaLote(),
+                imovel.getAreaConstruida(), custoTotal, custoPorM2, custoObra, custoObraPorM2);
+    }
+
+    private BigDecimal dividirPorArea(BigDecimal valor, BigDecimal area) {
+        return (area != null && area.compareTo(BigDecimal.ZERO) > 0)
+                ? valor.divide(area, 2, RoundingMode.HALF_UP)
                 : null;
-        return new CustoPorM2DTO(imovelId, imovel.getIdentificador(), area, custoTotal, custoPorM2);
     }
 
     @Transactional(readOnly = true)
@@ -323,10 +334,12 @@ public class RelatorioService {
                 .toList();
     }
 
+    // fase nula = todas as fases.
     private BigDecimal somarDespesas(Long imovelId, Long categoriaDespesaId,
-                                     LocalDate dataInicio, LocalDate dataFim) {
+                                     LocalDate dataInicio, LocalDate dataFim, FaseImovel fase) {
         return despesaRepository.findByImovelIdAndAtivoTrue(imovelId).stream()
                 .filter(d -> despesaAtendeFiltros(d, imovelId, categoriaDespesaId, dataInicio, dataFim))
+                .filter(d -> fase == null || fase == d.getFaseImovel())
                 .map(DespesaModel::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }

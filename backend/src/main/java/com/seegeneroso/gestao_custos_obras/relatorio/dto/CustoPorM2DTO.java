@@ -5,8 +5,11 @@ import java.math.BigDecimal;
 public record CustoPorM2DTO(
         Long imovelId,
         String identificador,
-        BigDecimal area,
+        BigDecimal areaLote,
+        BigDecimal areaConstruida,
         BigDecimal custoTotal,
-        BigDecimal custoPorM2
+        BigDecimal custoPorM2,
+        BigDecimal custoObra,
+        BigDecimal custoObraPorM2
 ) {
 }

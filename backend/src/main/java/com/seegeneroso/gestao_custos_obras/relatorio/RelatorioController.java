@@ -47,9 +47,12 @@ public class RelatorioController {
             @RequestParam(required = false) String format) {
         CustoPorM2DTO dado = relatorioService.custoPorM2(imovelId, categoriaDespesaId, dataInicio, dataFim);
         if ("csv".equalsIgnoreCase(format)) {
-            StringBuilder sb = new StringBuilder("imovelId;identificador;area;custoTotal;custoPorM2\n");
+            StringBuilder sb = new StringBuilder(
+                    "imovelId;identificador;areaLote;areaConstruida;custoTotal;custoPorM2;custoObra;custoObraPorM2\n");
             sb.append(dado.imovelId()).append(';').append(dado.identificador()).append(';')
-                    .append(dado.area()).append(';').append(dado.custoTotal()).append(';').append(dado.custoPorM2()).append('\n');
+                    .append(dado.areaLote()).append(';').append(dado.areaConstruida()).append(';')
+                    .append(dado.custoTotal()).append(';').append(dado.custoPorM2()).append(';')
+                    .append(dado.custoObra()).append(';').append(dado.custoObraPorM2()).append('\n');
             return csvResponse(sb, "custo-por-m2.csv");
         }
         return ResponseEntity.ok(dado);

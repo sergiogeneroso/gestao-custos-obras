@@ -35,8 +35,14 @@ public class ImovelModel {
 
     private String endereco;
 
-    @Column(precision = 10, scale = 2)
-    private BigDecimal area;
+    // Duas metragens porque o imóvel muda de natureza ao longo do ciclo (ADR-030): a do lote vem
+    // da compra, a construída só existe a partir da obra. Ambas opcionais — a área construída nem
+    // sempre é conhecida quando a construção começa.
+    @Column(name = "area_lote", precision = 10, scale = 2)
+    private BigDecimal areaLote;
+
+    @Column(name = "area_construida", precision = 10, scale = 2)
+    private BigDecimal areaConstruida;
 
     @Column(name = "data_inicio_lote", nullable = false)
     private LocalDate dataInicioLote;
