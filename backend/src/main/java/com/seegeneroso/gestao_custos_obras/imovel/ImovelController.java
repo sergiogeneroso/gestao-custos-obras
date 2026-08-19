@@ -96,8 +96,12 @@ public class ImovelController {
             @PathVariable Long id,
             @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
             @RequestParam("tipoDocumento") TipoDocumentoImovel tipoDocumento,
-            @RequestParam(value = "faseImovel", required = false) FaseImovel faseImovel) {
-        ImovelDocumentoResponseDTO documento = imovelService.adicionarDocumento(id, arquivo, tipoDocumento, faseImovel);
+            @RequestParam(value = "faseImovel", required = false) FaseImovel faseImovel,
+            @RequestParam(value = "descricao", required = false) String descricao,
+            @RequestParam(value = "dataEmissao", required = false) java.time.LocalDate dataEmissao,
+            @RequestParam(value = "dataValidade", required = false) java.time.LocalDate dataValidade) {
+        ImovelDocumentoResponseDTO documento = imovelService.adicionarDocumento(
+                id, arquivo, tipoDocumento, faseImovel, descricao, dataEmissao, dataValidade);
         return ResponseEntity.status(HttpStatus.CREATED).body(documento);
     }
 

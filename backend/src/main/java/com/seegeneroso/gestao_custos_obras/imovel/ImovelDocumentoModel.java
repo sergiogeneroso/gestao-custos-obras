@@ -5,6 +5,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoImovel;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,6 +35,20 @@ public class ImovelDocumentoModel {
 
     @Column(nullable = false, length = 500)
     private String url;
+
+    // Nome com que o arquivo foi enviado — o armazenado é gerado pelo StorageService, e sem isto
+    // a lista mostraria só a URL.
+    @Column(name = "nome_arquivo", length = 255)
+    private String nomeArquivo;
+
+    private String descricao;
+
+    @Column(name = "data_emissao")
+    private LocalDate dataEmissao;
+
+    // Alvará vence, IPTU é anual: a validade é o que permite avisar antes de travar a obra.
+    @Column(name = "data_validade")
+    private LocalDate dataValidade;
 
     @Column(name = "data_upload", nullable = false)
     @Builder.Default

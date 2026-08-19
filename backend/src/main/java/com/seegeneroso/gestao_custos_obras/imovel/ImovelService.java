@@ -271,7 +271,8 @@ public class ImovelService {
     @Transactional
     public ImovelDocumentoResponseDTO adicionarDocumento(
             Long imovelId, org.springframework.web.multipart.MultipartFile arquivo,
-            TipoDocumentoImovel tipoDocumento, FaseImovel faseImovel) {
+            TipoDocumentoImovel tipoDocumento, FaseImovel faseImovel,
+            String descricao, java.time.LocalDate dataEmissao, java.time.LocalDate dataValidade) {
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(imovelId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + imovelId));
 
@@ -289,6 +290,10 @@ public class ImovelService {
                 .tipoDocumento(tipoDocumento)
                 .faseImovel(faseImovel != null ? faseImovel : imovel.getFase())
                 .url(fileUri)
+                .nomeArquivo(arquivo.getOriginalFilename())
+                .descricao(descricao)
+                .dataEmissao(dataEmissao)
+                .dataValidade(dataValidade)
                 .build();
 
         ImovelDocumentoModel documentoSalvo = imovelDocumentoRepository.save(documento);
@@ -325,6 +330,10 @@ public class ImovelService {
                 documento.getTipoDocumento(),
                 documento.getFaseImovel(),
                 documento.getUrl(),
+                documento.getNomeArquivo(),
+                documento.getDescricao(),
+                documento.getDataEmissao(),
+                documento.getDataValidade(),
                 documento.getDataUpload()
         );
     }
