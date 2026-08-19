@@ -20,6 +20,14 @@ public class DadosCompra {
     @Column(name = "compra_data", nullable = false)
     private LocalDate data;
 
+    // Declarado no cadastro, não derivado da existência de contrato: é o que diz ao relatório se o
+    // valor de compra saiu do bolso na data da compra ou está diluído no cronograma (ADR-037).
+    // O DEFAULT no DDL é obrigatório — sem ele o ddl-auto=update não adiciona coluna NOT NULL a
+    // uma tabela que já tem linhas.
+    @Column(name = "compra_parcelada", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean parcelada = false;
+
     @ManyToOne
     @JoinColumn(name = "compra_vendedor_id")
     private PessoaModel vendedor;

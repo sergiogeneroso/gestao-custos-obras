@@ -16,6 +16,7 @@ public class ImovelMapper {
         DadosCompra compra = DadosCompra.builder()
                 .valor(dto.compraValor())
                 .data(dto.compraData())
+                .parcelada(Boolean.TRUE.equals(dto.compraParcelada()))
                 .vendedor(vendedor)
                 .build();
 
@@ -56,6 +57,7 @@ public class ImovelMapper {
 
         imovel.getCompra().setValor(dto.compraValor());
         imovel.getCompra().setData(dto.compraData());
+        imovel.getCompra().setParcelada(Boolean.TRUE.equals(dto.compraParcelada()));
         imovel.getCompra().setVendedor(vendedor);
 
         imovel.getVenda().setValorPretendido(dto.vendaValorPretendido());
@@ -169,6 +171,7 @@ public class ImovelMapper {
                 compra.getData(),
                 compra.getVendedor() != null ? compra.getVendedor().getId() : null,
                 compra.getVendedor() != null ? compra.getVendedor().getNome() : null,
+                compra.getParcelada(),
                 venda.getValor(),
                 venda.getData(),
                 venda.getComprador() != null ? venda.getComprador().getId() : null,

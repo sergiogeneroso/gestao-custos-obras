@@ -149,7 +149,8 @@ public class RelatorioService {
                         Collectors.reducing(BigDecimal.ZERO, DespesaModel::getValor, BigDecimal::add)));
         BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal jurosPagos = jurosPagos(contratos);
-        BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos);
+        BigDecimal ajusteQuitacao = ajusteQuitacao(contratos);
+        BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos, ajusteQuitacao);
 
         boolean vendido = imovel.getSituacao() == SituacaoImovel.VENDIDO;
         LocalDate fimCarteira = vendido && imovel.getVenda().getData() != null
@@ -182,6 +183,9 @@ public class RelatorioService {
                 imovel.getConstrucao().getCustoEstimado(), imovel.getConstrucao().getPrevisaoConclusao(),
                 despesasPorFase.getOrDefault(FaseImovel.CONSTRUCAO, BigDecimal.ZERO),
                 despesasPorEtapa,
+                ajusteQuitacao,
+                totalDesembolsado(imovel, totalDespesas, contratos),
+                saldoAPagar(contratos),
                 imovel.getVenda().getValor(), imovel.getVenda().getValorPretendido(), imovel.getVenda().getData(),
                 lucro, margem, diasEmCarteira, tempoPorFase(imovel), rentabilidadeAnualizada, resultadoProvisorio,
                 contratos.stream().map(this::posicaoContrato).toList()
@@ -211,7 +215,7 @@ public class RelatorioService {
             List<DespesaModel> despesas = despesaRepository.findByImovelIdAndAtivoTrue(imovel.getId());
             BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
             List<ContratoFinanceiroModel> contratos = contratoFinanceiroRepository.findByImovelId(imovel.getId());
-            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos(contratos));
+            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos(contratos), ajusteQuitacao(contratos));
             totalInvestido = totalInvestido.add(custoTotal);
 
             if (imovel.getSituacao() == SituacaoImovel.VENDIDO && imovel.getVenda().getValor() != null) {
@@ -256,9 +260,72 @@ public class RelatorioService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal custoTotal(ImovelModel imovel, BigDecimal totalDespesas, BigDecimal jurosPagos) {
+    /**
+     * Ajuste do custo do lote quando o PARCELAMENTO_COMPRA é quitado antecipadamente.
+     *
+     * A comparação é contra o **principal** em aberto, nunca contra o total das parcelas: as parcelas
+     * em aberto carregam juros que jamais foram pagos e portanto nunca entraram no custo. Comparar
+     * com o total inteiro subtrairia esses juros de novo e derrubaria o custo indevidamente.
+     *
+     * Negativo é desconto e abate o custo; positivo é a parte de juros/encargos embutida no valor
+     * negociado da quitação e soma ao custo. Nos dois casos o custo do lote converge para o
+     * desembolso real. Ver ADR-037.
+     *
+     * As parcelas originais não são tocadas (ADR-025) — o ajuste é calculado, nunca gravado.
+     */
+    private BigDecimal ajusteQuitacao(List<ContratoFinanceiroModel> contratos) {
+        return contratos.stream()
+                .filter(c -> c.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .filter(c -> c.getSituacao() == SituacaoContrato.QUITADO)
+                .filter(c -> c.getValorQuitacao() != null)
+                .map(c -> c.getValorQuitacao().subtract(principalEmAberto(c)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal principalEmAberto(ContratoFinanceiroModel contrato) {
+        return contrato.getParcelas().stream()
+                .filter(p -> p.getDataPagamento() == null)
+                .map(p -> p.getValor().subtract(p.getValorJuros() != null ? p.getValorJuros() : BigDecimal.ZERO))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // Posição de caixa: quanto já saiu do bolso. Nunca somar ao custoTotal (ADR-025/037). Na compra
+    // parcelada o valor de compra não é desembolso na data da compra — ele flui pelas parcelas.
+    private BigDecimal totalDesembolsado(ImovelModel imovel, BigDecimal totalDespesas,
+                                         List<ContratoFinanceiroModel> contratos) {
+        BigDecimal compra = !Boolean.TRUE.equals(imovel.getCompra().getParcelada())
+                && imovel.getCompra().getValor() != null
+                ? imovel.getCompra().getValor()
+                : BigDecimal.ZERO;
+
+        BigDecimal pagoEmContratos = contratos.stream()
+                .filter(this::ehDivida)
+                .map(c -> {
+                    BigDecimal parcelasPagas = c.getParcelas().stream()
+                            .filter(p -> p.getDataPagamento() != null)
+                            .map(ParcelaContratoModel::getValorPago)
+                            .filter(Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return c.getSituacao() == SituacaoContrato.QUITADO && c.getValorQuitacao() != null
+                            ? parcelasPagas.add(c.getValorQuitacao())
+                            : parcelasPagas;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return compra.add(totalDespesas).add(pagoEmContratos);
+    }
+
+    private BigDecimal saldoAPagar(List<ContratoFinanceiroModel> contratos) {
+        return contratos.stream()
+                .filter(this::ehDivida)
+                .map(this::saldoEmAberto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal custoTotal(ImovelModel imovel, BigDecimal totalDespesas, BigDecimal jurosPagos,
+                                 BigDecimal ajusteQuitacao) {
         BigDecimal valorCompra = imovel.getCompra().getValor() != null ? imovel.getCompra().getValor() : BigDecimal.ZERO;
-        return valorCompra.add(totalDespesas).add(jurosPagos);
+        return valorCompra.add(totalDespesas).add(jurosPagos).add(ajusteQuitacao);
     }
 
     // Soma das parcelas ainda não baixadas — a pagar num contrato de dívida, a receber num

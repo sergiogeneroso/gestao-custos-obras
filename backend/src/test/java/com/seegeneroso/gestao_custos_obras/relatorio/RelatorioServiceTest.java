@@ -279,6 +279,137 @@ class RelatorioServiceTest {
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(despesas);
     }
 
+    // ---- Compra parcelada do lote (ADR-037) ----------------------------------------------------
+    //
+    // O caso normal do negócio é entrada + parcelas SEM juros. Nele o custo do lote não pode se
+    // mexer conforme as parcelas são pagas — quem anda é o desembolso.
+
+    @Test
+    void loteParceladoSemJurosNaoMudaDeCustoConformeParcelasSaoPagas() {
+        // 100.000 = entrada 30.000 + 20 x 3.500. Seis parcelas pagas.
+        ImovelModel imovel = imovelParcelado(1L, new BigDecimal("100000"));
+        ContratoFinanceiroModel contrato = parcelamentoCompra(SituacaoContrato.ATIVO, null,
+                cronograma(new BigDecimal("30000"), 20, new BigDecimal("3500"), null, 6));
+
+        mockar(imovel, List.of(), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("100000");
+        assertThat(resultado.jurosPagos()).isEqualByComparingTo("0");
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("51000");
+        assertThat(resultado.saldoAPagar()).isEqualByComparingTo("49000");
+    }
+
+    @Test
+    void loteParceladoComJurosSoIncorporaOsJurosEfetivamentePagos() {
+        // Preco a vista 100.000; entrada 30.000 + 24 x 4.000, com 1.083,33 de juros por parcela.
+        ImovelModel imovel = imovelParcelado(1L, new BigDecimal("100000"));
+        ContratoFinanceiroModel contrato = parcelamentoCompra(SituacaoContrato.ATIVO, null,
+                cronograma(new BigDecimal("30000"), 24, new BigDecimal("4000"), new BigDecimal("1083.33"), 6));
+
+        mockar(imovel, List.of(), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.jurosPagos()).isEqualByComparingTo("6499.98");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("106499.98");
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("54000");
+        assertThat(resultado.saldoAPagar()).isEqualByComparingTo("72000");
+    }
+
+    @Test
+    void descontoNaQuitacaoDoLoteReduzOCustoEFechaComODesembolso() {
+        // Sem juros: restavam 14 x 3.500 = 49.000 e foi quitado por 45.000.
+        ImovelModel imovel = imovelParcelado(1L, new BigDecimal("100000"));
+        ContratoFinanceiroModel contrato = parcelamentoCompra(SituacaoContrato.QUITADO, new BigDecimal("45000"),
+                cronograma(new BigDecimal("30000"), 20, new BigDecimal("3500"), null, 6));
+
+        mockar(imovel, List.of(), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.ajusteQuitacao()).isEqualByComparingTo("-4000");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("96000");
+        // A invariante: custo do lote quitado = desembolso real (30.000 + 21.000 + 45.000).
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("96000");
+    }
+
+    @Test
+    void quitacaoComJurosEmbutidosSomaAoCustoEFechaComODesembolso() {
+        // Restavam 18 x 4.000 = 72.000, mas so 52.500,06 disso era principal. Quitado por 66.000.
+        ImovelModel imovel = imovelParcelado(1L, new BigDecimal("100000"));
+        ContratoFinanceiroModel contrato = parcelamentoCompra(SituacaoContrato.QUITADO, new BigDecimal("66000"),
+                cronograma(new BigDecimal("30000"), 24, new BigDecimal("4000"), new BigDecimal("1083.33"), 6));
+
+        mockar(imovel, List.of(), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.ajusteQuitacao()).isEqualByComparingTo("13499.94");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("119999.92");
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("120000");
+    }
+
+    @Test
+    void compraAVistaContaComoDesembolsoNaDataDaCompra() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("80000"));
+
+        mockar(imovel, List.of(despesa(imovel, FaseImovel.LOTE, new BigDecimal("2000"))), List.of());
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("82000");
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("82000");
+        assertThat(resultado.saldoAPagar()).isEqualByComparingTo("0");
+        assertThat(resultado.ajusteQuitacao()).isEqualByComparingTo("0");
+    }
+
+    private ImovelModel imovelParcelado(Long id, BigDecimal valorLote) {
+        ImovelModel imovel = imovel(id, valorLote);
+        imovel.getCompra().setParcelada(true);
+        return imovel;
+    }
+
+    private ContratoFinanceiroModel parcelamentoCompra(SituacaoContrato situacao, BigDecimal valorQuitacao,
+                                                       List<ParcelaContratoModel> parcelas) {
+        return ContratoFinanceiroModel.builder()
+                .id(1L)
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .situacao(situacao)
+                .valorContratado(new BigDecimal("100000"))
+                .dataQuitacao(situacao == SituacaoContrato.QUITADO ? LocalDate.now() : null)
+                .valorQuitacao(valorQuitacao)
+                .parcelas(new ArrayList<>(parcelas))
+                .build();
+    }
+
+    // Entrada como parcela numero 0 ja baixada, mais as prestacoes, sendo as primeiras "pagas" baixadas.
+    private List<ParcelaContratoModel> cronograma(BigDecimal entrada, int quantidade, BigDecimal valorParcela,
+                                                  BigDecimal jurosPorParcela, int pagas) {
+        List<ParcelaContratoModel> parcelas = new ArrayList<>();
+        parcelas.add(ParcelaContratoModel.builder()
+                .numero(0)
+                .dataVencimento(LocalDate.now().minusDays(100))
+                .valor(entrada)
+                .dataPagamento(LocalDate.now().minusDays(100))
+                .valorPago(entrada)
+                .build());
+
+        for (int i = 1; i <= quantidade; i++) {
+            boolean paga = i <= pagas;
+            parcelas.add(ParcelaContratoModel.builder()
+                    .numero(i)
+                    .dataVencimento(LocalDate.now().plusMonths(i))
+                    .valor(valorParcela)
+                    .valorJuros(jurosPorParcela)
+                    .dataPagamento(paga ? LocalDate.now() : null)
+                    .valorPago(paga ? valorParcela : null)
+                    .build());
+        }
+        return parcelas;
+    }
+
     private void mockar(ImovelModel imovel, List<DespesaModel> despesas, List<ContratoFinanceiroModel> contratos) {
         when(imovelRepository.findByIdAndAtivoTrue(anyLong())).thenReturn(java.util.Optional.of(imovel));
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(despesas);

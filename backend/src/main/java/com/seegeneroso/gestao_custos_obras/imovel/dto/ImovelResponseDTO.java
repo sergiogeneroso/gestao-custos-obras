@@ -25,6 +25,7 @@ public record ImovelResponseDTO(
         LocalDate compraData,
         Long compraVendedorId,
         String compraVendedorNome,
+        Boolean compraParcelada,
         BigDecimal vendaValor,
         LocalDate vendaData,
         Long vendaCompradorId,

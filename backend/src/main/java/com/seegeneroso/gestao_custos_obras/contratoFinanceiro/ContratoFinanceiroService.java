@@ -11,6 +11,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -53,6 +55,10 @@ public class ContratoFinanceiroService {
                 .parcelas(new ArrayList<>())
                 .build();
 
+        if (dto.entradaValor() != null && dto.entradaValor().compareTo(BigDecimal.ZERO) > 0) {
+            contrato.getParcelas().add(montarEntrada(contrato, dto));
+        }
+
         if (dto.parcelas() != null) {
             for (ParcelaContratoRequestDTO parcelaDto : dto.parcelas()) {
                 contrato.getParcelas().add(ParcelaContratoModel.builder()
@@ -66,7 +72,48 @@ public class ContratoFinanceiroService {
         }
 
         ContratoFinanceiroModel salvo = contratoFinanceiroRepository.save(contrato);
+        aplicarValorDoLote(imovel, salvo, dto);
         return contratoFinanceiroMapper.toResponseDTO(salvo);
+    }
+
+    // A entrada é fato consumado no momento da compra, não evento futuro: nasce como parcela nº 0 já
+    // baixada, reaproveitando total pago e saldo devedor sem caso especial (ADR-037).
+    private ParcelaContratoModel montarEntrada(ContratoFinanceiroModel contrato, ContratoFinanceiroRequestDTO dto) {
+        LocalDate data = dto.entradaData() != null ? dto.entradaData() : contrato.getImovel().getCompra().getData();
+        return ParcelaContratoModel.builder()
+                .contrato(contrato)
+                .numero(0)
+                .dataVencimento(data)
+                .valor(dto.entradaValor())
+                .dataPagamento(data)
+                .valorPago(dto.entradaValor())
+                .build();
+    }
+
+    /**
+     * Na compra parcelada o formulário do imóvel não pede o valor do lote, justamente para não pedir
+     * um número que precisa espelhar um cronograma que ainda não existe (ADR-037). Quem grava é aqui:
+     * o preço à vista informado, ou o total do cronograma quando não houver — que é o caso normal,
+     * porque o parcelamento do lote costuma ser sem juros.
+     *
+     * Só na criação, e só se estiver vazio: reescrever o valor ao editar o cronograma mudaria em
+     * silêncio o custo de um imóvel já apurado.
+     */
+    private void aplicarValorDoLote(ImovelModel imovel, ContratoFinanceiroModel contrato,
+                                    ContratoFinanceiroRequestDTO dto) {
+        if (contrato.getTipo() != TipoContratoFinanceiro.PARCELAMENTO_COMPRA
+                || imovel.getCompra().getValor() != null) {
+            return;
+        }
+
+        BigDecimal valor = dto.precoAVistaLote() != null
+                ? dto.precoAVistaLote()
+                : contrato.getParcelas().stream()
+                        .map(ParcelaContratoModel::getValor)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        imovel.getCompra().setValor(valor);
+        imovelRepository.save(imovel);
     }
 
     /**

@@ -38,6 +38,7 @@ public record ImovelRequestDTO(
         LocalDate compraData,
 
         Long compraVendedorId,
+        Boolean compraParcelada,
 
         BigDecimal vendaValorPretendido,
 
