@@ -2,11 +2,14 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { paraData, paraIso } from '../../../shared/data/data.util';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { CategoriaDespesaResponseDTO } from '../../categorias-despesa/categoria-despesa.model';
 import { CategoriasDespesaService } from '../../categorias-despesa/categorias-despesa.service';
 import { ContratoFinanceiroResponseDTO, TIPO_CONTRATO_LABEL } from '../../contratos/contrato.model';
@@ -29,10 +32,12 @@ export interface DespesaFormDialogData {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MoedaDirective,
   ],
   templateUrl: './despesa-form-dialog.html',
   styleUrl: './despesa-form-dialog.scss',
@@ -72,8 +77,8 @@ export class DespesaFormDialog implements OnInit {
     beneficiarioId: [this.despesa?.beneficiarioId ?? (null as number | null)],
     contratoFinanceiroId: [this.despesa?.contratoFinanceiroId ?? (null as number | null)],
     faseImovel: [this.despesa?.faseImovel ?? (null as FaseImovel | null)],
-    valor: [this.formatarMoeda(this.despesa?.valor ?? null), Validators.required],
-    dataPagamento: [this.despesa?.dataPagamento ?? new Date().toISOString().slice(0, 10), Validators.required],
+    valor: [this.despesa?.valor ?? (null as number | null), Validators.required],
+    dataPagamento: [paraData(this.despesa?.dataPagamento) ?? new Date(), Validators.required],
     descricao: [this.despesa?.descricao ?? ''],
   });
 
@@ -103,7 +108,7 @@ export class DespesaFormDialog implements OnInit {
     const bruto = this.form.getRawValue();
     const dto = {
       ...bruto,
-      valor: this.parseMoeda(bruto.valor)!,
+      dataPagamento: paraIso(bruto.dataPagamento)!,
       descricao: bruto.descricao || null,
     } as DespesaRequestDTO;
     const requisicao = this.despesa ? this.service.atualizar(this.despesa.id, dto) : this.service.criar(dto);
@@ -125,10 +130,6 @@ export class DespesaFormDialog implements OnInit {
     this.dialogRef.close();
   }
 
-  protected formatarCampoValor(): void {
-    const controle = this.form.controls.valor;
-    controle.setValue(this.formatarMoeda(this.parseMoeda(controle.value)), { emitEvent: false });
-  }
 
   protected enviarAnexo(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -175,15 +176,5 @@ export class DespesaFormDialog implements OnInit {
     this.contratosService.listar(imovelId).subscribe((contratos) => this.contratos.set(contratos));
   }
 
-  private formatarMoeda(valor: number | null): string {
-    return valor != null ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-  }
 
-  private parseMoeda(texto: string | null): number | null {
-    if (!texto) {
-      return null;
-    }
-    const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
-    return Number.isNaN(numero) ? null : numero;
-  }
 }

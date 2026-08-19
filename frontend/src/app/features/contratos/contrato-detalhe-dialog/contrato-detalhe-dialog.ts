@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,6 +14,8 @@ import {
   SITUACAO_CONTRATO_LABEL,
   TIPO_CONTRATO_LABEL,
 } from '../contrato.model';
+import { paraIso } from '../../../shared/data/data.util';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { ContratosService } from '../contratos.service';
 
 export interface ContratoDetalheDialogData {
@@ -21,7 +24,17 @@ export interface ContratoDetalheDialogData {
 
 @Component({
   selector: 'app-contrato-detalhe-dialog',
-  imports: [CurrencyPipe, DatePipe, ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MoedaDirective,
+  ],
   templateUrl: './contrato-detalhe-dialog.html',
   styleUrl: './contrato-detalhe-dialog.scss',
 })
@@ -40,20 +53,20 @@ export class ContratoDetalheDialog {
   protected readonly salvando = signal(false);
 
   protected readonly formBaixa = this.fb.group({
-    dataPagamento: [new Date().toISOString().slice(0, 10), Validators.required],
-    valorPago: ['', Validators.required],
+    dataPagamento: [new Date() as Date | null, Validators.required],
+    valorPago: [null as number | null, Validators.required],
   });
 
   protected readonly formQuitacao = this.fb.group({
-    dataQuitacao: [new Date().toISOString().slice(0, 10), Validators.required],
-    valorQuitacao: ['', Validators.required],
+    dataQuitacao: [new Date() as Date | null, Validators.required],
+    valorQuitacao: [null as number | null, Validators.required],
   });
 
   protected iniciarBaixa(parcela: ParcelaContratoResponseDTO): void {
     this.parcelaEmBaixa.set(parcela.id);
     this.formBaixa.setValue({
-      dataPagamento: new Date().toISOString().slice(0, 10),
-      valorPago: this.formatarMoeda(parcela.valor),
+      dataPagamento: new Date(),
+      valorPago: parcela.valor,
     });
   }
 
@@ -69,8 +82,8 @@ export class ContratoDetalheDialog {
     const bruto = this.formBaixa.getRawValue();
     this.service
       .pagarParcela(this.contrato().id, parcelaId, {
-        dataPagamento: bruto.dataPagamento!,
-        valorPago: this.parseMoeda(bruto.valorPago)!,
+        dataPagamento: paraIso(bruto.dataPagamento)!,
+        valorPago: bruto.valorPago!,
       })
       .subscribe({
         next: (atualizado) => {
@@ -104,8 +117,8 @@ export class ContratoDetalheDialog {
     const bruto = this.formQuitacao.getRawValue();
     this.service
       .quitar(this.contrato().id, {
-        dataQuitacao: bruto.dataQuitacao!,
-        valorQuitacao: this.parseMoeda(bruto.valorQuitacao)!,
+        dataQuitacao: paraIso(bruto.dataQuitacao)!,
+        valorQuitacao: bruto.valorQuitacao!,
       })
       .subscribe({
         next: (atualizado) => {
@@ -123,19 +136,4 @@ export class ContratoDetalheDialog {
       });
   }
 
-  protected formatarCampoValor(controle: FormControl<string | null>): void {
-    controle.setValue(this.formatarMoeda(this.parseMoeda(controle.value)), { emitEvent: false });
-  }
-
-  private formatarMoeda(valor: number | null): string {
-    return valor != null ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-  }
-
-  private parseMoeda(texto: string | null): number | null {
-    if (!texto) {
-      return null;
-    }
-    const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
-    return Number.isNaN(numero) ? null : numero;
-  }
 }

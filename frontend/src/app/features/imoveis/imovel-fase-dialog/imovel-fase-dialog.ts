@@ -2,11 +2,14 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { paraIso } from '../../../shared/data/data.util';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { FASE_IMOVEL_LABEL, ImovelResponseDTO, PROXIMA_FASE } from '../imovel.model';
@@ -21,10 +24,12 @@ export interface ImovelFaseDialogData {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MoedaDirective,
   ],
   templateUrl: './imovel-fase-dialog.html',
   styleUrl: './imovel-fase-dialog.scss',
@@ -47,21 +52,21 @@ export class ImovelFaseDialog implements OnInit {
   // Os dados da fase de destino são preenchidos na própria transição (ADR-033), todos opcionais:
   // alvará e habite-se costumam sair depois do fato que a transição registra.
   protected readonly form = this.fb.group({
-    data: [new Date().toISOString().slice(0, 10), Validators.required],
+    data: [new Date() as Date | null, Validators.required],
 
     areaConstruida: [null as number | null, Validators.min(0)],
     custoEstimado: [null as number | null, Validators.min(0)],
-    previsaoConclusao: [''],
+    previsaoConclusao: [null as Date | null],
     alvaraNumero: [''],
-    alvaraEmissao: [''],
-    alvaraValidade: [''],
+    alvaraEmissao: [null as Date | null],
+    alvaraValidade: [null as Date | null],
     artNumero: [''],
     responsavelTecnicoId: [null as number | null],
     cno: [''],
 
     habiteSeNumero: [''],
-    habiteSeData: [''],
-    dataAverbacao: [''],
+    habiteSeData: [null as Date | null],
+    dataAverbacao: [null as Date | null],
     quartos: [null as number | null, Validators.min(0)],
     suites: [null as number | null, Validators.min(0)],
     banheiros: [null as number | null, Validators.min(0)],
@@ -85,16 +90,16 @@ export class ImovelFaseDialog implements OnInit {
     this.service
       .avancarFase(this.imovel.id, {
         novaFase: this.proximaFase,
-        data: bruto.data!,
+        data: paraIso(bruto.data)!,
         construcao:
           this.proximaFase === 'CONSTRUCAO'
             ? {
                 area: bruto.areaConstruida,
                 custoEstimado: bruto.custoEstimado,
-                previsaoConclusao: bruto.previsaoConclusao || null,
+                previsaoConclusao: paraIso(bruto.previsaoConclusao),
                 alvaraNumero: bruto.alvaraNumero || null,
-                alvaraEmissao: bruto.alvaraEmissao || null,
-                alvaraValidade: bruto.alvaraValidade || null,
+                alvaraEmissao: paraIso(bruto.alvaraEmissao),
+                alvaraValidade: paraIso(bruto.alvaraValidade),
                 artNumero: bruto.artNumero || null,
                 responsavelTecnicoId: bruto.responsavelTecnicoId,
                 cno: bruto.cno || null,
@@ -104,8 +109,8 @@ export class ImovelFaseDialog implements OnInit {
           this.proximaFase === 'CASA'
             ? {
                 habiteSeNumero: bruto.habiteSeNumero || null,
-                habiteSeData: bruto.habiteSeData || null,
-                dataAverbacao: bruto.dataAverbacao || null,
+                habiteSeData: paraIso(bruto.habiteSeData),
+                dataAverbacao: paraIso(bruto.dataAverbacao),
                 quartos: bruto.quartos,
                 suites: bruto.suites,
                 banheiros: bruto.banheiros,

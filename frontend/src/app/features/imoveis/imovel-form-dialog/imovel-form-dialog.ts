@@ -2,11 +2,14 @@ import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { paraData, paraIso } from '../../../shared/data/data.util';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { ImovelFotoResponseDTO, ImovelRequestDTO, ImovelResponseDTO } from '../imovel.model';
@@ -21,10 +24,12 @@ export interface ImovelFormDialogData {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MoedaDirective,
   ],
   templateUrl: './imovel-form-dialog.html',
   styleUrl: './imovel-form-dialog.scss',
@@ -64,34 +69,34 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
     matricula: [this.imovel?.lote?.matricula ?? ''],
     cartorio: [this.imovel?.lote?.cartorio ?? ''],
-    dataRegistro: [this.imovel?.lote?.dataRegistro ?? ''],
+    dataRegistro: [paraData(this.imovel?.lote?.dataRegistro)],
     inscricaoMunicipal: [this.imovel?.lote?.inscricaoMunicipal ?? ''],
     areaLote: [this.imovel?.lote?.area ?? null, Validators.min(0)],
 
     areaConstruida: [this.imovel?.construcao?.area ?? null, Validators.min(0)],
-    dataInicioConstrucao: [this.imovel?.construcao?.dataInicio ?? ''],
-    custoEstimadoObra: [this.formatarMoeda(this.imovel?.construcao?.custoEstimado ?? null)],
-    previsaoConclusao: [this.imovel?.construcao?.previsaoConclusao ?? ''],
+    dataInicioConstrucao: [paraData(this.imovel?.construcao?.dataInicio)],
+    custoEstimadoObra: [this.imovel?.construcao?.custoEstimado ?? null],
+    previsaoConclusao: [paraData(this.imovel?.construcao?.previsaoConclusao)],
     alvaraNumero: [this.imovel?.construcao?.alvaraNumero ?? ''],
-    alvaraEmissao: [this.imovel?.construcao?.alvaraEmissao ?? ''],
-    alvaraValidade: [this.imovel?.construcao?.alvaraValidade ?? ''],
+    alvaraEmissao: [paraData(this.imovel?.construcao?.alvaraEmissao)],
+    alvaraValidade: [paraData(this.imovel?.construcao?.alvaraValidade)],
     artNumero: [this.imovel?.construcao?.artNumero ?? ''],
     responsavelTecnicoId: [this.imovel?.construcao?.responsavelTecnicoId ?? null],
     cno: [this.imovel?.construcao?.cno ?? ''],
 
-    dataConclusaoObra: [this.imovel?.casa?.dataConclusaoObra ?? ''],
+    dataConclusaoObra: [paraData(this.imovel?.casa?.dataConclusaoObra)],
     habiteSeNumero: [this.imovel?.casa?.habiteSeNumero ?? ''],
-    habiteSeData: [this.imovel?.casa?.habiteSeData ?? ''],
-    dataAverbacao: [this.imovel?.casa?.dataAverbacao ?? ''],
+    habiteSeData: [paraData(this.imovel?.casa?.habiteSeData)],
+    dataAverbacao: [paraData(this.imovel?.casa?.dataAverbacao)],
     quartos: [this.imovel?.casa?.quartos ?? null, Validators.min(0)],
     suites: [this.imovel?.casa?.suites ?? null, Validators.min(0)],
     banheiros: [this.imovel?.casa?.banheiros ?? null, Validators.min(0)],
     vagasGaragem: [this.imovel?.casa?.vagasGaragem ?? null, Validators.min(0)],
 
-    compraValor: [this.formatarMoeda(this.imovel?.compraValor ?? null)],
-    compraData: [this.imovel?.compraData ?? this.hoje(), Validators.required],
+    compraValor: [this.imovel?.compraValor ?? null],
+    compraData: [paraData(this.imovel?.compraData) ?? new Date(), Validators.required],
     compraVendedorId: [this.imovel?.compraVendedorId ?? null],
-    vendaValorPretendido: [this.formatarMoeda(this.imovel?.vendaValorPretendido ?? null)],
+    vendaValorPretendido: [this.imovel?.vendaValorPretendido ?? null],
     descricao: [this.imovel?.descricao ?? ''],
   });
 
@@ -132,19 +137,19 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
       lote: {
         matricula: bruto.matricula || null,
         cartorio: bruto.cartorio || null,
-        dataRegistro: bruto.dataRegistro || null,
+        dataRegistro: paraIso(bruto.dataRegistro),
         inscricaoMunicipal: bruto.inscricaoMunicipal || null,
         area: bruto.areaLote,
       },
       construcao: this.mostrarConstrucao
         ? {
             area: bruto.areaConstruida,
-            dataInicio: bruto.dataInicioConstrucao || null,
-            previsaoConclusao: bruto.previsaoConclusao || null,
-            custoEstimado: this.parseMoeda(bruto.custoEstimadoObra),
+            dataInicio: paraIso(bruto.dataInicioConstrucao),
+            previsaoConclusao: paraIso(bruto.previsaoConclusao),
+            custoEstimado: bruto.custoEstimadoObra,
             alvaraNumero: bruto.alvaraNumero || null,
-            alvaraEmissao: bruto.alvaraEmissao || null,
-            alvaraValidade: bruto.alvaraValidade || null,
+            alvaraEmissao: paraIso(bruto.alvaraEmissao),
+            alvaraValidade: paraIso(bruto.alvaraValidade),
             artNumero: bruto.artNumero || null,
             responsavelTecnicoId: bruto.responsavelTecnicoId,
             responsavelTecnicoNome: null,
@@ -153,20 +158,20 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
         : null,
       casa: this.mostrarCasa
         ? {
-            dataConclusaoObra: bruto.dataConclusaoObra || null,
+            dataConclusaoObra: paraIso(bruto.dataConclusaoObra),
             habiteSeNumero: bruto.habiteSeNumero || null,
-            habiteSeData: bruto.habiteSeData || null,
-            dataAverbacao: bruto.dataAverbacao || null,
+            habiteSeData: paraIso(bruto.habiteSeData),
+            dataAverbacao: paraIso(bruto.dataAverbacao),
             quartos: bruto.quartos,
             suites: bruto.suites,
             banheiros: bruto.banheiros,
             vagasGaragem: bruto.vagasGaragem,
           }
         : null,
-      compraValor: this.parseMoeda(bruto.compraValor),
-      compraData: bruto.compraData,
+      compraValor: bruto.compraValor,
+      compraData: paraIso(bruto.compraData),
       compraVendedorId: bruto.compraVendedorId,
-      vendaValorPretendido: this.parseMoeda(bruto.vendaValorPretendido),
+      vendaValorPretendido: bruto.vendaValorPretendido,
       descricao: bruto.descricao || null,
     } as ImovelRequestDTO;
     const requisicao = this.imovel ? this.service.atualizar(this.imovel.id, dto) : this.service.criar(dto);
@@ -186,27 +191,6 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
   protected fechar(): void {
     this.dialogRef.close();
-  }
-
-  protected formatarCampoValor(controle: 'custoEstimadoObra' | 'compraValor' | 'vendaValorPretendido'): void {
-    const campo = this.form.controls[controle];
-    campo.setValue(this.formatarMoeda(this.parseMoeda(campo.value)), { emitEvent: false });
-  }
-
-  private hoje(): string {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  private formatarMoeda(valor: number | null): string {
-    return valor != null ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-  }
-
-  private parseMoeda(texto: string | null): number | null {
-    if (!texto) {
-      return null;
-    }
-    const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
-    return Number.isNaN(numero) ? null : numero;
   }
 
   protected enviarFoto(event: Event): void {

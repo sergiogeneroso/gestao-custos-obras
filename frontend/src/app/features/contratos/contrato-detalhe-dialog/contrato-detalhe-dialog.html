@@ -43,18 +43,14 @@
         <form [formGroup]="formQuitacao" class="detalhe-contrato__form-inline" (ngSubmit)="confirmarQuitacao()">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Data da quitação</mat-label>
-            <input matInput type="date" formControlName="dataQuitacao" />
+            <input matInput [matDatepicker]="quitacaoPicker" formControlName="dataQuitacao" />
+            <mat-datepicker-toggle matIconSuffix [for]="quitacaoPicker" />
+            <mat-datepicker #quitacaoPicker />
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Valor da quitação</mat-label>
             <span matTextPrefix>R$&nbsp;</span>
-            <input
-              matInput
-              type="text"
-              inputmode="decimal"
-              formControlName="valorQuitacao"
-              (blur)="formatarCampoValor(formQuitacao.controls.valorQuitacao)"
-            />
+            <input matInput appMoeda formControlName="valorQuitacao" />
           </mat-form-field>
           <button mat-stroked-button type="button" (click)="cancelarQuitacao()">Cancelar</button>
           <button mat-stroked-button type="submit" color="primary" [disabled]="formQuitacao.invalid || salvando()">
@@ -109,18 +105,14 @@
                   <form [formGroup]="formBaixa" class="detalhe-contrato__form-inline" (ngSubmit)="confirmarBaixa(parcela.id)">
                     <mat-form-field appearance="outline" subscriptSizing="dynamic">
                       <mat-label>Data do pagamento</mat-label>
-                      <input matInput type="date" formControlName="dataPagamento" />
+                      <input matInput [matDatepicker]="baixaPicker" formControlName="dataPagamento" />
+                      <mat-datepicker-toggle matIconSuffix [for]="baixaPicker" />
+                      <mat-datepicker #baixaPicker />
                     </mat-form-field>
                     <mat-form-field appearance="outline" subscriptSizing="dynamic">
                       <mat-label>Valor pago</mat-label>
                       <span matTextPrefix>R$&nbsp;</span>
-                      <input
-                        matInput
-                        type="text"
-                        inputmode="decimal"
-                        formControlName="valorPago"
-                        (blur)="formatarCampoValor(formBaixa.controls.valorPago)"
-                      />
+                      <input matInput appMoeda formControlName="valorPago" />
                     </mat-form-field>
                     <button mat-stroked-button type="button" (click)="cancelarBaixa()">Cancelar</button>
                     <button mat-stroked-button type="submit" color="primary" [disabled]="formBaixa.invalid || salvando()">

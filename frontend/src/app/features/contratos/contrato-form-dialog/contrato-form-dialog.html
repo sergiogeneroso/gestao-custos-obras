@@ -39,13 +39,7 @@
         <mat-form-field appearance="outline" class="dialogo-contrato__campo-largo">
           <mat-label>Valor contratado</mat-label>
           <span matTextPrefix>R$&nbsp;</span>
-          <input
-            matInput
-            type="text"
-            inputmode="decimal"
-            formControlName="valorContratado"
-            (blur)="formatarCampoValor(form.controls.valorContratado)"
-          />
+          <input matInput appMoeda formControlName="valorContratado" />
         </mat-form-field>
       </div>
 
@@ -67,31 +61,21 @@
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Vencimento</mat-label>
-              <input matInput type="date" formControlName="dataVencimento" />
+              <input matInput [matDatepicker]="vencimentoPicker" formControlName="dataVencimento" />
+              <mat-datepicker-toggle matIconSuffix [for]="vencimentoPicker" />
+              <mat-datepicker #vencimentoPicker />
             </mat-form-field>
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Valor</mat-label>
               <span matTextPrefix>R$&nbsp;</span>
-              <input
-                matInput
-                type="text"
-                inputmode="decimal"
-                formControlName="valor"
-                (blur)="formatarCampoValor(parcela.controls.valor)"
-              />
+              <input matInput appMoeda formControlName="valor" />
             </mat-form-field>
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Juros</mat-label>
               <span matTextPrefix>R$&nbsp;</span>
-              <input
-                matInput
-                type="text"
-                inputmode="decimal"
-                formControlName="valorJuros"
-                (blur)="formatarCampoValor(parcela.controls.valorJuros)"
-              />
+              <input matInput appMoeda formControlName="valorJuros" />
             </mat-form-field>
 
             <button

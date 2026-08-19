@@ -2,11 +2,14 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { paraIso } from '../../../shared/data/data.util';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { ImovelResponseDTO } from '../../imoveis/imovel.model';
 import { ImoveisService } from '../../imoveis/imoveis.service';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
@@ -16,9 +19,9 @@ import { ContratosService } from '../contratos.service';
 
 type ParcelaFormGroup = FormGroup<{
   numero: FormControl<number | null>;
-  dataVencimento: FormControl<string | null>;
-  valor: FormControl<string | null>;
-  valorJuros: FormControl<string | null>;
+  dataVencimento: FormControl<Date | null>;
+  valor: FormControl<number | null>;
+  valorJuros: FormControl<number | null>;
 }>;
 
 @Component({
@@ -26,10 +29,12 @@ type ParcelaFormGroup = FormGroup<{
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MoedaDirective,
   ],
   templateUrl: './contrato-form-dialog.html',
   styleUrl: './contrato-form-dialog.scss',
@@ -57,7 +62,7 @@ export class ContratoFormDialog implements OnInit {
     imovelId: [null as number | null, Validators.required],
     tipo: [null as TipoContratoFinanceiro | null, Validators.required],
     contraparteId: [null as number | null, Validators.required],
-    valorContratado: ['', Validators.required],
+    valorContratado: [null as number | null, Validators.required],
   });
 
   protected readonly parcelas = this.fb.array<ParcelaFormGroup>([]);
@@ -71,9 +76,9 @@ export class ContratoFormDialog implements OnInit {
   private novaLinhaParcela(numero: number): ParcelaFormGroup {
     return this.fb.group({
       numero: [numero, Validators.required],
-      dataVencimento: ['', Validators.required],
-      valor: ['', Validators.required],
-      valorJuros: [''],
+      dataVencimento: [null as Date | null, Validators.required],
+      valor: [null as number | null, Validators.required],
+      valorJuros: [null as number | null],
     });
   }
 
@@ -83,10 +88,6 @@ export class ContratoFormDialog implements OnInit {
 
   protected removerParcela(indice: number): void {
     this.parcelas.removeAt(indice);
-  }
-
-  protected formatarCampoValor(controle: FormControl<string | null>): void {
-    controle.setValue(this.formatarMoeda(this.parseMoeda(controle.value)), { emitEvent: false });
   }
 
   protected salvar(): void {
@@ -101,12 +102,12 @@ export class ContratoFormDialog implements OnInit {
       imovelId: bruto.imovelId!,
       tipo: bruto.tipo!,
       contraparteId: bruto.contraparteId!,
-      valorContratado: this.parseMoeda(bruto.valorContratado)!,
+      valorContratado: bruto.valorContratado!,
       parcelas: this.parcelas.getRawValue().map((parcela) => ({
         numero: parcela.numero!,
-        dataVencimento: parcela.dataVencimento!,
-        valor: this.parseMoeda(parcela.valor)!,
-        valorJuros: this.parseMoeda(parcela.valorJuros),
+        dataVencimento: paraIso(parcela.dataVencimento)!,
+        valor: parcela.valor!,
+        valorJuros: parcela.valorJuros,
       })),
     };
 
@@ -125,17 +126,5 @@ export class ContratoFormDialog implements OnInit {
 
   protected fechar(): void {
     this.dialogRef.close();
-  }
-
-  private formatarMoeda(valor: number | null): string {
-    return valor != null ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-  }
-
-  private parseMoeda(texto: string | null): number | null {
-    if (!texto) {
-      return null;
-    }
-    const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
-    return Number.isNaN(numero) ? null : numero;
   }
 }

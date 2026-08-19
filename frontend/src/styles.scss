@@ -85,3 +85,12 @@ body {
     background: #fff !important;
   }
 }
+
+// Inputs de data nativos (fora de mat-form-field, como o envio de documentos do
+// detalhe do imóvel): no tema dark o ícone do calendário do Chrome fica escuro
+// sobre fundo escuro e vira um alvo invisível.
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.7;
+}

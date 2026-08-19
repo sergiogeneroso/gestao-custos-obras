@@ -28,7 +28,7 @@ export const appConfig: ApplicationConfig = {
     // flutuante fica por cima do conteúdo do campo.
     {
       provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
-      useValue: { appearance: 'outline', floatLabel: 'always', subscriptSizing: 'dynamic' },
+      useValue: { appearance: 'outline', floatLabel: 'always' },
     },
   ],
 };
