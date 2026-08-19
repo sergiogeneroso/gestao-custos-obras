@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { PessoaFormDialog } from './pessoa-form-dialog/pessoa-form-dialog';
@@ -8,7 +9,7 @@ import { PessoasService } from './pessoas.service';
 
 @Component({
   selector: 'app-pessoas',
-  imports: [MatButtonModule, BuscaToolbar],
+  imports: [MatButtonModule, MatButtonToggleModule, BuscaToolbar],
   templateUrl: './pessoas.html',
   styleUrl: './pessoas.scss',
 })
@@ -21,15 +22,19 @@ export class Pessoas implements OnInit {
   protected readonly tipoLabel = TIPO_PESSOA_LABEL;
 
   protected readonly busca = signal('');
+  protected readonly filtro = signal<'todas' | 'fornecedores'>('todas');
 
   protected readonly pessoasFiltradas = computed(() => {
     const termo = this.busca().trim().toLowerCase();
-    if (!termo) {
-      return this.pessoas();
-    }
-    return this.pessoas().filter((pessoa) =>
-      [pessoa.nome, pessoa.documento].some((valor) => valor.toLowerCase().includes(termo)),
-    );
+    const filtro = this.filtro();
+
+    return this.pessoas().filter((pessoa) => {
+      if (filtro === 'fornecedores' && !pessoa.fornecedor) return false;
+      if (!termo) return true;
+      return [pessoa.nome, pessoa.documento, pessoa.areaAtuacao]
+        .filter((valor): valor is string => !!valor)
+        .some((valor) => valor.toLowerCase().includes(termo));
+    });
   });
 
   ngOnInit(): void {

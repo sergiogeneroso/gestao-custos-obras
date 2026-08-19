@@ -1,5 +1,7 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -57,6 +59,10 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected readonly enviandoFoto = signal(false);
   protected readonly definindoPrincipal = signal(false);
 
+  // No cadastro ainda não há id para onde subir o arquivo: as fotos escolhidas ficam em memória e
+  // sobem logo depois do POST. `previa` é a URL de objeto usada só para exibir a miniatura.
+  protected readonly fotosPendentes = signal<{ arquivo: File; previa: string }[]>([]);
+
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
     endereco: [this.imovel?.endereco ?? ''],
@@ -113,6 +119,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     Object.values(this.urlsFotos()).forEach((url) => URL.revokeObjectURL(url));
+    this.fotosPendentes().forEach((pendente) => URL.revokeObjectURL(pendente.previa));
   }
 
   protected salvar(): void {
@@ -177,15 +184,41 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     const requisicao = this.imovel ? this.service.atualizar(this.imovel.id, dto) : this.service.criar(dto);
 
     requisicao.subscribe({
-      next: () => {
-        this.snackBar.open('Imóvel salvo com sucesso.', 'Fechar', { duration: 4000 });
-        this.dialogRef.close(true);
-      },
+      next: (salvo) => this.enviarFotosPendentes(salvo.id),
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
         const mensagem = erro.error?.mensagem ?? 'Não foi possível salvar o imóvel.';
         this.snackBar.open(mensagem, 'Fechar', { duration: 6000 });
       },
+    });
+  }
+
+  // O imóvel já está salvo neste ponto: se um upload falhar, o certo é dizer qual arquivo ficou de
+  // fora, não fingir que a operação inteira falhou.
+  private enviarFotosPendentes(imovelId: number): void {
+    const pendentes = this.fotosPendentes();
+    if (pendentes.length === 0) {
+      this.snackBar.open('Imóvel salvo com sucesso.', 'Fechar', { duration: 4000 });
+      this.dialogRef.close(true);
+      return;
+    }
+
+    const falhas: string[] = [];
+    forkJoin(
+      pendentes.map((pendente) =>
+        this.service.adicionarFoto(imovelId, pendente.arquivo).pipe(
+          catchError(() => {
+            falhas.push(pendente.arquivo.name);
+            return of(null);
+          }),
+        ),
+      ),
+    ).subscribe(() => {
+      const mensagem = falhas.length
+        ? `Imóvel salvo, mas estas fotos não subiram: ${falhas.join(', ')}.`
+        : 'Imóvel salvo com sucesso.';
+      this.snackBar.open(mensagem, 'Fechar', { duration: falhas.length ? 8000 : 4000 });
+      this.dialogRef.close(true);
     });
   }
 
@@ -196,7 +229,14 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected enviarFoto(event: Event): void {
     const input = event.target as HTMLInputElement;
     const arquivo = input.files?.[0];
-    if (!arquivo || !this.imovel) {
+    if (!arquivo) {
+      return;
+    }
+
+    // Sem imóvel salvo ainda, a foto entra na fila e sobe depois do POST.
+    if (!this.imovel) {
+      this.fotosPendentes.update((atuais) => [...atuais, { arquivo, previa: URL.createObjectURL(arquivo) }]);
+      input.value = '';
       return;
     }
 
@@ -234,6 +274,12 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
         });
       },
     });
+  }
+
+  protected removerFotoPendente(indice: number): void {
+    const pendente = this.fotosPendentes()[indice];
+    URL.revokeObjectURL(pendente.previa);
+    this.fotosPendentes.update((atuais) => atuais.filter((_, i) => i !== indice));
   }
 
   protected removerFoto(foto: ImovelFotoResponseDTO): void {

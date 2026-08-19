@@ -23,12 +23,9 @@ erDiagram
         VARCHAR nome
         VARCHAR tipo_pessoa "FISICA, JURIDICA"
         VARCHAR documento UK "CPF ou CNPJ"
-        BOOLEAN ativo
-    }
-    FORNECEDOR {
-        BIGSERIAL id PK
-        BIGINT pessoa_id FK
-        VARCHAR area_atuacao
+        BOOLEAN fornecedor "marca o papel (ADR-034)"
+        VARCHAR area_atuacao "só quando fornecedor"
+        TEXT observacoes "só quando fornecedor"
         BOOLEAN ativo
     }
     IMOVEL {
@@ -107,9 +104,17 @@ erDiagram
         BIGINT beneficiario_id FK "opcional"
         BIGINT contrato_financeiro_id FK "opcional"
         VARCHAR fase_imovel "fase em que foi incorrida"
+        VARCHAR etapa_construcao "só na fase CONSTRUCAO (ADR-035)"
         NUMERIC valor "14,2"
         DATE data_pagamento
         BOOLEAN ativo
+    }
+    CONTRATO_DOCUMENTO {
+        BIGSERIAL id PK
+        BIGINT contrato_id FK
+        VARCHAR tipo_documento "CONTRATO, ADITIVO, GARANTIA, SEGURO, LAUDO_VISTORIA, COMPROVANTE_QUITACAO, OUTRO"
+        VARCHAR url
+        VARCHAR nome_arquivo
     }
     DESPESA_ANEXO {
         BIGSERIAL id PK
@@ -130,7 +135,6 @@ erDiagram
         VARCHAR url
     }
 
-    PESSOA ||--o| FORNECEDOR : "pode ser"
     PESSOA ||--o{ DESPESA : "paga"
     PESSOA ||--o{ DESPESA : "recebe"
     PESSOA ||--o{ IMOVEL : "vende/compra"
@@ -140,12 +144,21 @@ erDiagram
     IMOVEL ||--o{ IMOVEL_DOCUMENTO : "documentos"
     IMOVEL ||--o{ CONTRATO_FINANCEIRO : "encadeia"
     CONTRATO_FINANCEIRO ||--o{ PARCELA_CONTRATO : "cronograma"
+    CONTRATO_FINANCEIRO ||--o{ CONTRATO_DOCUMENTO : "documentos"
     CONTRATO_FINANCEIRO ||--o{ DESPESA : "custos acessórios"
     CATEGORIA_DESPESA ||--o{ DESPESA : "classifica"
     DESPESA ||--o{ DESPESA_ANEXO : "comprovantes e notas"
 ```
 
 ## Regras que não estão óbvias só olhando o schema
+
+- **Não existe mais tabela `fornecedor`** (ADR-034): o papel virou
+  `pessoa.fornecedor`, com `area_atuacao` e `observacoes` preenchidos só quando a
+  marca está ligada. Com o Flyway pausado, o `DROP TABLE` da tabela antiga está no
+  script manual `backend/src/main/resources/db/manual/2026-08-migrar-fornecedor-para-pessoa.sql`
+- **`despesa.etapa_construcao` é opcional e condicionada à fase**: o service
+  recusa etapa em despesa cuja `fase_imovel` não seja `CONSTRUCAO` (ADR-035). Ela
+  não participa de nenhum cálculo de custo — só do quadro por etapa do relatório
 
 - `despesa.imovel_id` **nulo é intencional**: gasto geral (contador, combustível,
   ferramentas) que não entra no custo de nenhum imóvel (ADR-023)
@@ -169,6 +182,6 @@ erDiagram
 - A soma das parcelas **pode exceder** `valor_contratado` legitimamente (juros);
   não existe validação disso
 - FKs para `pessoa` em relações financeiras: `ON DELETE RESTRICT`, e soft delete
-  (`ativo`) em `imovel`, `pessoa`, `fornecedor` e `despesa` (ADR-028)
+  (`ativo`) em `imovel`, `pessoa` e `despesa` (ADR-028)
 - Regras de negócio que não são constraint de banco (regra de custo, transições
   de fase) estão em `.agents/rules/`, que carregam sozinhas no escopo delas

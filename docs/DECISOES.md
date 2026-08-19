@@ -275,7 +275,7 @@ tabela só, sem herança JPA e sem tabela de papéis.
 O documento é obrigatório e único, mas **sem validação de dígito verificador** —
 marcado com comentário `ponytail:` no service; entra se dado sujo incomodar.
 
-## ADR-022 — Fornecedor por composição com Pessoa, não por herança JPA (Ago 2026)
+## ADR-022 — Fornecedor por composição com Pessoa, não por herança JPA (Ago 2026) ⚠️ SUPERADA pela ADR-034
 
 Fornecedor é um domínio próprio, e todo fornecedor é uma pessoa. A modelagem
 literal seria `Fornecedor extends Pessoa` (herança JOINED ou SINGLE_TABLE).
@@ -605,3 +605,78 @@ expor apenas as fases já alcançadas pelo imóvel — corrigir dado lançado er
 continua sendo possível, conforme a regra de ciclo de vida. Nenhum desses campos
 vira obrigatório na transição: alvará sai depois do início da obra, CNO idem, e a
 metragem final às vezes só fecha no habite-se.
+
+## ADR-034 — Fornecedor vira uma marca em Pessoa (Ago 2026)
+
+Substitui a ADR-022, que definiu `Fornecedor` como domínio próprio composto com
+`Pessoa` por uma FK 1:1. A composição estava correta como modelagem — o erro foi
+o domínio existir.
+
+Ao revisar o código em agosto de 2026, `FornecedorModel` provou ser um satélite
+1:1 de `PessoaModel` com exatamente dois campos próprios (`areaAtuacao`,
+`observacoes`) e **nenhum consumidor no sistema**: `despesa.beneficiario` sempre
+apontou para `Pessoa` (consequência já registrada na própria ADR-022), e
+`RelatorioService.historicoFornecedor` sempre agregou sobre `Pessoa`. Era um CRUD
+completo — model, repository, service, mapper, controller, tela e item de menu —
+que ninguém lia.
+
+**Decisão:** `Pessoa` ganha `fornecedor` (boolean), `areaAtuacao` e
+`observacoes`; o pacote `fornecedor/` e a tela `fornecedores/` são removidos. Ser
+fornecedor passa a ser um **papel marcado no cadastro**, coerente com a ADR-021,
+que já dizia que os demais papéis (pagador, beneficiário, vendedor, comprador)
+vêm do uso e não do cadastro. A tela de Pessoas ganha o filtro "Só fornecedores".
+
+**Por que uma flag e não só o uso:** diferente dos outros papéis, ser fornecedor
+não é dedutível de um lançamento — é uma qualificação que o usuário quer declarar
+antes de haver despesa, para achar a pessoa na hora de lançar. Os dois campos
+próprios do papel são preenchidos apenas quando a marca está ligada, e são
+limpos ao desmarcá-la.
+
+**Consequência operacional:** com o Flyway pausado (ADR-013), `ddl-auto=update`
+cria as colunas novas mas nunca apaga a tabela `fornecedor`. A migração dos dados
+e o `DROP TABLE` ficam no script manual
+`backend/src/main/resources/db/manual/2026-08-migrar-fornecedor-para-pessoa.sql`.
+
+## ADR-035 — `EtapaConstrucao` como recorte interno da fase de obra (Ago 2026)
+
+Não substitui a ADR-026, que renomeou `EtapaProjeto` para `CategoriaDespesa`.
+Convive com ela, e a distinção é o ponto inteiro desta decisão.
+
+A ADR-026 removeu "etapa" porque o nome era enviesado para obra e se sobrepunha à
+**fase do imóvel** como eixo temporal do custo. O que o usuário pediu agora é
+outra coisa: saber **quanto custou cada trecho da obra** — fundação, alvenaria,
+cobertura, acabamento —, uma pergunta que nem a categoria nem a fase respondem.
+Categoria diz *a natureza* do gasto (material, mão de obra); fase diz *em que
+momento da vida do imóvel* ele ocorreu; etapa diz *em que parte da construção*.
+
+**Decisão:** `EtapaConstrucao` é um **enum fixo no código**, não um catálogo
+administrável — é vocabulário de obra, não dado que o usuário mantém. Vira uma
+coluna opcional em `despesa`, e `DespesaService` **recusa** despesa com etapa
+preenchida cuja `faseImovel` não seja `CONSTRUCAO`, porque fora da obra o número
+não teria sentido.
+
+No relatório, `despesasPorEtapa` é **apresentação, não contabilidade**: agrega as
+mesmas despesas que já entram por fase, e não toca `custoTotal`, `jurosPagos` nem
+qualquer outro número da regra de custo. Despesa sem etapa fica de fora do quadro
+em vez de virar uma chave nula na agregação.
+
+## ADR-036 — Contrato financeiro editável, com histórico protegido (Ago 2026)
+
+Complementa a ADR-025. O contrato só podia ser criado, quitado e ter parcela
+baixada — corrigir um valor digitado errado exigia criar outro contrato.
+
+**Decisão:** existe `PUT /api/contratos-financeiros/{id}`, com duas recusas:
+
+- **contrato `QUITADO` não é editável** — a quitação antecipada tem valor próprio
+  negociado, e as parcelas originais precisam continuar legíveis como histórico;
+- **parcela já paga não pode ser alterada nem removida** — número, vencimento,
+  valor e sobretudo `valorJuros` dela já entraram em `jurosPagos` e no
+  `custoTotal` do relatório. A comparação inclui `valorJuros` justamente por isso.
+
+A edição governa apenas as parcelas **em aberto**. Como a coleção usa
+`orphanRemoval = true`, a implementação remove só as não pagas e nunca recria as
+pagas: um `clear()` seguido de re-add apagaria do banco parcelas com baixa
+registrada.
+
+Continua valendo da ADR-025: **não** validar a soma das parcelas contra
+`valorContratado`, porque juros fazem a soma exceder o principal legitimamente.

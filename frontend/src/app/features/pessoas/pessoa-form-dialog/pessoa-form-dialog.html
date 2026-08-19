@@ -37,6 +37,22 @@
           <mat-label>Telefone</mat-label>
           <input matInput formControlName="telefone" />
         </mat-form-field>
+
+        <div class="dialogo-pessoa__campo-largo">
+          <mat-checkbox formControlName="fornecedor">É fornecedor</mat-checkbox>
+        </div>
+
+        @if (form.controls.fornecedor.value) {
+          <mat-form-field appearance="outline" class="dialogo-pessoa__campo-largo">
+            <mat-label>Área de atuação</mat-label>
+            <input matInput formControlName="areaAtuacao" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="dialogo-pessoa__campo-largo">
+            <mat-label>Observações</mat-label>
+            <textarea matInput formControlName="observacoes" rows="2"></textarea>
+          </mat-form-field>
+        }
       </div>
     </mat-dialog-content>
 

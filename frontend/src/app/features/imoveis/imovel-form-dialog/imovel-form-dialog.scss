@@ -106,3 +106,14 @@
     color: var(--mat-sys-on-surface);
   }
 }
+
+.dialogo-imovel__foto--pendente {
+  outline: 1px dashed #6b6f85;
+  outline-offset: -1px;
+}
+
+.dialogo-imovel__nota-pendente {
+  font-size: 13px;
+  color: #9397ab;
+  margin: 4px 0 8px;
+}

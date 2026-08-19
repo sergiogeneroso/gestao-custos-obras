@@ -9,5 +9,8 @@ public record PessoaResponseDTO(
         String documento,
         String email,
         String telefone,
+        Boolean fornecedor,
+        String areaAtuacao,
+        String observacoes,
         Boolean ativo
 ) {}

@@ -344,3 +344,27 @@ superado; sobrou o que continua valendo:
 - [ ] Trilha de auditoria (quem alterou o quê e quando)
 - [ ] Reativação do Flyway com baseline V1 única — risco registrado na ADR-029:
       fica mais caro depois do primeiro imóvel real lançado
+
+## Ajustes de uso diário (Ago 2026) ✅
+
+Doze itens levantados pelo usuário a partir do uso real das telas, entregues em
+cinco etapas. Detalhe das decisões nas ADR-034 a ADR-036.
+
+- [x] **E1 — Frontend transversal**: `MatDatepicker` em pt-BR nos 22 campos de
+      data (com `DataPtBrAdapter` para aceitar data digitada), diretiva `appMoeda`
+      no lugar dos três pares duplicados de formatação, e `floatLabel: 'always'`
+      global — que era a causa da label sobrepondo o prefixo "R$"
+- [x] **E2 — Despesa**: `EtapaConstrucao` (ADR-035) e tela de visualização
+      (`despesa-detalhe-dialog`) no clique da linha, em vez da edição
+- [x] **E3 — Contrato financeiro**: `PUT` com histórico protegido (ADR-036),
+      gerador de cronograma de parcelas e documentos anexos
+- [x] **E4 — Anexo no cadastro**: fotos do imóvel e anexos da despesa passam a ser
+      escolhidos antes do primeiro save, subindo logo depois do POST
+- [x] **E5 — Fornecedor vira marca em Pessoa** (ADR-034) e menu de Orçamentos
+      oculto (a rota e o componente placeholder continuam no código)
+
+**Pendência operacional:** rodar
+`backend/src/main/resources/db/manual/2026-08-migrar-fornecedor-para-pessoa.sql`
+antes de dar por concluída a ADR-034 — as colunas novas em `pessoa` já existem via
+`ddl-auto=update`, mas os dados da tabela `fornecedor` não migram sozinhos e o
+`DROP TABLE` precisa ser manual.

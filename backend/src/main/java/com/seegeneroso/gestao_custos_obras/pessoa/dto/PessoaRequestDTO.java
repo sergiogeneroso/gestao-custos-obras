@@ -15,5 +15,8 @@ public record PessoaRequestDTO(
         String documento,
 
         String email,
-        String telefone
+        String telefone,
+        Boolean fornecedor,
+        String areaAtuacao,
+        String observacoes
 ) {}

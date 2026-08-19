@@ -30,10 +30,8 @@ export class Shell {
     { path: 'imoveis', label: 'Imóveis', icone: 'ph-buildings' },
     { path: 'despesas', label: 'Despesas', icone: 'ph-receipt' },
     { path: 'pessoas', label: 'Pessoas', icone: 'ph-users-three' },
-    { path: 'fornecedores', label: 'Fornecedores', icone: 'ph-hard-hat' },
     { path: 'contratos', label: 'Contratos financeiros', icone: 'ph-handshake' },
     { path: 'categorias-despesa', label: 'Categorias de despesa', icone: 'ph-list-checks' },
-    { path: 'orcamento-categoria', label: 'Orçamentos', icone: 'ph-scales' },
     { path: 'relatorios', label: 'Relatórios', icone: 'ph-chart-line-up' },
   ];
 

@@ -81,3 +81,21 @@ resultado.
 
 **Não registrar liberações do banco por medição:** não mudam nem o custo (que são
 as despesas) nem a dívida (que é o contrato).
+
+## Edição do contrato (ADR-036)
+
+O contrato é editável por `PUT`, mas duas coisas são histórico fechado e o
+service precisa recusar:
+
+- **Contrato `QUITADO` não pode ser editado.** A quitação tem valor próprio,
+  negociado, e as parcelas originais precisam continuar legíveis.
+- **Parcela já paga (`dataPagamento != null`) não pode ser alterada nem
+  removida** — número, vencimento, valor e `valorJuros`. O `valorJuros` dela já
+  entrou em `jurosPagos` e no `custoTotal` do relatório; mudá-lo reescreveria um
+  resultado já apurado. Por isso a comparação de "parcela inalterada" inclui
+  `valorJuros`, não só valor e vencimento.
+
+A edição governa somente as parcelas **em aberto**. Cuidado de implementação que
+não pode ser perdido: a coleção `parcelas` usa `orphanRemoval = true`, então
+`clear()` seguido de re-add **apaga do banco** as parcelas pagas antes de
+reinseri-las. Remover apenas as não pagas e nunca recriar as pagas.

@@ -12,7 +12,11 @@
 
   @if (!carregando() && pessoas().length > 0) {
     <div class="pessoas__toolbar">
-      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar pessoa" placeholder="Nome ou documento" />
+      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar pessoa" placeholder="Nome, documento ou área" />
+      <mat-button-toggle-group [value]="filtro()" (change)="filtro.set($event.value)" aria-label="Filtrar por papel">
+        <mat-button-toggle value="todas">Todas</mat-button-toggle>
+        <mat-button-toggle value="fornecedores">Só fornecedores</mat-button-toggle>
+      </mat-button-toggle-group>
     </div>
   }
 
@@ -29,6 +33,7 @@
           <th>Nome</th>
           <th>Tipo</th>
           <th>Documento</th>
+          <th>Papel</th>
           <th>Contato</th>
           <th class="table__acoes"></th>
         </tr>
@@ -39,6 +44,13 @@
             <td class="table__nome">{{ pessoa.nome }}</td>
             <td>{{ tipoLabel[pessoa.tipoPessoa] }}</td>
             <td>{{ pessoa.documento }}</td>
+            <td>
+              @if (pessoa.fornecedor) {
+                <span class="tag tag--fornecedor">Fornecedor</span>
+              } @else {
+                —
+              }
+            </td>
             <td>{{ pessoa.email || pessoa.telefone || '—' }}</td>
             <td class="table__acoes">
               <div class="table__acoes-grupo">

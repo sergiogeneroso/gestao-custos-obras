@@ -43,7 +43,7 @@ Havendo contrato, valem também (detalhe em `contratos-financeiros.md`):
 
 ## Soft delete: nunca DELETE físico em entidade financeira
 
-- `ativo BOOLEAN` em `Imovel`, `Pessoa`, `Fornecedor` e `Despesa` (ADR-028).
+- `ativo BOOLEAN` em `Imovel`, `Pessoa` e `Despesa` (ADR-028).
   Usar `findByAtivoTrue()` / `findByIdAndAtivoTrue()`
 - `Imovel` com `ativo = false` não aparece em listagens nem aceita novas despesas
 - `Pessoa` com `ativo = false` não pode ser vinculada a novas despesas como
@@ -67,3 +67,17 @@ Havendo contrato, valem também (detalhe em `contratos-financeiros.md`):
 - `CategoriaDespesa` é catálogo global (não por imóvel) — cadastrada uma vez,
   reutilizada em qualquer imóvel. Responde só pela **natureza** do gasto; o eixo
   temporal é a fase do imóvel (ver `ciclo-vida-imovel.md`)
+
+## Etapa da construção (ADR-035)
+
+`despesa.etapaConstrucao` é um **enum fixo** e opcional, e só é aceito quando
+`faseImovel == CONSTRUCAO` — `DespesaService` recusa a combinação contrária.
+
+Ele responde "quanto custou cada trecho da obra" e **não concorre com
+`CategoriaDespesa`**: categoria é a natureza do gasto, fase é o momento na vida
+do imóvel, etapa é a parte da construção.
+
+`despesasPorEtapa`, no relatório, é **apresentação sobre despesas já
+contabilizadas**: agrega o mesmo dinheiro que já entra por fase e **não pode**
+ser somado a `custoTotal` — fazê-lo dobraria o custo da obra. Despesa sem etapa
+fica fora do quadro, nunca vira chave nula na agregação.

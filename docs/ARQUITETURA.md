@@ -9,7 +9,7 @@ descreve só o `backend/`; o frontend tem sua própria doc em
 
 ## Padrão: package by feature
 
-Cada domínio (`imovel/`, `pessoa/`, `fornecedor/`, `categoriaDespesa/`,
+Cada domínio (`imovel/`, `pessoa/`, `categoriaDespesa/`,
 `despesa/`, `contratoFinanceiro/`, `orcamentoCategoria/`, `relatorio/`, `auth/`)
 concentra Model, Repository, Service, Mapper, Controller e `dto/` no mesmo
 pacote. `shared/` é exceção deliberada:
@@ -55,11 +55,10 @@ Alvo do reescopo de Ago 2026 (ADR-019 a ADR-029):
 | Domínio            | Base URL                    | Escopo                                        |
 |--------------------|-----------------------------|-----------------------------------------------|
 | Imóvel             | `/api/imoveis`              | CRUD + fotos + documentos + `PATCH` fase/situação |
-| Pessoa             | `/api/pessoas`              | CRUD (substitui Aportante)                     |
-| Fornecedor         | `/api/fornecedores`         | CRUD, composto com Pessoa                      |
+| Pessoa             | `/api/pessoas`              | CRUD + marca de fornecedor (ADR-021/034)       |
 | CategoriaDespesa   | `/api/categorias-despesa`   | CRUD (substitui EtapaProjeto)                  |
 | Despesa            | `/api/despesas`             | CRUD + anexos tipados, sem rateio              |
-| ContratoFinanceiro | `/api/contratos-financeiros`| CRUD + parcelas + quitação antecipada          |
+| ContratoFinanceiro | `/api/contratos-financeiros`| CRUD + parcelas + quitação + documentos        |
 | Relatório          | `/api/relatorios`           | Resultado, fornecedor, extrato, carteira + CSV |
 | OrcamentoCategoria | `/api/orcamentos-categoria` | Existe no código, **fora do MVP** (ADR-029)    |
 | Auth               | `/api/auth`                 | POST /login emite JWT (RNF01)                  |

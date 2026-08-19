@@ -48,8 +48,15 @@ situação. `/api/imoveis`
 ### RF02 — Pessoas 🔄 Em reformulação
 Substitui "Aportantes" (ADR-021). Pessoas físicas ou jurídicas que se relacionam
 com despesas e negociações. Campos: nome, tipo (Física/Jurídica), documento
-(CPF/CNPJ, único), e-mail, telefone. O papel — pagadora, beneficiária, vendedora,
-compradora — vem do uso, não do cadastro. Ações: criar, listar, editar, inativar.
+(CPF/CNPJ, único), e-mail, telefone. Os papéis de pagadora, beneficiária,
+vendedora e compradora vêm do uso, não do cadastro.
+
+**Fornecedora é a exceção, e é uma marca no cadastro** (ADR-034, substitui o
+domínio próprio da ADR-022): a flag `fornecedor`, mais `areaAtuacao` e
+`observacoes`, preenchidos só quando ela está ligada. Diferente dos outros
+papéis, esse não é dedutível de lançamento nenhum — precisa ser declarado antes
+de existir despesa, para a pessoa ser encontrada na hora de lançar. A listagem
+tem filtro "Só fornecedores". Ações: criar, listar, editar, inativar.
 `/api/pessoas`
 
 ### RF03 — Categorias de Despesa 🔄 Em reformulação
@@ -62,6 +69,10 @@ a venda. Ações: criar, listar, editar, excluir. `/api/categorias-despesa`
 Valor, data de pagamento, descrição, categoria, pagador (obrigatório),
 beneficiário (opcional), fase em que foi incorrida e vínculo opcional com um
 contrato financeiro. **Sem rateio** (ADR-023): um pagador por despesa.
+
+Despesa da fase Construção aceita ainda a **etapa da obra** (ADR-035) — fundação,
+alvenaria, cobertura, acabamento etc., lista fixa —, que alimenta o quadro de
+custo por etapa no resultado do imóvel. Fora dessa fase a etapa é recusada.
 
 O vínculo com imóvel é **opcional**: despesa sem imóvel é gasto geral (contador,
 combustível, ferramentas) e não entra no custo de nenhum imóvel. Mão de obra é
@@ -100,10 +111,10 @@ Verde financeiro, Grafite + âmbar (hex e detalhes em `docs/FRONTEND.md`).
 Persistência no backend (config chave-valor), endpoint restrito a `ROLE_ADMIN`.
 Decisão completa: ADR-016/ADR-018 em `docs/DECISOES.md`.
 
-### RF08 — Fornecedores 🆕
-Domínio próprio composto com Pessoa (ADR-022): toda pessoa pode ser promovida a
-fornecedora sem recriar cadastro. Campos próprios: área de atuação e observações.
-Ações: criar, listar, editar, inativar. `/api/fornecedores`
+### RF08 — Fornecedores ✅ Absorvido pelo RF02
+Deixou de ser domínio próprio (ADR-034): virou a marca `fornecedor` no cadastro
+de Pessoa, com área de atuação e observações. Não há `/api/fornecedores` nem tela
+de Fornecedores — a gestão acontece em Pessoas, com filtro "Só fornecedores".
 
 ### RF09 — Contratos Financeiros 🆕
 Um imóvel encadeia vários contratos ao longo da vida (ADR-025): parcelamento da
@@ -113,6 +124,10 @@ venda. Campos: tipo, contraparte, número, valor contratado, data, situação
 
 Cronograma de parcelas: número, vencimento, valor, valor de juros, data e valor
 de pagamento (parcela sem data de pagamento está em aberto).
+
+O contrato é **editável** (ADR-036), com duas travas: contrato quitado não muda,
+e parcela já paga não pode ser alterada nem removida. Há gerador de cronograma
+(quantidade, valor e primeiro vencimento) e anexo de documentos ao contrato.
 `/api/contratos-financeiros`
 
 ### RF10 — Dashboard da Carteira 🆕

@@ -11,6 +11,9 @@ export interface PessoaRequestDTO {
   documento: string;
   email: string | null;
   telefone: string | null;
+  fornecedor: boolean;
+  areaAtuacao: string | null;
+  observacoes: string | null;
 }
 
 export interface PessoaResponseDTO {
@@ -20,5 +23,8 @@ export interface PessoaResponseDTO {
   documento: string;
   email: string | null;
   telefone: string | null;
+  fornecedor: boolean;
+  areaAtuacao: string | null;
+  observacoes: string | null;
   ativo: boolean;
 }

@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PessoaRequestDTO, PessoaResponseDTO, TIPO_PESSOA_LABEL, TipoPessoa } from '../pessoa.model';
@@ -22,6 +23,7 @@ export interface PessoaFormDialogData {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    MatCheckboxModule,
     MatSelectModule,
   ],
   templateUrl: './pessoa-form-dialog.html',
@@ -46,6 +48,9 @@ export class PessoaFormDialog {
     documento: [this.pessoa?.documento ?? '', Validators.required],
     email: [this.pessoa?.email ?? ''],
     telefone: [this.pessoa?.telefone ?? ''],
+    fornecedor: [this.pessoa?.fornecedor ?? false],
+    areaAtuacao: [this.pessoa?.areaAtuacao ?? ''],
+    observacoes: [this.pessoa?.observacoes ?? ''],
   });
 
   protected salvar(): void {
@@ -55,7 +60,18 @@ export class PessoaFormDialog {
 
     this.salvando.set(true);
 
-    const dto = this.form.getRawValue() as PessoaRequestDTO;
+    const bruto = this.form.getRawValue();
+    // Desmarcar "é fornecedor" limpa os campos do papel, para não deixar dado órfão de um papel
+    // que a pessoa não tem mais.
+    const ehFornecedor = !!bruto.fornecedor;
+    const dto = {
+      ...bruto,
+      email: bruto.email || null,
+      telefone: bruto.telefone || null,
+      fornecedor: ehFornecedor,
+      areaAtuacao: ehFornecedor ? bruto.areaAtuacao || null : null,
+      observacoes: ehFornecedor ? bruto.observacoes || null : null,
+    } as PessoaRequestDTO;
     const requisicao = this.pessoa ? this.service.atualizar(this.pessoa.id, dto) : this.service.criar(dto);
 
     requisicao.subscribe({

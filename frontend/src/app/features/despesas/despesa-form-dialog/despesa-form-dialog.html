@@ -100,44 +100,61 @@
         </mat-form-field>
       </div>
 
-      @if (despesa) {
-        <section class="dialogo-despesa__anexos">
-          <h3>Anexos</h3>
+      <section class="dialogo-despesa__anexos">
+        <h3>Anexos</h3>
 
-          @if (anexos().length > 0) {
-            <ul class="dialogo-despesa__lista-anexos">
-              @for (anexo of anexos(); track anexo.id) {
-                <li>
-                  <button mat-button type="button" (click)="abrirAnexo(anexo)">
-                    <i class="ph ph-paperclip"></i>
-                    {{ tipoAnexoLabel[anexo.tipoAnexo] }}
-                  </button>
-                  <button mat-icon-button type="button" (click)="removerAnexo(anexo)" aria-label="Remover anexo">
-                    <i class="ph ph-trash"></i>
-                  </button>
-                </li>
+        @if (anexos().length > 0) {
+          <ul class="dialogo-despesa__lista-anexos">
+            @for (anexo of anexos(); track anexo.id) {
+              <li>
+                <button mat-button type="button" (click)="abrirAnexo(anexo)">
+                  <i class="ph ph-paperclip"></i>
+                  {{ tipoAnexoLabel[anexo.tipoAnexo] }}
+                </button>
+                <button mat-icon-button type="button" (click)="removerAnexo(anexo)" aria-label="Remover anexo">
+                  <i class="ph ph-trash"></i>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (anexosPendentes().length > 0) {
+          <ul class="dialogo-despesa__lista-anexos">
+            @for (pendente of anexosPendentes(); track pendente.arquivo; let i = $index) {
+              <li>
+                <span class="dialogo-despesa__pendente">
+                  <i class="ph ph-clock"></i>
+                  {{ tipoAnexoLabel[pendente.tipoAnexo] }} — {{ pendente.arquivo.name }}
+                </span>
+                <button mat-icon-button type="button" (click)="removerAnexoPendente(i)" aria-label="Remover anexo">
+                  <i class="ph ph-trash"></i>
+                </button>
+              </li>
+            }
+          </ul>
+          <p class="dialogo-despesa__nota-pendente">
+            {{ anexosPendentes().length }} anexo(s) sobem quando você salvar a despesa.
+          </p>
+        }
+
+        <div class="dialogo-despesa__upload">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Tipo do anexo</mat-label>
+            <mat-select [value]="tipoAnexoSelecionado()" (selectionChange)="tipoAnexoSelecionado.set($event.value)">
+              @for (tipo of tiposAnexo; track tipo) {
+                <mat-option [value]="tipo">{{ tipoAnexoLabel[tipo] }}</mat-option>
               }
-            </ul>
-          }
+            </mat-select>
+          </mat-form-field>
 
-          <div class="dialogo-despesa__upload">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Tipo do anexo</mat-label>
-              <mat-select [value]="tipoAnexoSelecionado()" (selectionChange)="tipoAnexoSelecionado.set($event.value)">
-                @for (tipo of tiposAnexo; track tipo) {
-                  <mat-option [value]="tipo">{{ tipoAnexoLabel[tipo] }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <label class="dialogo-despesa__upload-botao">
-              <i class="ph ph-upload-simple"></i>
-              {{ enviandoAnexo() ? 'Enviando...' : 'Adicionar anexo' }}
-              <input type="file" hidden [disabled]="enviandoAnexo()" (change)="enviarAnexo($event)" />
-            </label>
-          </div>
-        </section>
-      }
+          <label class="dialogo-despesa__upload-botao">
+            <i class="ph ph-upload-simple"></i>
+            {{ enviandoAnexo() ? 'Enviando...' : 'Adicionar anexo' }}
+            <input type="file" hidden [disabled]="enviandoAnexo()" (change)="enviarAnexo($event)" />
+          </label>
+        </div>
+      </section>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">

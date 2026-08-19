@@ -77,3 +77,18 @@
     color: var(--mat-sys-on-surface);
   }
 }
+
+.dialogo-despesa__pendente {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #9397ab;
+  padding-left: 8px;
+}
+
+.dialogo-despesa__nota-pendente {
+  font-size: 13px;
+  color: #9397ab;
+  margin: 0 0 8px;
+}

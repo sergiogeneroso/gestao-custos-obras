@@ -14,6 +14,9 @@ public class PessoaMapper {
                 .documento(dto.documento())
                 .email(dto.email())
                 .telefone(dto.telefone())
+                .fornecedor(Boolean.TRUE.equals(dto.fornecedor()))
+                .areaAtuacao(dto.areaAtuacao())
+                .observacoes(dto.observacoes())
                 .build();
     }
 
@@ -23,6 +26,9 @@ public class PessoaMapper {
         entity.setDocumento(dto.documento());
         entity.setEmail(dto.email());
         entity.setTelefone(dto.telefone());
+        entity.setFornecedor(Boolean.TRUE.equals(dto.fornecedor()));
+        entity.setAreaAtuacao(dto.areaAtuacao());
+        entity.setObservacoes(dto.observacoes());
     }
 
     public PessoaResponseDTO toResponseDTO(PessoaModel entity) {
@@ -33,6 +39,9 @@ public class PessoaMapper {
                 entity.getDocumento(),
                 entity.getEmail(),
                 entity.getTelefone(),
+                entity.getFornecedor(),
+                entity.getAreaAtuacao(),
+                entity.getObservacoes(),
                 entity.getAtivo()
         );
     }

@@ -28,6 +28,20 @@ public class PessoaModel {
     private String email;
     private String telefone;
 
+    // Papel de fornecedor é uma marca na própria pessoa (substitui o domínio Fornecedor): a mesma
+    // pessoa jurídica pode vender o lote numa operação e fornecer material em outra.
+    // O DEFAULT no DDL não é decorativo: sem ele o ddl-auto=update não consegue adicionar uma
+    // coluna NOT NULL a uma tabela que já tem linhas.
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean fornecedor = false;
+
+    @Column(name = "area_atuacao")
+    private String areaAtuacao;
+
+    @Column(columnDefinition = "TEXT")
+    private String observacoes;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean ativo = true;

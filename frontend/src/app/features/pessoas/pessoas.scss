@@ -83,3 +83,16 @@
     gap: 4px;
   }
 }
+
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &--fornecedor {
+    background: rgba(145, 132, 217, 0.18);
+    color: #b3a8f0;
+  }
+}

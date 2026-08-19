@@ -239,39 +239,52 @@
         </div>
       }
 
-      @if (imovel) {
-        <section class="dialogo-imovel__fotos">
-          <h3>Fotos</h3>
+      <section class="dialogo-imovel__fotos">
+        <h3>Fotos</h3>
 
-          <div class="dialogo-imovel__galeria">
-            @for (foto of fotos(); track foto.id) {
-              <div class="dialogo-imovel__foto" [class.dialogo-imovel__foto--principal]="foto.principal">
-                <img [src]="urlsFotos()[foto.id]" [alt]="foto.legenda ?? imovel.identificador" />
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="dialogo-imovel__botao-principal"
-                  [class.dialogo-imovel__botao-principal--ativo]="foto.principal"
-                  [disabled]="definindoPrincipal() || foto.principal"
-                  (click)="definirComoPrincipal(foto)"
-                  [attr.aria-label]="foto.principal ? 'Foto principal' : 'Definir como foto principal'"
-                >
-                  <i class="ph ph-star"></i>
-                </button>
-                <button mat-icon-button type="button" (click)="removerFoto(foto)" aria-label="Remover foto">
-                  <i class="ph ph-trash"></i>
-                </button>
-              </div>
-            }
-          </div>
+        <div class="dialogo-imovel__galeria">
+          @for (foto of fotos(); track foto.id) {
+            <div class="dialogo-imovel__foto" [class.dialogo-imovel__foto--principal]="foto.principal">
+              <img [src]="urlsFotos()[foto.id]" [alt]="foto.legenda ?? 'Foto do imóvel'" />
+              <button
+                mat-icon-button
+                type="button"
+                class="dialogo-imovel__botao-principal"
+                [class.dialogo-imovel__botao-principal--ativo]="foto.principal"
+                [disabled]="definindoPrincipal() || foto.principal"
+                (click)="definirComoPrincipal(foto)"
+                [attr.aria-label]="foto.principal ? 'Foto principal' : 'Definir como foto principal'"
+              >
+                <i class="ph ph-star"></i>
+              </button>
+              <button mat-icon-button type="button" (click)="removerFoto(foto)" aria-label="Remover foto">
+                <i class="ph ph-trash"></i>
+              </button>
+            </div>
+          }
 
-          <label class="dialogo-imovel__upload">
-            <i class="ph ph-upload-simple"></i>
-            {{ enviandoFoto() ? 'Enviando...' : 'Adicionar foto' }}
-            <input type="file" accept="image/*" hidden [disabled]="enviandoFoto()" (change)="enviarFoto($event)" />
-          </label>
-        </section>
-      }
+          @for (pendente of fotosPendentes(); track pendente.previa; let i = $index) {
+            <div class="dialogo-imovel__foto dialogo-imovel__foto--pendente">
+              <img [src]="pendente.previa" [alt]="pendente.arquivo.name" />
+              <button mat-icon-button type="button" (click)="removerFotoPendente(i)" aria-label="Remover foto">
+                <i class="ph ph-trash"></i>
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (fotosPendentes().length > 0) {
+          <p class="dialogo-imovel__nota-pendente">
+            {{ fotosPendentes().length }} foto(s) sobem quando você salvar o imóvel.
+          </p>
+        }
+
+        <label class="dialogo-imovel__upload">
+          <i class="ph ph-upload-simple"></i>
+          {{ enviandoFoto() ? 'Enviando...' : 'Adicionar foto' }}
+          <input type="file" accept="image/*" hidden [disabled]="enviandoFoto()" (change)="enviarFoto($event)" />
+        </label>
+      </section>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">

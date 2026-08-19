@@ -1,5 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -82,6 +84,10 @@ export class DespesaFormDialog implements OnInit {
   protected readonly enviandoAnexo = signal(false);
   protected readonly mostrarEtapa = signal(false);
 
+  // Antes do POST não existe id de despesa para receber o arquivo: os anexos escolhidos esperam
+  // aqui e sobem logo depois que a despesa é criada.
+  protected readonly anexosPendentes = signal<{ arquivo: File; tipoAnexo: TipoAnexoDespesa }[]>([]);
+
   protected readonly form = this.fb.group({
     imovelId: [this.despesa?.imovelId ?? this.data.imovelId ?? (null as number | null)],
     categoriaDespesaId: [this.despesa?.categoriaDespesaId ?? (null as number | null), Validators.required],
@@ -132,15 +138,40 @@ export class DespesaFormDialog implements OnInit {
     const requisicao = this.despesa ? this.service.atualizar(this.despesa.id, dto) : this.service.criar(dto);
 
     requisicao.subscribe({
-      next: () => {
-        this.snackBar.open('Despesa salva com sucesso.', 'Fechar', { duration: 4000 });
-        this.dialogRef.close(true);
-      },
+      next: (salva) => this.enviarAnexosPendentes(salva.id),
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
         const mensagem = erro.error?.mensagem ?? 'Não foi possível salvar a despesa.';
         this.snackBar.open(mensagem, 'Fechar', { duration: 6000 });
       },
+    });
+  }
+
+  // A despesa já está salva aqui: falha de upload vira aviso do que ficou de fora, não erro do save.
+  private enviarAnexosPendentes(despesaId: number): void {
+    const pendentes = this.anexosPendentes();
+    if (pendentes.length === 0) {
+      this.snackBar.open('Despesa salva com sucesso.', 'Fechar', { duration: 4000 });
+      this.dialogRef.close(true);
+      return;
+    }
+
+    const falhas: string[] = [];
+    forkJoin(
+      pendentes.map((pendente) =>
+        this.service.adicionarAnexo(despesaId, pendente.arquivo, pendente.tipoAnexo).pipe(
+          catchError(() => {
+            falhas.push(pendente.arquivo.name);
+            return of(null);
+          }),
+        ),
+      ),
+    ).subscribe(() => {
+      const mensagem = falhas.length
+        ? `Despesa salva, mas estes anexos não subiram: ${falhas.join(', ')}.`
+        : 'Despesa salva com sucesso.';
+      this.snackBar.open(mensagem, 'Fechar', { duration: falhas.length ? 8000 : 4000 });
+      this.dialogRef.close(true);
     });
   }
 
@@ -152,7 +183,13 @@ export class DespesaFormDialog implements OnInit {
   protected enviarAnexo(event: Event): void {
     const input = event.target as HTMLInputElement;
     const arquivo = input.files?.[0];
-    if (!arquivo || !this.despesa) {
+    if (!arquivo) {
+      return;
+    }
+
+    if (!this.despesa) {
+      this.anexosPendentes.update((atuais) => [...atuais, { arquivo, tipoAnexo: this.tipoAnexoSelecionado() }]);
+      input.value = '';
       return;
     }
 
@@ -175,6 +212,10 @@ export class DespesaFormDialog implements OnInit {
     this.service.baixarAnexo(anexo.url).subscribe((blob) => {
       window.open(URL.createObjectURL(blob), '_blank');
     });
+  }
+
+  protected removerAnexoPendente(indice: number): void {
+    this.anexosPendentes.update((atuais) => atuais.filter((_, i) => i !== indice));
   }
 
   protected removerAnexo(anexo: DespesaAnexoResponseDTO): void {
