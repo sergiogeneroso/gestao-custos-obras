@@ -11,6 +11,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
@@ -44,6 +45,7 @@ public class DespesaService {
         PessoaModel beneficiario = dto.beneficiarioId() != null ? buscarPessoaAtiva(dto.beneficiarioId(), "Beneficiário") : null;
         ContratoFinanceiroModel contrato = buscarContratoOpcional(dto.contratoFinanceiroId());
         FaseImovel faseImovel = resolverFaseImovel(dto.faseImovel(), imovel);
+        validarEtapaConstrucao(dto.etapaConstrucao(), faseImovel);
 
         DespesaModel despesa = DespesaModel.builder()
                 .imovel(imovel)
@@ -52,6 +54,7 @@ public class DespesaService {
                 .beneficiario(beneficiario)
                 .contratoFinanceiro(contrato)
                 .faseImovel(faseImovel)
+                .etapaConstrucao(dto.etapaConstrucao())
                 .valor(dto.valor())
                 .dataPagamento(dto.dataPagamento())
                 .descricao(dto.descricao())
@@ -72,6 +75,7 @@ public class DespesaService {
         PessoaModel beneficiario = dto.beneficiarioId() != null ? buscarPessoaAtiva(dto.beneficiarioId(), "Beneficiário") : null;
         ContratoFinanceiroModel contrato = buscarContratoOpcional(dto.contratoFinanceiroId());
         FaseImovel faseImovel = resolverFaseImovel(dto.faseImovel(), imovel);
+        validarEtapaConstrucao(dto.etapaConstrucao(), faseImovel);
 
         despesa.setImovel(imovel);
         despesa.setCategoriaDespesa(categoria);
@@ -79,6 +83,7 @@ public class DespesaService {
         despesa.setBeneficiario(beneficiario);
         despesa.setContratoFinanceiro(contrato);
         despesa.setFaseImovel(faseImovel);
+        despesa.setEtapaConstrucao(dto.etapaConstrucao());
         despesa.setValor(dto.valor());
         despesa.setDataPagamento(dto.dataPagamento());
         despesa.setDescricao(dto.descricao());
@@ -155,6 +160,14 @@ public class DespesaService {
         }
         return contratoFinanceiroRepository.findById(contratoFinanceiroId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Contrato financeiro não encontrado com id: " + contratoFinanceiroId));
+    }
+
+    // A etapa é um recorte da obra: fora da fase CONSTRUCAO ela produziria um número sem sentido
+    // no quadro de custo por etapa do relatório.
+    private void validarEtapaConstrucao(EtapaConstrucao etapa, FaseImovel fase) {
+        if (etapa != null && fase != FaseImovel.CONSTRUCAO) {
+            throw new RegraDeNegocioException("Etapa da construção só pode ser informada em despesa da fase Construção.");
+        }
     }
 
     private FaseImovel resolverFaseImovel(FaseImovel faseInformada, ImovelModel imovel) {

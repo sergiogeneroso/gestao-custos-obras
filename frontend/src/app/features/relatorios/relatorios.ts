@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SITUACAO_CONTRATO_LABEL, TIPO_CONTRATO_LABEL } from '../contratos/contrato.model';
+import { ETAPA_CONSTRUCAO_LABEL, ETAPAS_CONSTRUCAO } from '../despesas/despesa.model';
 import {
   FASE_IMOVEL_LABEL,
   FaseImovel,
@@ -40,6 +41,8 @@ export class Relatorios implements OnInit {
   protected readonly tipoContratoLabel = TIPO_CONTRATO_LABEL;
   protected readonly situacaoContratoLabel = SITUACAO_CONTRATO_LABEL;
   protected readonly fases: FaseImovel[] = ['LOTE', 'CONSTRUCAO', 'CASA'];
+  protected readonly etapas = ETAPAS_CONSTRUCAO;
+  protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
 
   protected readonly imoveis = signal<ImovelResponseDTO[]>([]);
   protected readonly imovelSelecionadoId = signal<number | null>(null);

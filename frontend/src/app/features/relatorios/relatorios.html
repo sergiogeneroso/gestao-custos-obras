@@ -159,6 +159,14 @@
               <td>Custo real</td>
               <td class="table__num">{{ r.custoRealObra | currency: 'BRL' }}</td>
             </tr>
+            @for (etapa of etapas; track etapa) {
+              @if (r.despesasPorEtapa[etapa]; as valor) {
+                <tr class="table__detalhe">
+                  <td>&nbsp;&nbsp;Etapa — {{ etapaLabel[etapa] }}</td>
+                  <td class="table__num">{{ valor | currency: 'BRL' }}</td>
+                </tr>
+              }
+            }
             @if (r.previsaoConclusao !== null) {
               <tr>
                 <td>Previsão de conclusão</td>

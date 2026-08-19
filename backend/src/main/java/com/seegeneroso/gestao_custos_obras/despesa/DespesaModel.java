@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaMode
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 
 import jakarta.persistence.*;
@@ -48,6 +49,11 @@ public class DespesaModel {
     @Enumerated(EnumType.STRING)
     @Column(name = "fase_imovel", length = 20)
     private FaseImovel faseImovel;
+
+    // Recorte da obra: só é preenchido quando faseImovel == CONSTRUCAO (DespesaService valida).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "etapa_construcao", length = 30)
+    private EtapaConstrucao etapaConstrucao;
 
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal valor;

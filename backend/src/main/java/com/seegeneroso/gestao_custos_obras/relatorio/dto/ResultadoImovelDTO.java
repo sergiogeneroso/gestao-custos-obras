@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.relatorio.dto;
 
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 
@@ -21,6 +22,7 @@ public record ResultadoImovelDTO(
         BigDecimal custoEstimadoObra,
         LocalDate previsaoConclusao,
         BigDecimal custoRealObra,
+        Map<EtapaConstrucao, BigDecimal> despesasPorEtapa,
         BigDecimal valorVenda,
         BigDecimal valorVendaPretendido,
         LocalDate dataVenda,

@@ -1,0 +1,79 @@
+<div class="detalhe-despesa">
+  <div class="detalhe-despesa__topo">
+    <h2 mat-dialog-title>Despesa</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <mat-dialog-content>
+    <dl class="detalhe-despesa__grade">
+      <div>
+        <dt>Valor</dt>
+        <dd class="detalhe-despesa__valor">{{ despesa.valor | currency: 'BRL' }}</dd>
+      </div>
+      <div>
+        <dt>Data de pagamento</dt>
+        <dd>{{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}</dd>
+      </div>
+      <div>
+        <dt>Categoria</dt>
+        <dd>{{ despesa.categoriaDespesaNome }}</dd>
+      </div>
+      <div>
+        <dt>Imóvel</dt>
+        <dd>{{ despesa.imovelIdentificador ?? 'Gasto geral (sem imóvel)' }}</dd>
+      </div>
+      <div>
+        <dt>Fase</dt>
+        <dd>{{ despesa.faseImovel ? faseLabel[despesa.faseImovel] : '—' }}</dd>
+      </div>
+      @if (despesa.etapaConstrucao) {
+        <div>
+          <dt>Etapa da construção</dt>
+          <dd>{{ etapaLabel[despesa.etapaConstrucao] }}</dd>
+        </div>
+      }
+      <div>
+        <dt>Pagador</dt>
+        <dd>{{ despesa.pagadorNome }}</dd>
+      </div>
+      <div>
+        <dt>Beneficiário</dt>
+        <dd>{{ despesa.beneficiarioNome ?? '—' }}</dd>
+      </div>
+      @if (despesa.descricao) {
+        <div class="detalhe-despesa__largo">
+          <dt>Descrição</dt>
+          <dd>{{ despesa.descricao }}</dd>
+        </div>
+      }
+    </dl>
+
+    <section class="detalhe-despesa__anexos">
+      <h3>Anexos</h3>
+      @if (anexos().length === 0) {
+        <p class="detalhe-despesa__vazio">Nenhum anexo enviado.</p>
+      } @else {
+        <ul>
+          @for (anexo of anexos(); track anexo.id) {
+            <li>
+              <button mat-button type="button" (click)="abrirAnexo(anexo)">
+                <i class="ph ph-paperclip"></i>
+                {{ tipoAnexoLabel[anexo.tipoAnexo] }}
+              </button>
+              <span class="detalhe-despesa__data">{{ anexo.dataUpload | date: 'dd/MM/yyyy' }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" color="primary" (click)="editar()">
+      <i class="ph ph-pencil-simple"></i>
+      Editar
+    </button>
+  </mat-dialog-actions>
+</div>

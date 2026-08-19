@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.despesa.dto;
 
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -19,6 +20,7 @@ public record DespesaRequestDTO(
         Long beneficiarioId,
         Long contratoFinanceiroId,
         FaseImovel faseImovel,
+        EtapaConstrucao etapaConstrucao,
 
         @NotNull(message = "Valor é obrigatório")
         @Positive(message = "Valor deve ser maior que zero")

@@ -1,4 +1,5 @@
 import { SituacaoContrato, TipoContratoFinanceiro } from '../contratos/contrato.model';
+import { EtapaConstrucao } from '../despesas/despesa.model';
 import { FaseImovel, SituacaoImovel } from '../imoveis/imovel.model';
 
 // Posição de caixa do contrato: totalPago e saldo nunca entram no custo do imóvel (ADR-025).
@@ -26,6 +27,7 @@ export interface ResultadoImovelDTO {
   custoEstimadoObra: number | null;
   previsaoConclusao: string | null;
   custoRealObra: number;
+  despesasPorEtapa: Partial<Record<EtapaConstrucao, number>>;
   valorVenda: number | null;
   valorVendaPretendido: number | null;
   dataVenda: string | null;

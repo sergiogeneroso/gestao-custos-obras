@@ -42,7 +42,7 @@
       </thead>
       <tbody>
         @for (despesa of despesasFiltradas(); track despesa.id) {
-          <tr class="table__linha" (click)="editar(despesa)">
+          <tr class="table__linha" (click)="abrirDetalhe(despesa)">
             <td>{{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}</td>
             <td>{{ despesa.categoriaDespesaNome }}</td>
             <td>{{ despesa.imovelIdentificador || 'Gasto geral' }}</td>

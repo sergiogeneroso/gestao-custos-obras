@@ -38,6 +38,18 @@
           </mat-select>
         </mat-form-field>
 
+        @if (mostrarEtapa()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Etapa da construção</mat-label>
+            <mat-select formControlName="etapaConstrucao">
+              <mat-option [value]="null">—</mat-option>
+              @for (etapa of etapas; track etapa) {
+                <mat-option [value]="etapa">{{ etapaLabel[etapa] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
         <mat-form-field appearance="outline">
           <mat-label>Pagador</mat-label>
           <mat-select formControlName="pagadorId">

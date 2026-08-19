@@ -18,6 +18,7 @@ import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoPessoaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.OrcadoVsRealizadoDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.PosicaoContratoDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
@@ -140,6 +141,12 @@ public class RelatorioService {
         Map<FaseImovel, BigDecimal> despesasPorFase = despesas.stream()
                 .collect(Collectors.groupingBy(DespesaModel::getFaseImovel,
                         Collectors.reducing(BigDecimal.ZERO, DespesaModel::getValor, BigDecimal::add)));
+        // Recorte só de apresentação: não entra no custoTotal, que já contabiliza estas mesmas
+        // despesas por fase. Despesa sem etapa fica de fora do quadro em vez de virar chave nula.
+        Map<EtapaConstrucao, BigDecimal> despesasPorEtapa = despesas.stream()
+                .filter(d -> d.getEtapaConstrucao() != null)
+                .collect(Collectors.groupingBy(DespesaModel::getEtapaConstrucao,
+                        Collectors.reducing(BigDecimal.ZERO, DespesaModel::getValor, BigDecimal::add)));
         BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal jurosPagos = jurosPagos(contratos);
         BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos);
@@ -174,6 +181,7 @@ public class RelatorioService {
                 despesasPorFase, totalDespesas, jurosPagos, custoTotal,
                 imovel.getConstrucao().getCustoEstimado(), imovel.getConstrucao().getPrevisaoConclusao(),
                 despesasPorFase.getOrDefault(FaseImovel.CONSTRUCAO, BigDecimal.ZERO),
+                despesasPorEtapa,
                 imovel.getVenda().getValor(), imovel.getVenda().getValorPretendido(), imovel.getVenda().getData(),
                 lucro, margem, diasEmCarteira, tempoPorFase(imovel), rentabilidadeAnualizada, resultadoProvisorio,
                 contratos.stream().map(this::posicaoContrato).toList()

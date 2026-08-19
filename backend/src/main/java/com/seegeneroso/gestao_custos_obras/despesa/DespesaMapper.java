@@ -19,6 +19,7 @@ public class DespesaMapper {
                 despesa.getBeneficiario() != null ? despesa.getBeneficiario().getNome() : null,
                 despesa.getContratoFinanceiro() != null ? despesa.getContratoFinanceiro().getId() : null,
                 despesa.getFaseImovel(),
+                despesa.getEtapaConstrucao(),
                 despesa.getValor(),
                 despesa.getDataPagamento(),
                 despesa.getDescricao(),

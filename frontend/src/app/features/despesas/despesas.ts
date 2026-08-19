@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { DespesaDetalheDialog } from './despesa-detalhe-dialog/despesa-detalhe-dialog';
 import { DespesaFormDialog } from './despesa-form-dialog/despesa-form-dialog';
 import { DespesaResponseDTO } from './despesa.model';
 import { DespesasService } from './despesas.service';
@@ -48,6 +49,18 @@ export class Despesas implements OnInit {
 
   protected editar(despesa: DespesaResponseDTO): void {
     this.abrirFormulario(despesa);
+  }
+
+  // Clique na linha abre a consulta; a edição sai de dentro dela ou do botão da coluna de ações.
+  protected abrirDetalhe(despesa: DespesaResponseDTO): void {
+    this.dialog
+      .open(DespesaDetalheDialog, { data: { despesa }, autoFocus: false, width: '640px', maxWidth: '95vw' })
+      .afterClosed()
+      .subscribe((acao) => {
+        if (acao === 'editar') {
+          this.abrirFormulario(despesa);
+        }
+      });
   }
 
   protected inativar(despesa: DespesaResponseDTO): void {

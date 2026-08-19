@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.despesa.dto;
 
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ public record DespesaResponseDTO(
         String beneficiarioNome,
         Long contratoFinanceiroId,
         FaseImovel faseImovel,
+        EtapaConstrucao etapaConstrucao,
         BigDecimal valor,
         LocalDate dataPagamento,
         String descricao,

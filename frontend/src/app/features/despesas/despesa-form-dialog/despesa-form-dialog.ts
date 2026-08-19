@@ -18,7 +18,16 @@ import { FASE_IMOVEL_LABEL, FaseImovel, ImovelResponseDTO } from '../../imoveis/
 import { ImoveisService } from '../../imoveis/imoveis.service';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
-import { DespesaAnexoResponseDTO, DespesaRequestDTO, DespesaResponseDTO, TIPO_ANEXO_DESPESA_LABEL, TipoAnexoDespesa } from '../despesa.model';
+import {
+  DespesaAnexoResponseDTO,
+  DespesaRequestDTO,
+  DespesaResponseDTO,
+  ETAPA_CONSTRUCAO_LABEL,
+  ETAPAS_CONSTRUCAO,
+  EtapaConstrucao,
+  TIPO_ANEXO_DESPESA_LABEL,
+  TipoAnexoDespesa,
+} from '../despesa.model';
 import { DespesasService } from '../despesas.service';
 
 export interface DespesaFormDialogData {
@@ -56,6 +65,8 @@ export class DespesaFormDialog implements OnInit {
   protected readonly despesa = this.data.despesa;
   protected readonly fases: FaseImovel[] = ['LOTE', 'CONSTRUCAO', 'CASA'];
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
+  protected readonly etapas = ETAPAS_CONSTRUCAO;
+  protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
   protected readonly tipoContratoLabel = TIPO_CONTRATO_LABEL;
   protected readonly tipoAnexoLabel = TIPO_ANEXO_DESPESA_LABEL;
   protected readonly tiposAnexo: TipoAnexoDespesa[] = ['COMPROVANTE', 'NOTA_FISCAL', 'RECIBO', 'CONTRATO', 'OUTRO'];
@@ -69,6 +80,7 @@ export class DespesaFormDialog implements OnInit {
   protected readonly anexos = signal<DespesaAnexoResponseDTO[]>([]);
   protected readonly tipoAnexoSelecionado = signal<TipoAnexoDespesa>('COMPROVANTE');
   protected readonly enviandoAnexo = signal(false);
+  protected readonly mostrarEtapa = signal(false);
 
   protected readonly form = this.fb.group({
     imovelId: [this.despesa?.imovelId ?? this.data.imovelId ?? (null as number | null)],
@@ -77,13 +89,17 @@ export class DespesaFormDialog implements OnInit {
     beneficiarioId: [this.despesa?.beneficiarioId ?? (null as number | null)],
     contratoFinanceiroId: [this.despesa?.contratoFinanceiroId ?? (null as number | null)],
     faseImovel: [this.despesa?.faseImovel ?? (null as FaseImovel | null)],
+    etapaConstrucao: [this.despesa?.etapaConstrucao ?? (null as EtapaConstrucao | null)],
     valor: [this.despesa?.valor ?? (null as number | null), Validators.required],
     dataPagamento: [paraData(this.despesa?.dataPagamento) ?? new Date(), Validators.required],
     descricao: [this.despesa?.descricao ?? ''],
   });
 
   ngOnInit(): void {
-    this.imoveisService.listar().subscribe((imoveis) => this.imoveis.set(imoveis.filter((i) => i.ativo)));
+    this.imoveisService.listar().subscribe((imoveis) => {
+      this.imoveis.set(imoveis.filter((i) => i.ativo));
+      this.atualizarMostrarEtapa();
+    });
     this.categoriasService.listar().subscribe((categorias) => this.categorias.set(categorias));
     this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
 
@@ -92,6 +108,8 @@ export class DespesaFormDialog implements OnInit {
       this.form.controls.contratoFinanceiroId.setValue(null);
       this.carregarContratos(imovelId);
     });
+    this.form.controls.faseImovel.valueChanges.subscribe(() => this.atualizarMostrarEtapa());
+    this.form.controls.imovelId.valueChanges.subscribe(() => this.atualizarMostrarEtapa());
 
     if (this.despesa) {
       this.service.listarAnexos(this.despesa.id).subscribe((anexos) => this.anexos.set(anexos));
@@ -166,6 +184,20 @@ export class DespesaFormDialog implements OnInit {
     this.service.deletarAnexo(this.despesa.id, anexo.id).subscribe(() => {
       this.anexos.update((atuais) => atuais.filter((a) => a.id !== anexo.id));
     });
+  }
+
+  // Com a fase em "Automática" o backend adota a fase atual do imóvel, e a etapa só é aceita
+  // em CONSTRUCAO — por isso a visibilidade segue a fase efetiva, não só a escolhida na tela.
+  private atualizarMostrarEtapa(): void {
+    const fase = this.form.controls.faseImovel.value;
+    const imovelId = this.form.controls.imovelId.value;
+    const faseEfetiva = fase ?? this.imoveis().find((i) => i.id === imovelId)?.fase ?? null;
+    const mostrar = faseEfetiva === 'CONSTRUCAO';
+
+    this.mostrarEtapa.set(mostrar);
+    if (!mostrar && this.form.controls.etapaConstrucao.value !== null) {
+      this.form.controls.etapaConstrucao.setValue(null);
+    }
   }
 
   private carregarContratos(imovelId: number | null): void {
