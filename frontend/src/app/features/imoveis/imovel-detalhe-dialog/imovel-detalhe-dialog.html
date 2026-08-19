@@ -141,5 +141,92 @@
         <p class="detalhe-imovel__valor">{{ imovel().descricao || '—' }}</p>
       </div>
     </section>
+
+    @if (imovel().lote.matricula || imovel().lote.cartorio || imovel().lote.inscricaoMunicipal) {
+      <h3 class="detalhe-imovel__secao">Registro do lote</h3>
+      <section class="detalhe-imovel__info">
+        <div>
+          <p class="detalhe-imovel__label">Matrícula</p>
+          <p class="detalhe-imovel__valor">{{ imovel().lote.matricula || '—' }}</p>
+        </div>
+        <div>
+          <p class="detalhe-imovel__label">Cartório</p>
+          <p class="detalhe-imovel__valor">{{ imovel().lote.cartorio || '—' }}</p>
+        </div>
+        @if (imovel().lote.dataRegistro) {
+          <div>
+            <p class="detalhe-imovel__label">Data do registro</p>
+            <p class="detalhe-imovel__valor">{{ imovel().lote.dataRegistro | date: 'dd/MM/yyyy' }}</p>
+          </div>
+        }
+        <div>
+          <p class="detalhe-imovel__label">Inscrição municipal</p>
+          <p class="detalhe-imovel__valor">{{ imovel().lote.inscricaoMunicipal || '—' }}</p>
+        </div>
+      </section>
+    }
+
+    @if (imovel().fase !== 'LOTE') {
+      <h3 class="detalhe-imovel__secao">Obra</h3>
+      <section class="detalhe-imovel__info">
+        <div>
+          <p class="detalhe-imovel__label">Alvará</p>
+          <p class="detalhe-imovel__valor">
+            {{ imovel().construcao.alvaraNumero || '—' }}
+            @if (imovel().construcao.alvaraValidade) {
+              <span class="detalhe-imovel__complemento">
+                válido até {{ imovel().construcao.alvaraValidade | date: 'dd/MM/yyyy' }}
+              </span>
+            }
+          </p>
+        </div>
+        <div>
+          <p class="detalhe-imovel__label">ART / RRT</p>
+          <p class="detalhe-imovel__valor">{{ imovel().construcao.artNumero || '—' }}</p>
+        </div>
+        <div>
+          <p class="detalhe-imovel__label">Responsável técnico</p>
+          <p class="detalhe-imovel__valor">{{ imovel().construcao.responsavelTecnicoNome || '—' }}</p>
+        </div>
+        <div>
+          <p class="detalhe-imovel__label">CNO</p>
+          <p class="detalhe-imovel__valor">{{ imovel().construcao.cno || '—' }}</p>
+        </div>
+      </section>
+    }
+
+    @if (imovel().fase === 'CASA') {
+      <h3 class="detalhe-imovel__secao">Casa</h3>
+      <section class="detalhe-imovel__info">
+        <div>
+          <p class="detalhe-imovel__label">Habite-se</p>
+          <p class="detalhe-imovel__valor">
+            {{ imovel().casa.habiteSeNumero || '—' }}
+            @if (imovel().casa.habiteSeData) {
+              <span class="detalhe-imovel__complemento">
+                de {{ imovel().casa.habiteSeData | date: 'dd/MM/yyyy' }}
+              </span>
+            }
+          </p>
+        </div>
+        <div>
+          <p class="detalhe-imovel__label">Averbação na matrícula</p>
+          <p class="detalhe-imovel__valor">
+            @if (imovel().casa.dataAverbacao) {
+              {{ imovel().casa.dataAverbacao | date: 'dd/MM/yyyy' }}
+            } @else {
+              —
+            }
+          </p>
+        </div>
+        <div class="detalhe-imovel__campo-largo">
+          <p class="detalhe-imovel__label">Características</p>
+          <p class="detalhe-imovel__valor">
+            {{ imovel().casa.quartos ?? 0 }} quartos · {{ imovel().casa.suites ?? 0 }} suítes ·
+            {{ imovel().casa.banheiros ?? 0 }} banheiros · {{ imovel().casa.vagasGaragem ?? 0 }} vagas
+          </p>
+        </div>
+      </section>
+    }
   </mat-dialog-content>
 </div>

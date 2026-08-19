@@ -50,45 +50,6 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Área do lote</mat-label>
-          <input matInput type="number" step="0.01" min="0" formControlName="areaLote" />
-          <span matTextSuffix>m²</span>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Área construída</mat-label>
-          <input matInput type="number" step="0.01" min="0" formControlName="areaConstruida" />
-          <span matTextSuffix>m²</span>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Custo estimado da obra</mat-label>
-          <span matTextPrefix>R$&nbsp;</span>
-          <input
-            matInput
-            type="text"
-            inputmode="decimal"
-            formControlName="custoEstimadoObra"
-            (blur)="formatarCampoValor('custoEstimadoObra')"
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Previsão de conclusão da obra</mat-label>
-          <input matInput type="date" formControlName="previsaoConclusao" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Data de início da construção</mat-label>
-          <input matInput type="date" formControlName="dataInicioConstrucao" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Data de conclusão da obra</mat-label>
-          <input matInput type="date" formControlName="dataConclusaoObra" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
           <mat-label>Valor de compra</mat-label>
           <span matTextPrefix>R$&nbsp;</span>
           <input
@@ -115,23 +76,168 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
-          <mat-label>Valor de venda pretendido</mat-label>
-          <span matTextPrefix>R$&nbsp;</span>
-          <input
-            matInput
-            type="text"
-            inputmode="decimal"
-            formControlName="vendaValorPretendido"
-            (blur)="formatarCampoValor('vendaValorPretendido')"
-          />
-        </mat-form-field>
+        @if (mostrarVenda) {
+          <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
+            <mat-label>Valor de venda pretendido</mat-label>
+            <span matTextPrefix>R$&nbsp;</span>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="vendaValorPretendido"
+              (blur)="formatarCampoValor('vendaValorPretendido')"
+            />
+          </mat-form-field>
+        }
 
         <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
           <mat-label>Descrição</mat-label>
           <textarea matInput formControlName="descricao" rows="3"></textarea>
         </mat-form-field>
       </div>
+
+      <!-- Todo imóvel nasce lote (ADR-020), então o bloco do lote está sempre presente. -->
+      <h3 class="dialogo-imovel__secao">Lote</h3>
+      <div class="dialogo-imovel__grade">
+        <mat-form-field appearance="outline">
+          <mat-label>Matrícula</mat-label>
+          <input matInput formControlName="matricula" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Cartório de registro</mat-label>
+          <input matInput formControlName="cartorio" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Data do registro</mat-label>
+          <input matInput type="date" formControlName="dataRegistro" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Inscrição municipal (IPTU)</mat-label>
+          <input matInput formControlName="inscricaoMunicipal" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Área do lote</mat-label>
+          <input matInput type="number" step="0.01" min="0" formControlName="areaLote" />
+          <span matTextSuffix>m²</span>
+        </mat-form-field>
+      </div>
+
+      @if (mostrarConstrucao) {
+        <h3 class="dialogo-imovel__secao">Construção</h3>
+        <div class="dialogo-imovel__grade">
+          <mat-form-field appearance="outline">
+            <mat-label>Área construída</mat-label>
+            <input matInput type="number" step="0.01" min="0" formControlName="areaConstruida" />
+            <span matTextSuffix>m²</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Data de início da construção</mat-label>
+            <input matInput type="date" formControlName="dataInicioConstrucao" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Custo estimado da obra</mat-label>
+            <span matTextPrefix>R$&nbsp;</span>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="custoEstimadoObra"
+              (blur)="formatarCampoValor('custoEstimadoObra')"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Previsão de conclusão da obra</mat-label>
+            <input matInput type="date" formControlName="previsaoConclusao" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Alvará de construção</mat-label>
+            <input matInput formControlName="alvaraNumero" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Emissão do alvará</mat-label>
+            <input matInput type="date" formControlName="alvaraEmissao" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Validade do alvará</mat-label>
+            <input matInput type="date" formControlName="alvaraValidade" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>ART / RRT</mat-label>
+            <input matInput formControlName="artNumero" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Responsável técnico</mat-label>
+            <mat-select formControlName="responsavelTecnicoId">
+              <mat-option [value]="null">—</mat-option>
+              @for (pessoa of pessoas(); track pessoa.id) {
+                <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>CNO (matrícula da obra)</mat-label>
+            <input matInput formControlName="cno" />
+          </mat-form-field>
+        </div>
+      }
+
+      @if (mostrarCasa) {
+        <h3 class="dialogo-imovel__secao">Casa</h3>
+        <div class="dialogo-imovel__grade">
+          <mat-form-field appearance="outline">
+            <mat-label>Data de conclusão da obra</mat-label>
+            <input matInput type="date" formControlName="dataConclusaoObra" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Habite-se</mat-label>
+            <input matInput formControlName="habiteSeNumero" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Data do habite-se</mat-label>
+            <input matInput type="date" formControlName="habiteSeData" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Averbação na matrícula</mat-label>
+            <input matInput type="date" formControlName="dataAverbacao" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Quartos</mat-label>
+            <input matInput type="number" min="0" formControlName="quartos" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Suítes</mat-label>
+            <input matInput type="number" min="0" formControlName="suites" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Banheiros</mat-label>
+            <input matInput type="number" min="0" formControlName="banheiros" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Vagas de garagem</mat-label>
+            <input matInput type="number" min="0" formControlName="vagasGaragem" />
+          </mat-form-field>
+        </div>
+      }
 
       @if (imovel) {
         <section class="dialogo-imovel__fotos">

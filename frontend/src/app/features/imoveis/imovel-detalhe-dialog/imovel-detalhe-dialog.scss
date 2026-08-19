@@ -132,6 +132,19 @@
   grid-column: 1 / -1;
 }
 
+.detalhe-imovel__secao {
+  font-weight: 500;
+  font-size: 15px;
+  margin: 8px 0 14px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(233, 233, 237, 0.16);
+}
+
+.detalhe-imovel__complemento {
+  color: #9397ab;
+  font-size: 12.5px;
+}
+
 .detalhe-imovel__label {
   font-size: 11.5px;
   letter-spacing: 0.06em;

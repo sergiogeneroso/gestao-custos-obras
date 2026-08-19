@@ -1,6 +1,6 @@
 .dialogo-fase {
   width: 100%;
-  max-width: 420px;
+  max-width: 620px;
 }
 
 .dialogo-fase__topo {
@@ -12,6 +12,19 @@
   h2 {
     margin: 0;
   }
+}
+
+.dialogo-fase__nota {
+  font-size: 13px;
+  line-height: 20px;
+  color: #9397ab;
+  margin: 12px 0 4px;
+}
+
+.dialogo-fase__grade {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 16px;
 }
 
 mat-dialog-content mat-form-field {

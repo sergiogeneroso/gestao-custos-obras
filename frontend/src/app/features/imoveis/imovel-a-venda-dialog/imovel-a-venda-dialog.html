@@ -1,0 +1,26 @@
+<div class="dialogo-a-venda">
+  <div class="dialogo-a-venda__topo">
+    <h2 mat-dialog-title>Colocar à venda</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <p>O imóvel "{{ imovel.identificador }}" passa a ficar disponível para venda.</p>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Valor de venda pretendido</mat-label>
+        <span matTextPrefix>R$&nbsp;</span>
+        <input matInput type="number" step="0.01" min="0" formControlName="vendaValorPretendido" />
+      </mat-form-field>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="salvando()">
+        {{ salvando() ? 'Salvando...' : 'Confirmar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

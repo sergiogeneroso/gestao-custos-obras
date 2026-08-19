@@ -251,11 +251,18 @@ que só aplica um grupo quando `imovel.fase` já alcançou aquela fase. O
 `ALTER TABLE imovel ALTER COLUMN compra_data SET NOT NULL` foi manual, junto do
 `DROP COLUMN data_inicio_lote`.
 
-### Etapa M — Frontend: cadastro e transições por fase
-- [ ] Formulário de criação só com os campos do lote
-- [ ] `imovel-fase-dialog` pede os dados da fase de destino junto com a data
-- [ ] Colocar à venda deixa de ser troca direta e passa a pedir o valor pretendido
-- [ ] O `PUT` (editar) mostra apenas as fases já alcançadas pelo imóvel
+### Etapa M — Frontend: cadastro e transições por fase ✅
+- [x] Formulário de criação só com os campos do lote
+- [x] `imovel-fase-dialog` pede os dados da fase de destino junto com a data
+- [x] Colocar à venda deixa de ser troca direta e passa a pedir o valor pretendido
+- [x] O `PUT` (editar) mostra apenas as fases já alcançadas pelo imóvel
+- [x] Detalhe do imóvel ganha os blocos "Registro do lote", "Obra" e "Casa"
+
+**Nota da implementação (Ago 2026):** o formulário passou de grade única para
+seções (`Lote`, `Construção`, `Casa`), condicionadas por `imovel.fase`; o valor
+de venda pretendido só aparece quando a situação já não é `ADQUIRIDO`. Colocar à
+venda ganhou dialog próprio (`imovel-a-venda-dialog`) em vez de virar um modo do
+`imovel-venda-dialog`, que pede valor, data e comprador obrigatórios.
 
 ### Etapa N — Bloco financeiro no detalhe do imóvel
 - [ ] Custo acumulado, despesas do imóvel, contratos e atalho para o resultado —

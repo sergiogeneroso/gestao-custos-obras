@@ -39,6 +39,12 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
   protected readonly imovel = this.data.imovel;
 
+  // Cada seção só aparece quando o imóvel já viveu aquela fase (ADR-033): no cadastro de um lote
+  // novo, campos de obra e de casa não existem na tela.
+  protected readonly mostrarConstrucao = this.imovel?.fase === 'CONSTRUCAO' || this.imovel?.fase === 'CASA';
+  protected readonly mostrarCasa = this.imovel?.fase === 'CASA';
+  protected readonly mostrarVenda = !!this.imovel && this.imovel.situacao !== 'ADQUIRIDO';
+
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
   protected readonly salvando = signal(false);
   protected readonly fotos = signal<ImovelFotoResponseDTO[]>([]);
@@ -55,12 +61,33 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     uf: [this.imovel?.uf ?? ''],
     cep: [this.imovel?.cep ?? ''],
     observacaoEndereco: [this.imovel?.observacaoEndereco ?? ''],
+
+    matricula: [this.imovel?.lote?.matricula ?? ''],
+    cartorio: [this.imovel?.lote?.cartorio ?? ''],
+    dataRegistro: [this.imovel?.lote?.dataRegistro ?? ''],
+    inscricaoMunicipal: [this.imovel?.lote?.inscricaoMunicipal ?? ''],
     areaLote: [this.imovel?.lote?.area ?? null, Validators.min(0)],
+
     areaConstruida: [this.imovel?.construcao?.area ?? null, Validators.min(0)],
     dataInicioConstrucao: [this.imovel?.construcao?.dataInicio ?? ''],
-    dataConclusaoObra: [this.imovel?.casa?.dataConclusaoObra ?? ''],
     custoEstimadoObra: [this.formatarMoeda(this.imovel?.construcao?.custoEstimado ?? null)],
     previsaoConclusao: [this.imovel?.construcao?.previsaoConclusao ?? ''],
+    alvaraNumero: [this.imovel?.construcao?.alvaraNumero ?? ''],
+    alvaraEmissao: [this.imovel?.construcao?.alvaraEmissao ?? ''],
+    alvaraValidade: [this.imovel?.construcao?.alvaraValidade ?? ''],
+    artNumero: [this.imovel?.construcao?.artNumero ?? ''],
+    responsavelTecnicoId: [this.imovel?.construcao?.responsavelTecnicoId ?? null],
+    cno: [this.imovel?.construcao?.cno ?? ''],
+
+    dataConclusaoObra: [this.imovel?.casa?.dataConclusaoObra ?? ''],
+    habiteSeNumero: [this.imovel?.casa?.habiteSeNumero ?? ''],
+    habiteSeData: [this.imovel?.casa?.habiteSeData ?? ''],
+    dataAverbacao: [this.imovel?.casa?.dataAverbacao ?? ''],
+    quartos: [this.imovel?.casa?.quartos ?? null, Validators.min(0)],
+    suites: [this.imovel?.casa?.suites ?? null, Validators.min(0)],
+    banheiros: [this.imovel?.casa?.banheiros ?? null, Validators.min(0)],
+    vagasGaragem: [this.imovel?.casa?.vagasGaragem ?? null, Validators.min(0)],
+
     compraValor: [this.formatarMoeda(this.imovel?.compraValor ?? null)],
     compraData: [this.imovel?.compraData ?? this.hoje(), Validators.required],
     compraVendedorId: [this.imovel?.compraVendedorId ?? null],
@@ -103,23 +130,39 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
       cep: bruto.cep || null,
       observacaoEndereco: bruto.observacaoEndereco || null,
       lote: {
-        matricula: this.imovel?.lote?.matricula ?? null,
-        cartorio: this.imovel?.lote?.cartorio ?? null,
-        dataRegistro: this.imovel?.lote?.dataRegistro ?? null,
-        inscricaoMunicipal: this.imovel?.lote?.inscricaoMunicipal ?? null,
+        matricula: bruto.matricula || null,
+        cartorio: bruto.cartorio || null,
+        dataRegistro: bruto.dataRegistro || null,
+        inscricaoMunicipal: bruto.inscricaoMunicipal || null,
         area: bruto.areaLote,
       },
-      construcao: {
-        ...this.imovel?.construcao,
-        area: bruto.areaConstruida,
-        dataInicio: bruto.dataInicioConstrucao || null,
-        previsaoConclusao: bruto.previsaoConclusao || null,
-        custoEstimado: this.parseMoeda(bruto.custoEstimadoObra),
-      },
-      casa: {
-        ...this.imovel?.casa,
-        dataConclusaoObra: bruto.dataConclusaoObra || null,
-      },
+      construcao: this.mostrarConstrucao
+        ? {
+            area: bruto.areaConstruida,
+            dataInicio: bruto.dataInicioConstrucao || null,
+            previsaoConclusao: bruto.previsaoConclusao || null,
+            custoEstimado: this.parseMoeda(bruto.custoEstimadoObra),
+            alvaraNumero: bruto.alvaraNumero || null,
+            alvaraEmissao: bruto.alvaraEmissao || null,
+            alvaraValidade: bruto.alvaraValidade || null,
+            artNumero: bruto.artNumero || null,
+            responsavelTecnicoId: bruto.responsavelTecnicoId,
+            responsavelTecnicoNome: null,
+            cno: bruto.cno || null,
+          }
+        : null,
+      casa: this.mostrarCasa
+        ? {
+            dataConclusaoObra: bruto.dataConclusaoObra || null,
+            habiteSeNumero: bruto.habiteSeNumero || null,
+            habiteSeData: bruto.habiteSeData || null,
+            dataAverbacao: bruto.dataAverbacao || null,
+            quartos: bruto.quartos,
+            suites: bruto.suites,
+            banheiros: bruto.banheiros,
+            vagasGaragem: bruto.vagasGaragem,
+          }
+        : null,
       compraValor: this.parseMoeda(bruto.compraValor),
       compraData: bruto.compraData,
       compraVendedorId: bruto.compraVendedorId,
