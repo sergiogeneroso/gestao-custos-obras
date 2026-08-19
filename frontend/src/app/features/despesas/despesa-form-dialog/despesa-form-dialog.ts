@@ -20,6 +20,8 @@ import { DespesasService } from '../despesas.service';
 
 export interface DespesaFormDialogData {
   despesa: DespesaResponseDTO | null;
+  // Pré-seleciona o imóvel quando o lançamento começa a partir dele (detalhe do imóvel).
+  imovelId?: number | null;
 }
 
 @Component({
@@ -64,7 +66,7 @@ export class DespesaFormDialog implements OnInit {
   protected readonly enviandoAnexo = signal(false);
 
   protected readonly form = this.fb.group({
-    imovelId: [this.despesa?.imovelId ?? (null as number | null)],
+    imovelId: [this.despesa?.imovelId ?? this.data.imovelId ?? (null as number | null)],
     categoriaDespesaId: [this.despesa?.categoriaDespesaId ?? (null as number | null), Validators.required],
     pagadorId: [this.despesa?.pagadorId ?? (null as number | null), Validators.required],
     beneficiarioId: [this.despesa?.beneficiarioId ?? (null as number | null)],

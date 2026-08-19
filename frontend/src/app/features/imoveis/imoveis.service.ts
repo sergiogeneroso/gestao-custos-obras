@@ -1,8 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  EnvioDocumento,
+  ImovelDocumentoResponseDTO,
   ImovelFaseRequestDTO,
   ImovelFotoResponseDTO,
   ImovelRequestDTO,
@@ -58,6 +60,39 @@ export class ImoveisService {
   }
 
   baixarFoto(url: string): Observable<Blob> {
+    return this.http.get(url, { responseType: 'blob' });
+  }
+
+  listarDocumentos(imovelId: number): Observable<ImovelDocumentoResponseDTO[]> {
+    return this.http.get<ImovelDocumentoResponseDTO[]>(`${this.baseUrl}/${imovelId}/documentos`);
+  }
+
+  adicionarDocumento(imovelId: number, arquivo: File, dados: EnvioDocumento): Observable<ImovelDocumentoResponseDTO> {
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+
+    let params = new HttpParams().set('tipoDocumento', dados.tipoDocumento);
+    if (dados.faseImovel) {
+      params = params.set('faseImovel', dados.faseImovel);
+    }
+    if (dados.descricao) {
+      params = params.set('descricao', dados.descricao);
+    }
+    if (dados.dataEmissao) {
+      params = params.set('dataEmissao', dados.dataEmissao);
+    }
+    if (dados.dataValidade) {
+      params = params.set('dataValidade', dados.dataValidade);
+    }
+
+    return this.http.post<ImovelDocumentoResponseDTO>(`${this.baseUrl}/${imovelId}/documentos`, formData, { params });
+  }
+
+  deletarDocumento(imovelId: number, documentoId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${imovelId}/documentos/${documentoId}`);
+  }
+
+  baixarDocumento(url: string): Observable<Blob> {
     return this.http.get(url, { responseType: 'blob' });
   }
 }

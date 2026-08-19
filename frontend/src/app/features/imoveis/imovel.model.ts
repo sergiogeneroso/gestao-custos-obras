@@ -127,3 +127,48 @@ export interface ImovelFotoResponseDTO {
   dataUpload: string;
   principal: boolean;
 }
+
+export type TipoDocumentoImovel =
+  | 'MATRICULA'
+  | 'ESCRITURA'
+  | 'CONTRATO'
+  | 'IPTU'
+  | 'ALVARA'
+  | 'PROJETO'
+  | 'ART'
+  | 'HABITE_SE'
+  | 'OUTRO';
+
+export const TIPO_DOCUMENTO_IMOVEL_LABEL: Record<TipoDocumentoImovel, string> = {
+  MATRICULA: 'Matrícula',
+  ESCRITURA: 'Escritura',
+  CONTRATO: 'Contrato',
+  IPTU: 'IPTU',
+  ALVARA: 'Alvará',
+  PROJETO: 'Projeto',
+  ART: 'ART / RRT',
+  HABITE_SE: 'Habite-se',
+  OUTRO: 'Outro',
+};
+
+export interface ImovelDocumentoResponseDTO {
+  id: number;
+  imovelId: number;
+  tipoDocumento: TipoDocumentoImovel;
+  faseImovel: FaseImovel;
+  url: string;
+  nomeArquivo: string | null;
+  descricao: string | null;
+  dataEmissao: string | null;
+  dataValidade: string | null;
+  dataUpload: string;
+}
+
+// Metadados que acompanham o upload; o arquivo vai no FormData.
+export interface EnvioDocumento {
+  tipoDocumento: TipoDocumentoImovel;
+  faseImovel: FaseImovel | null;
+  descricao: string | null;
+  dataEmissao: string | null;
+  dataValidade: string | null;
+}

@@ -34,199 +34,476 @@
       }
     </div>
 
-    <section class="detalhe-imovel__galeria">
-      @if (fotoAtual(); as foto) {
-        <button
-          mat-icon-button
-          type="button"
-          class="detalhe-imovel__seta detalhe-imovel__seta--esquerda"
-          [disabled]="fotos().length < 2"
-          (click)="anterior()"
-          aria-label="Foto anterior"
-        >
-          <i class="ph ph-caret-left"></i>
-        </button>
+    <mat-tab-group class="detalhe-imovel__abas" animationDuration="0ms">
+      <mat-tab label="Cadastro">
+        <mat-tab-group class="detalhe-imovel__abas detalhe-imovel__abas--internas" animationDuration="0ms">
+          <mat-tab label="Dados gerais">
+            <section class="detalhe-imovel__galeria">
+              @if (fotoAtual(); as foto) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="detalhe-imovel__seta detalhe-imovel__seta--esquerda"
+                  [disabled]="fotos().length < 2"
+                  (click)="anterior()"
+                  aria-label="Foto anterior"
+                >
+                  <i class="ph ph-caret-left"></i>
+                </button>
 
-        <img [src]="urlsFotos()[foto.id]" [alt]="foto.legenda ?? imovel().identificador" />
+                <img [src]="urlsFotos()[foto.id]" [alt]="foto.legenda ?? imovel().identificador" />
 
-        <button
-          mat-icon-button
-          type="button"
-          class="detalhe-imovel__seta detalhe-imovel__seta--direita"
-          [disabled]="fotos().length < 2"
-          (click)="proxima()"
-          aria-label="Próxima foto"
-        >
-          <i class="ph ph-caret-right"></i>
-        </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="detalhe-imovel__seta detalhe-imovel__seta--direita"
+                  [disabled]="fotos().length < 2"
+                  (click)="proxima()"
+                  aria-label="Próxima foto"
+                >
+                  <i class="ph ph-caret-right"></i>
+                </button>
 
-        <span class="detalhe-imovel__contador">{{ indiceAtual() + 1 }}/{{ fotos().length }}</span>
-      } @else {
-        <div class="detalhe-imovel__sem-foto">Sem fotos cadastradas</div>
-      }
-    </section>
+                <span class="detalhe-imovel__contador">{{ indiceAtual() + 1 }}/{{ fotos().length }}</span>
+              } @else {
+                <div class="detalhe-imovel__sem-foto">Sem fotos cadastradas</div>
+              }
+            </section>
 
-    <section class="detalhe-imovel__info">
-      <div>
-        <p class="detalhe-imovel__label">Área do lote</p>
-        <p class="detalhe-imovel__valor">
-          @if (imovel().lote.area !== null) {
-            {{ imovel().lote.area | number: '1.0-2' }} m²
-          } @else {
-            —
+            <section class="detalhe-imovel__info">
+              <div class="detalhe-imovel__campo-largo">
+                <p class="detalhe-imovel__label">Endereço</p>
+                <p class="detalhe-imovel__valor">
+                  {{ imovel().endereco || '—' }}@if (imovel().numero) {, {{ imovel().numero }}}
+                  @if (imovel().bairro) {
+                    <span class="detalhe-imovel__complemento">{{ imovel().bairro }}</span>
+                  }
+                </p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Cidade / UF</p>
+                <p class="detalhe-imovel__valor">
+                  @if (imovel().cidade) {
+                    {{ imovel().cidade }}@if (imovel().uf) { / {{ imovel().uf }}}
+                  } @else {
+                    —
+                  }
+                </p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">CEP</p>
+                <p class="detalhe-imovel__valor">{{ imovel().cep || '—' }}</p>
+              </div>
+              @if (imovel().observacaoEndereco) {
+                <div class="detalhe-imovel__campo-largo">
+                  <p class="detalhe-imovel__label">Observação do endereço</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().observacaoEndereco }}</p>
+                </div>
+              }
+
+              <div>
+                <p class="detalhe-imovel__label">Data da compra</p>
+                <p class="detalhe-imovel__valor">{{ imovel().compraData | date: 'dd/MM/yyyy' }}</p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Valor de compra</p>
+                <p class="detalhe-imovel__valor">
+                  @if (imovel().compraValor !== null) {
+                    {{ imovel().compraValor | currency: 'BRL' }}
+                  } @else {
+                    —
+                  }
+                </p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Vendedor</p>
+                <p class="detalhe-imovel__valor">{{ imovel().compraVendedorNome || '—' }}</p>
+              </div>
+
+              @if (imovel().situacao === 'VENDIDO') {
+                <div>
+                  <p class="detalhe-imovel__label">Valor de venda</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().vendaValor | currency: 'BRL' }}</p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Comprador</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().vendaCompradorNome || '—' }}</p>
+                </div>
+              } @else if (imovel().vendaValorPretendido !== null) {
+                <div>
+                  <p class="detalhe-imovel__label">Valor de venda pretendido</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().vendaValorPretendido | currency: 'BRL' }}</p>
+                </div>
+              }
+
+              <div class="detalhe-imovel__campo-largo">
+                <p class="detalhe-imovel__label">Descrição</p>
+                <p class="detalhe-imovel__valor">{{ imovel().descricao || '—' }}</p>
+              </div>
+            </section>
+          </mat-tab>
+
+          <mat-tab label="Lote">
+            <section class="detalhe-imovel__info">
+              <div>
+                <p class="detalhe-imovel__label">Área do lote</p>
+                <p class="detalhe-imovel__valor">
+                  @if (imovel().lote.area !== null) {
+                    {{ imovel().lote.area | number: '1.0-2' }} m²
+                  } @else {
+                    —
+                  }
+                </p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Matrícula</p>
+                <p class="detalhe-imovel__valor">{{ imovel().lote.matricula || '—' }}</p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Cartório</p>
+                <p class="detalhe-imovel__valor">{{ imovel().lote.cartorio || '—' }}</p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Data do registro</p>
+                <p class="detalhe-imovel__valor">
+                  @if (imovel().lote.dataRegistro) {
+                    {{ imovel().lote.dataRegistro | date: 'dd/MM/yyyy' }}
+                  } @else {
+                    —
+                  }
+                </p>
+              </div>
+              <div>
+                <p class="detalhe-imovel__label">Inscrição municipal</p>
+                <p class="detalhe-imovel__valor">{{ imovel().lote.inscricaoMunicipal || '—' }}</p>
+              </div>
+            </section>
+          </mat-tab>
+
+          @if (imovel().fase !== 'LOTE') {
+            <mat-tab label="Obra">
+              <section class="detalhe-imovel__info">
+                <div>
+                  <p class="detalhe-imovel__label">Área construída</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().construcao.area !== null) {
+                      {{ imovel().construcao.area | number: '1.0-2' }} m²
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Início da construção</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().construcao.dataInicio) {
+                      {{ imovel().construcao.dataInicio | date: 'dd/MM/yyyy' }}
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Custo estimado da obra</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().construcao.custoEstimado !== null) {
+                      {{ imovel().construcao.custoEstimado | currency: 'BRL' }}
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Previsão de conclusão</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().construcao.previsaoConclusao) {
+                      {{ imovel().construcao.previsaoConclusao | date: 'dd/MM/yyyy' }}
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Alvará</p>
+                  <p class="detalhe-imovel__valor">
+                    {{ imovel().construcao.alvaraNumero || '—' }}
+                    @if (imovel().construcao.alvaraValidade) {
+                      <span class="detalhe-imovel__complemento">
+                        válido até {{ imovel().construcao.alvaraValidade | date: 'dd/MM/yyyy' }}
+                      </span>
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">ART / RRT</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().construcao.artNumero || '—' }}</p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Responsável técnico</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().construcao.responsavelTecnicoNome || '—' }}</p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">CNO</p>
+                  <p class="detalhe-imovel__valor">{{ imovel().construcao.cno || '—' }}</p>
+                </div>
+              </section>
+            </mat-tab>
           }
-        </p>
-      </div>
-      @if (imovel().construcao.area !== null) {
-        <div>
-          <p class="detalhe-imovel__label">Área construída</p>
-          <p class="detalhe-imovel__valor">{{ imovel().construcao.area | number: '1.0-2' }} m²</p>
-        </div>
-      }
-      <div>
-        <p class="detalhe-imovel__label">Data da compra</p>
-        <p class="detalhe-imovel__valor">{{ imovel().compraData | date: 'dd/MM/yyyy' }}</p>
-      </div>
-      <div class="detalhe-imovel__campo-largo">
-        <p class="detalhe-imovel__label">Endereço</p>
-        <p class="detalhe-imovel__valor">{{ imovel().endereco || '—' }}</p>
-      </div>
 
-      <div>
-        <p class="detalhe-imovel__label">Valor de compra</p>
-        <p class="detalhe-imovel__valor">
-          @if (imovel().compraValor !== null) {
-            {{ imovel().compraValor | currency: 'BRL' }}
-          } @else {
-            —
+          @if (imovel().fase === 'CASA') {
+            <mat-tab label="Casa">
+              <section class="detalhe-imovel__info">
+                <div>
+                  <p class="detalhe-imovel__label">Conclusão da obra</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().casa.dataConclusaoObra) {
+                      {{ imovel().casa.dataConclusaoObra | date: 'dd/MM/yyyy' }}
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Habite-se</p>
+                  <p class="detalhe-imovel__valor">
+                    {{ imovel().casa.habiteSeNumero || '—' }}
+                    @if (imovel().casa.habiteSeData) {
+                      <span class="detalhe-imovel__complemento">
+                        de {{ imovel().casa.habiteSeData | date: 'dd/MM/yyyy' }}
+                      </span>
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p class="detalhe-imovel__label">Averbação na matrícula</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().casa.dataAverbacao) {
+                      {{ imovel().casa.dataAverbacao | date: 'dd/MM/yyyy' }}
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+                <div class="detalhe-imovel__campo-largo">
+                  <p class="detalhe-imovel__label">Características</p>
+                  <p class="detalhe-imovel__valor">
+                    {{ imovel().casa.quartos ?? 0 }} quartos · {{ imovel().casa.suites ?? 0 }} suítes ·
+                    {{ imovel().casa.banheiros ?? 0 }} banheiros · {{ imovel().casa.vagasGaragem ?? 0 }} vagas
+                  </p>
+                </div>
+              </section>
+            </mat-tab>
           }
-        </p>
-      </div>
-      <div>
-        <p class="detalhe-imovel__label">Vendedor</p>
-        <p class="detalhe-imovel__valor">{{ imovel().compraVendedorNome || '—' }}</p>
-      </div>
+          <mat-tab label="Documentos">
+            <div class="detalhe-imovel__envio">
+              <div class="detalhe-imovel__envio-campos">
+                <label>
+                  <span class="detalhe-imovel__label">Tipo</span>
+                  <select [value]="novoDocumento().tipoDocumento" (change)="atualizarEnvio('tipoDocumento', $any($event.target).value)">
+                    @for (tipo of tiposDocumento; track tipo) {
+                      <option [value]="tipo">{{ tipoDocumentoLabel[tipo] }}</option>
+                    }
+                  </select>
+                </label>
 
-      @if (imovel().situacao === 'VENDIDO') {
-        <div>
-          <p class="detalhe-imovel__label">Valor de venda</p>
-          <p class="detalhe-imovel__valor">{{ imovel().vendaValor | currency: 'BRL' }}</p>
-        </div>
-        <div>
-          <p class="detalhe-imovel__label">Comprador</p>
-          <p class="detalhe-imovel__valor">{{ imovel().vendaCompradorNome || '—' }}</p>
-        </div>
-      } @else if (imovel().vendaValorPretendido !== null) {
-        <div>
-          <p class="detalhe-imovel__label">Valor de venda pretendido</p>
-          <p class="detalhe-imovel__valor">{{ imovel().vendaValorPretendido | currency: 'BRL' }}</p>
-        </div>
-      }
+                <label>
+                  <span class="detalhe-imovel__label">Fase</span>
+                  <select [value]="novoDocumento().faseImovel" (change)="atualizarEnvio('faseImovel', $any($event.target).value)">
+                    @for (fase of fases; track fase) {
+                      <option [value]="fase">{{ faseLabel[fase] }}</option>
+                    }
+                  </select>
+                </label>
 
-      @if (imovel().construcao.custoEstimado !== null) {
-        <div>
-          <p class="detalhe-imovel__label">Custo estimado da obra</p>
-          <p class="detalhe-imovel__valor">{{ imovel().construcao.custoEstimado | currency: 'BRL' }}</p>
-        </div>
-      }
-      @if (imovel().construcao.previsaoConclusao !== null) {
-        <div>
-          <p class="detalhe-imovel__label">Previsão de conclusão</p>
-          <p class="detalhe-imovel__valor">{{ imovel().construcao.previsaoConclusao | date: 'dd/MM/yyyy' }}</p>
-        </div>
-      }
+                <label>
+                  <span class="detalhe-imovel__label">Emissão</span>
+                  <input type="date" [value]="novoDocumento().dataEmissao ?? ''" (change)="atualizarEnvio('dataEmissao', $any($event.target).value)" />
+                </label>
 
-      <div class="detalhe-imovel__campo-largo">
-        <p class="detalhe-imovel__label">Descrição</p>
-        <p class="detalhe-imovel__valor">{{ imovel().descricao || '—' }}</p>
-      </div>
-    </section>
+                <label>
+                  <span class="detalhe-imovel__label">Validade</span>
+                  <input type="date" [value]="novoDocumento().dataValidade ?? ''" (change)="atualizarEnvio('dataValidade', $any($event.target).value)" />
+                </label>
 
-    @if (imovel().lote.matricula || imovel().lote.cartorio || imovel().lote.inscricaoMunicipal) {
-      <h3 class="detalhe-imovel__secao">Registro do lote</h3>
-      <section class="detalhe-imovel__info">
-        <div>
-          <p class="detalhe-imovel__label">Matrícula</p>
-          <p class="detalhe-imovel__valor">{{ imovel().lote.matricula || '—' }}</p>
-        </div>
-        <div>
-          <p class="detalhe-imovel__label">Cartório</p>
-          <p class="detalhe-imovel__valor">{{ imovel().lote.cartorio || '—' }}</p>
-        </div>
-        @if (imovel().lote.dataRegistro) {
-          <div>
-            <p class="detalhe-imovel__label">Data do registro</p>
-            <p class="detalhe-imovel__valor">{{ imovel().lote.dataRegistro | date: 'dd/MM/yyyy' }}</p>
-          </div>
-        }
-        <div>
-          <p class="detalhe-imovel__label">Inscrição municipal</p>
-          <p class="detalhe-imovel__valor">{{ imovel().lote.inscricaoMunicipal || '—' }}</p>
-        </div>
-      </section>
-    }
+                <label class="detalhe-imovel__campo-largo">
+                  <span class="detalhe-imovel__label">Descrição</span>
+                  <input type="text" [value]="novoDocumento().descricao ?? ''" (change)="atualizarEnvio('descricao', $any($event.target).value)" />
+                </label>
+              </div>
 
-    @if (imovel().fase !== 'LOTE') {
-      <h3 class="detalhe-imovel__secao">Obra</h3>
-      <section class="detalhe-imovel__info">
-        <div>
-          <p class="detalhe-imovel__label">Alvará</p>
-          <p class="detalhe-imovel__valor">
-            {{ imovel().construcao.alvaraNumero || '—' }}
-            @if (imovel().construcao.alvaraValidade) {
-              <span class="detalhe-imovel__complemento">
-                válido até {{ imovel().construcao.alvaraValidade | date: 'dd/MM/yyyy' }}
-              </span>
+              <label class="detalhe-imovel__upload">
+                <i class="ph ph-upload-simple"></i>
+                {{ enviandoDocumento() ? 'Enviando...' : 'Escolher arquivo e enviar' }}
+                <input type="file" hidden [disabled]="enviandoDocumento()" (change)="enviarDocumento($event)" />
+              </label>
+            </div>
+
+            @if (documentos().length > 0) {
+              <div class="detalhe-imovel__filtro-fase">
+                <span class="detalhe-imovel__label">Fase</span>
+                <select [value]="filtroFaseDocumento()" (change)="filtroFaseDocumento.set($any($event.target).value)">
+                  <option value="">Todas</option>
+                  @for (fase of fases; track fase) {
+                    <option [value]="fase">{{ faseLabel[fase] }}</option>
+                  }
+                </select>
+              </div>
             }
-          </p>
-        </div>
-        <div>
-          <p class="detalhe-imovel__label">ART / RRT</p>
-          <p class="detalhe-imovel__valor">{{ imovel().construcao.artNumero || '—' }}</p>
-        </div>
-        <div>
-          <p class="detalhe-imovel__label">Responsável técnico</p>
-          <p class="detalhe-imovel__valor">{{ imovel().construcao.responsavelTecnicoNome || '—' }}</p>
-        </div>
-        <div>
-          <p class="detalhe-imovel__label">CNO</p>
-          <p class="detalhe-imovel__valor">{{ imovel().construcao.cno || '—' }}</p>
-        </div>
-      </section>
-    }
 
-    @if (imovel().fase === 'CASA') {
-      <h3 class="detalhe-imovel__secao">Casa</h3>
-      <section class="detalhe-imovel__info">
-        <div>
-          <p class="detalhe-imovel__label">Habite-se</p>
-          <p class="detalhe-imovel__valor">
-            {{ imovel().casa.habiteSeNumero || '—' }}
-            @if (imovel().casa.habiteSeData) {
-              <span class="detalhe-imovel__complemento">
-                de {{ imovel().casa.habiteSeData | date: 'dd/MM/yyyy' }}
-              </span>
-            }
-          </p>
-        </div>
-        <div>
-          <p class="detalhe-imovel__label">Averbação na matrícula</p>
-          <p class="detalhe-imovel__valor">
-            @if (imovel().casa.dataAverbacao) {
-              {{ imovel().casa.dataAverbacao | date: 'dd/MM/yyyy' }}
+            @if (documentosFiltrados().length === 0) {
+              <p class="detalhe-imovel__vazio">Nenhum documento para este imóvel.</p>
             } @else {
-              —
+              <table class="detalhe-imovel__tabela">
+                <tbody>
+                  @for (documento of documentosFiltrados(); track documento.id) {
+                    <tr [class.detalhe-imovel__linha--vencida]="vencido(documento)">
+                      <td>
+                        {{ tipoDocumentoLabel[documento.tipoDocumento] }}
+                        @if (vencido(documento)) {
+                          <span class="detalhe-imovel__vencido">vencido</span>
+                        }
+                        <span class="detalhe-imovel__complemento">
+                          {{ documento.descricao || documento.nomeArquivo || '—' }} · {{ faseLabel[documento.faseImovel] }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="detalhe-imovel__complemento">
+                          @if (documento.dataEmissao) {
+                            emitido em {{ documento.dataEmissao | date: 'dd/MM/yyyy' }}
+                          }
+                          @if (documento.dataValidade) {
+                            · válido até {{ documento.dataValidade | date: 'dd/MM/yyyy' }}
+                          }
+                        </span>
+                      </td>
+                      <td class="detalhe-imovel__num">
+                        <button mat-icon-button type="button" (click)="abrirDocumento(documento)" aria-label="Abrir documento">
+                          <i class="ph ph-arrow-square-out"></i>
+                        </button>
+                        <button mat-icon-button type="button" (click)="removerDocumento(documento)" aria-label="Remover documento">
+                          <i class="ph ph-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             }
-          </p>
-        </div>
-        <div class="detalhe-imovel__campo-largo">
-          <p class="detalhe-imovel__label">Características</p>
-          <p class="detalhe-imovel__valor">
-            {{ imovel().casa.quartos ?? 0 }} quartos · {{ imovel().casa.suites ?? 0 }} suítes ·
-            {{ imovel().casa.banheiros ?? 0 }} banheiros · {{ imovel().casa.vagasGaragem ?? 0 }} vagas
-          </p>
-        </div>
-      </section>
-    }
+          </mat-tab>
+
+        </mat-tab-group>
+      </mat-tab>
+
+      <mat-tab label="Financeiro">
+        <mat-tab-group class="detalhe-imovel__abas detalhe-imovel__abas--internas" animationDuration="0ms">
+          <mat-tab label="Dados gerais">
+            @if (resultado(); as r) {
+              <section class="detalhe-imovel__custo">
+                <div>
+                  <p class="detalhe-imovel__label">Custo acumulado</p>
+                  <p class="detalhe-imovel__custo-total">{{ r.custoTotal | currency: 'BRL' }}</p>
+                </div>
+                @if (r.lucro !== null) {
+                  <div>
+                    <p class="detalhe-imovel__label">Lucro</p>
+                    <p class="detalhe-imovel__custo-total">{{ r.lucro | currency: 'BRL' }}</p>
+                  </div>
+                }
+              </section>
+
+              <table class="detalhe-imovel__tabela">
+                <tbody>
+                  <tr>
+                    <td>Compra do lote</td>
+                    <td class="detalhe-imovel__num">{{ r.valorCompra ?? 0 | currency: 'BRL' }}</td>
+                  </tr>
+                  @for (fase of fases; track fase) {
+                    @if (r.despesasPorFase[fase]; as valor) {
+                      <tr>
+                        <td>Despesas — {{ faseLabel[fase] }}</td>
+                        <td class="detalhe-imovel__num">{{ valor | currency: 'BRL' }}</td>
+                      </tr>
+                    }
+                  }
+                  @if (r.jurosPagos > 0) {
+                    <tr>
+                      <td>Juros pagos em parcelas</td>
+                      <td class="detalhe-imovel__num">{{ r.jurosPagos | currency: 'BRL' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="detalhe-imovel__vazio">Carregando…</p>
+            }
+          </mat-tab>
+
+          <mat-tab label="Contratos">
+            @if (resultado()?.contratos?.length) {
+              <table class="detalhe-imovel__tabela">
+                <tbody>
+                  @for (contrato of resultado()!.contratos; track contrato.contratoId) {
+                    <tr>
+                      <td>
+                        {{ tipoContratoLabel[contrato.tipo] }}
+                        <span class="detalhe-imovel__complemento">
+                          {{ contrato.contraparteNome || '—' }} · {{ situacaoContratoLabel[contrato.situacao] }}
+                        </span>
+                      </td>
+                      <td class="detalhe-imovel__num">
+                        {{ contrato.saldoDevedor | currency: 'BRL' }}
+                        <span class="detalhe-imovel__complemento">{{ rotuloSaldo(contrato) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              <p class="detalhe-imovel__nota">
+                Posição de caixa: nem o total pago nem o saldo entram no custo do imóvel.
+              </p>
+            } @else {
+              <p class="detalhe-imovel__vazio">Nenhum contrato financeiro para este imóvel.</p>
+            }
+          </mat-tab>
+
+          <mat-tab label="Últimas despesas">
+            <div class="detalhe-imovel__despesas-topo">
+              <button mat-stroked-button type="button" color="primary" (click)="lancarDespesa()">
+                <i class="ph ph-plus"></i>
+                Lançar despesa
+              </button>
+            </div>
+
+            @if (despesasRecentes().length === 0) {
+              <p class="detalhe-imovel__vazio">Nenhuma despesa lançada para este imóvel.</p>
+            } @else {
+              <table class="detalhe-imovel__tabela">
+                <tbody>
+                  @for (despesa of despesasRecentes(); track despesa.id) {
+                    <tr>
+                      <td>
+                        {{ despesa.categoriaDespesaNome }}
+                        <span class="detalhe-imovel__complemento">
+                          {{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}
+                          @if (despesa.faseImovel) {
+                            · {{ faseLabel[despesa.faseImovel] }}
+                          }
+                        </span>
+                      </td>
+                      <td class="detalhe-imovel__num">{{ despesa.valor | currency: 'BRL' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              @if (despesas().length > despesasRecentes().length) {
+                <p class="detalhe-imovel__nota">
+                  Mostrando as {{ despesasRecentes().length }} mais recentes de {{ despesas().length }}.
+                </p>
+              }
+            }
+          </mat-tab>
+        </mat-tab-group>
+      </mat-tab>
+    </mat-tab-group>
   </mat-dialog-content>
 </div>

@@ -9,8 +9,12 @@ export class DespesasService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/despesas`;
 
-  listar(): Observable<DespesaResponseDTO[]> {
-    return this.http.get<DespesaResponseDTO[]>(this.baseUrl);
+  listar(imovelId?: number | null): Observable<DespesaResponseDTO[]> {
+    let params = new HttpParams();
+    if (imovelId != null) {
+      params = params.set('imovelId', imovelId);
+    }
+    return this.http.get<DespesaResponseDTO[]>(this.baseUrl, { params });
   }
 
   criar(dto: DespesaRequestDTO): Observable<DespesaResponseDTO> {

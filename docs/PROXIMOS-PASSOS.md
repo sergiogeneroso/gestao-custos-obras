@@ -264,16 +264,46 @@ de venda pretendido só aparece quando a situação já não é `ADQUIRIDO`. Col
 venda ganhou dialog próprio (`imovel-a-venda-dialog`) em vez de virar um modo do
 `imovel-venda-dialog`, que pede valor, data e comprador obrigatórios.
 
-### Etapa N — Bloco financeiro no detalhe do imóvel
-- [ ] Custo acumulado, despesas do imóvel, contratos e atalho para o resultado —
-      hoje o detalhe mostra fotos e cadastro, sem nenhuma informação de custo
-- [ ] Lançar despesa a partir do imóvel, sem passar pela tela global
+### Etapa N — Bloco financeiro no detalhe do imóvel ✅
+- [x] Custo acumulado e composição (compra, despesas por fase, juros) na aba
+      Financeiro do detalhe, consumindo `resultado-imovel`
+- [x] Contratos do imóvel com o rótulo "a receber" para `PARCELAMENTO_VENDA`
+- [x] Últimas 5 despesas e botão "Lançar despesa" já com o imóvel selecionado
+- [ ] Atalho para a tela de resultado — deixado de fora por decisão do usuário
 
-### Etapa O — Documentos do imóvel
-- [ ] Tela de documentos: o backend tem `POST/GET/DELETE
-      /api/imoveis/{id}/documentos` desde a Etapa D e o frontend nunca ganhou tela
-- [ ] `ImovelDocumentoModel` ganha nome original do arquivo, descrição e data de
-      emissão/validade — hoje a lista mostra só tipo e URL
+**Nota da implementação (Ago 2026):** o detalhe passou a usar `MatTabsModule`
+em dois níveis — **Cadastro** (dados gerais, lote, obra, casa) e **Financeiro**
+(dados gerais, contratos, últimas despesas) —, a pedido do usuário, para nenhum
+bloco precisar de rolagem própria. Quem rola é só o `mat-dialog-content`: o
+`mat-tab-body-wrapper` precisa de `height: auto` e **tanto `.mat-mdc-tab-body`
+quanto `.mat-mdc-tab-body-content`** de `overflow: visible` — tratar só o
+`-content`, como foi feito na primeira tentativa, deixa o `mat-tab-body` rolando
+e a barra dentro da barra continua. O custo vem de
+`RelatoriosService.resultado()` — a mesma fonte da tela de resultado, de
+propósito: não existe uma segunda conta de custo no frontend.
+`DespesasService.listar()` ganhou `imovelId?` e `DespesaFormDialogData` ganhou
+`imovelId?` para a pré-seleção.
+
+### Etapa O — Documentos do imóvel ✅
+- [x] Sub-aba "Documentos" no detalhe do imóvel (dentro de Cadastro), com envio,
+      filtro por fase, abrir e remover
+- [x] `ImovelDocumentoModel` ganha `nomeArquivo`, `descricao`, `dataEmissao` e
+      `dataValidade`; `nomeArquivo` vem do próprio upload
+- [x] Documento com validade vencida aparece destacado na lista
+
+**Nota da implementação (Ago 2026):** os metadados vão como `@RequestParam` no
+POST multipart, junto de `tipoDocumento` e `faseImovel`, sem DTO de request — o
+arquivo já obriga o endpoint a ser multipart.
+
+**Duas dívidas confirmadas durante a verificação, ambas anteriores a esta etapa
+e valendo igual para fotos e anexos de despesa:**
+1. **Arquivo órfão:** remover documento/foto/anexo apaga só o registro; o arquivo
+   fica no disco para sempre. `StorageService` não tem operação de exclusão.
+2. **URL absoluta gravada no banco:** `ServletUriComponentsBuilder.fromCurrentContextPath()`
+   grava o host que atendeu o upload (`localhost:4200` pela tela via proxy,
+   `localhost:8080` se o upload for direto no backend). Muda de host ou de porta
+   e as URLs antigas quebram; o certo é guardar o caminho relativo e montar a URL
+   na leitura.
 
 ### Etapa P — Datas: validar no PUT e na edição
 - [ ] `ImovelService.atualizar` valida a ordem `compra.data ≤
