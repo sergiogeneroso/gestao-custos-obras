@@ -27,7 +27,7 @@ export class Shell {
 
   protected readonly links = [
     { path: 'dashboard', label: 'Dashboard', icone: 'ph-squares-four' },
-    { path: 'imoveis', label: 'Imóveis e lotes', icone: 'ph-buildings' },
+    { path: 'imoveis', label: 'Imóveis', icone: 'ph-buildings' },
     { path: 'despesas', label: 'Despesas', icone: 'ph-receipt' },
     { path: 'pessoas', label: 'Pessoas', icone: 'ph-users-three' },
     { path: 'fornecedores', label: 'Fornecedores', icone: 'ph-hard-hat' },
