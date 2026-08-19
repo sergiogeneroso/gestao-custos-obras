@@ -60,3 +60,42 @@ export interface ParcelaPagamentoRequestDTO {
   dataPagamento: string;
   valorPago: number;
 }
+
+export type TipoDocumentoContrato =
+  | 'CONTRATO'
+  | 'ADITIVO'
+  | 'GARANTIA'
+  | 'SEGURO'
+  | 'LAUDO_VISTORIA'
+  | 'COMPROVANTE_QUITACAO'
+  | 'OUTRO';
+
+export const TIPOS_DOCUMENTO_CONTRATO: TipoDocumentoContrato[] = [
+  'CONTRATO',
+  'ADITIVO',
+  'GARANTIA',
+  'SEGURO',
+  'LAUDO_VISTORIA',
+  'COMPROVANTE_QUITACAO',
+  'OUTRO',
+];
+
+export const TIPO_DOCUMENTO_CONTRATO_LABEL: Record<TipoDocumentoContrato, string> = {
+  CONTRATO: 'Contrato',
+  ADITIVO: 'Aditivo',
+  GARANTIA: 'Garantia',
+  SEGURO: 'Seguro',
+  LAUDO_VISTORIA: 'Laudo de vistoria',
+  COMPROVANTE_QUITACAO: 'Comprovante de quitação',
+  OUTRO: 'Outro',
+};
+
+export interface ContratoDocumentoResponseDTO {
+  id: number;
+  contratoId: number;
+  tipoDocumento: TipoDocumentoContrato;
+  url: string;
+  nomeArquivo: string | null;
+  descricao: string | null;
+  dataUpload: string;
+}

@@ -1,6 +1,6 @@
 <div class="dialogo-contrato">
   <div class="dialogo-contrato__topo">
-    <h2 mat-dialog-title>Novo contrato financeiro</h2>
+    <h2 mat-dialog-title>{{ contrato ? 'Editar contrato financeiro' : 'Novo contrato financeiro' }}</h2>
     <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
       <i class="ph ph-x"></i>
     </button>
@@ -43,6 +43,39 @@
         </mat-form-field>
       </div>
 
+      <section class="dialogo-contrato__gerador" [formGroup]="gerador">
+        <h3>Gerar cronograma</h3>
+        <p class="dialogo-contrato__nota">
+          Preenche as parcelas em aberto de uma vez, somando um mês a cada vencimento. As linhas
+          continuam editáveis depois, e parcelas já pagas não são tocadas.
+        </p>
+
+        <div class="dialogo-contrato__gerador-campos">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Nº de parcelas</mat-label>
+            <input matInput type="number" min="1" max="600" formControlName="quantidade" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Valor da parcela</mat-label>
+            <span matTextPrefix>R$&nbsp;</span>
+            <input matInput appMoeda formControlName="valorParcela" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>1º vencimento</mat-label>
+            <input matInput [matDatepicker]="geradorPicker" formControlName="primeiroVencimento" />
+            <mat-datepicker-toggle matIconSuffix [for]="geradorPicker" />
+            <mat-datepicker #geradorPicker />
+          </mat-form-field>
+
+          <button mat-stroked-button type="button" (click)="gerarParcelas()">
+            <i class="ph ph-list-numbers"></i>
+            Gerar
+          </button>
+        </div>
+      </section>
+
       <section class="dialogo-contrato__parcelas">
         <div class="dialogo-contrato__parcelas-cabecalho">
           <h3>Cronograma de parcelas</h3>
@@ -78,15 +111,21 @@
               <input matInput appMoeda formControlName="valorJuros" />
             </mat-form-field>
 
-            <button
-              mat-icon-button
-              type="button"
-              [disabled]="parcelas.length === 1"
-              (click)="removerParcela(i)"
-              aria-label="Remover parcela"
-            >
-              <i class="ph ph-trash"></i>
-            </button>
+            @if (parcela.controls.paga.value) {
+              <span class="dialogo-contrato__paga" title="Parcela paga: não pode ser alterada">
+                <i class="ph ph-check-circle"></i>
+              </span>
+            } @else {
+              <button
+                mat-icon-button
+                type="button"
+                [disabled]="parcelas.length === 1"
+                (click)="removerParcela(i)"
+                aria-label="Remover parcela"
+              >
+                <i class="ph ph-trash"></i>
+              </button>
+            }
           </div>
         }
       </section>
@@ -99,7 +138,7 @@
         color="primary"
         [disabled]="form.invalid || parcelas.invalid || salvando()"
       >
-        {{ salvando() ? 'Salvando...' : 'Criar contrato' }}
+        {{ salvando() ? 'Salvando...' : contrato ? 'Salvar' : 'Criar contrato' }}
       </button>
     </mat-dialog-actions>
   </form>

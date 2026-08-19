@@ -1,18 +1,23 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
+  ContratoDocumentoResponseDTO,
   ContratoFinanceiroResponseDTO,
   ParcelaContratoResponseDTO,
   SITUACAO_CONTRATO_LABEL,
   TIPO_CONTRATO_LABEL,
+  TIPO_DOCUMENTO_CONTRATO_LABEL,
+  TIPOS_DOCUMENTO_CONTRATO,
+  TipoDocumentoContrato,
 } from '../contrato.model';
 import { paraIso } from '../../../shared/data/data.util';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
@@ -33,15 +38,17 @@ export interface ContratoDetalheDialogData {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MoedaDirective,
   ],
   templateUrl: './contrato-detalhe-dialog.html',
   styleUrl: './contrato-detalhe-dialog.scss',
 })
-export class ContratoDetalheDialog {
+export class ContratoDetalheDialog implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ContratosService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialogRef = inject(MatDialogRef<ContratoDetalheDialog>);
   protected readonly data = inject<ContratoDetalheDialogData>(MAT_DIALOG_DATA);
 
   protected readonly contrato = signal(this.data.contrato);
@@ -51,6 +58,16 @@ export class ContratoDetalheDialog {
   protected readonly parcelaEmBaixa = signal<number | null>(null);
   protected readonly quitandoContrato = signal(false);
   protected readonly salvando = signal(false);
+
+  protected readonly tiposDocumento = TIPOS_DOCUMENTO_CONTRATO;
+  protected readonly tipoDocumentoLabel = TIPO_DOCUMENTO_CONTRATO_LABEL;
+  protected readonly documentos = signal<ContratoDocumentoResponseDTO[]>([]);
+  protected readonly tipoDocumentoSelecionado = signal<TipoDocumentoContrato>('CONTRATO');
+  protected readonly enviandoDocumento = signal(false);
+
+  ngOnInit(): void {
+    this.service.listarDocumentos(this.contrato().id).subscribe((documentos) => this.documentos.set(documentos));
+  }
 
   protected readonly formBaixa = this.fb.group({
     dataPagamento: [new Date() as Date | null, Validators.required],
@@ -134,6 +151,47 @@ export class ContratoDetalheDialog {
           });
         },
       });
+  }
+
+  protected enviarDocumento(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const arquivo = input.files?.[0];
+    if (!arquivo) {
+      return;
+    }
+
+    this.enviandoDocumento.set(true);
+    this.service.adicionarDocumento(this.contrato().id, arquivo, this.tipoDocumentoSelecionado(), null).subscribe({
+      next: (documento) => {
+        this.documentos.update((atuais) => [...atuais, documento]);
+        this.enviandoDocumento.set(false);
+        input.value = '';
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.enviandoDocumento.set(false);
+        input.value = '';
+        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível enviar o documento.', 'Fechar', { duration: 6000 });
+      },
+    });
+  }
+
+  protected abrirDocumento(documento: ContratoDocumentoResponseDTO): void {
+    this.service.baixarDocumento(documento.url).subscribe((blob) => {
+      window.open(URL.createObjectURL(blob), '_blank');
+    });
+  }
+
+  protected removerDocumento(documento: ContratoDocumentoResponseDTO): void {
+    if (!confirm(`Remover o documento "${documento.nomeArquivo ?? documento.id}"?`)) {
+      return;
+    }
+    this.service.deletarDocumento(this.contrato().id, documento.id).subscribe(() => {
+      this.documentos.update((atuais) => atuais.filter((d) => d.id !== documento.id));
+    });
+  }
+
+  protected editar(): void {
+    this.dialogRef.close('editar');
   }
 
 }

@@ -40,17 +40,30 @@ export class Contratos implements OnInit {
   }
 
   protected novo(): void {
+    this.abrirFormulario(null);
+  }
+
+  protected editar(contrato: ContratoFinanceiroResponseDTO): void {
+    this.abrirFormulario(contrato);
+  }
+
+  private abrirFormulario(contrato: ContratoFinanceiroResponseDTO | null): void {
     this.dialog
-      .open(ContratoFormDialog, { autoFocus: false, width: '680px', maxWidth: '95vw' })
+      .open(ContratoFormDialog, { data: { contrato }, autoFocus: false, width: '680px', maxWidth: '95vw' })
       .afterClosed()
       .subscribe(() => this.carregar());
   }
 
   protected verDetalhe(contrato: ContratoFinanceiroResponseDTO): void {
     this.dialog
-      .open(ContratoDetalheDialog, { data: { contrato }, autoFocus: false, width: '640px', maxWidth: '95vw' })
+      .open(ContratoDetalheDialog, { data: { contrato }, autoFocus: false, width: '680px', maxWidth: '95vw' })
       .afterClosed()
-      .subscribe(() => this.carregar());
+      .subscribe((acao) => {
+        this.carregar();
+        if (acao === 'editar') {
+          this.abrirFormulario(contrato);
+        }
+      });
   }
 
   private carregar(): void {

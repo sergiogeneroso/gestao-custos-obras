@@ -63,3 +63,29 @@
     width: 100%;
   }
 }
+
+.dialogo-contrato__gerador {
+  margin-top: 8px;
+}
+
+.dialogo-contrato__nota {
+  font-size: 13px;
+  line-height: 20px;
+  color: #9397ab;
+  margin: 4px 0 12px;
+}
+
+.dialogo-contrato__gerador-campos {
+  display: grid;
+  grid-template-columns: 110px 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.dialogo-contrato__paga {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  color: #6fcf97;
+}

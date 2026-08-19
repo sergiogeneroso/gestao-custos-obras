@@ -108,3 +108,47 @@
     text-align: right;
   }
 }
+
+.detalhe-contrato__documentos {
+  margin-top: 16px;
+
+  h3 {
+    margin-bottom: 4px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+}
+
+.detalhe-contrato__vazio,
+.detalhe-contrato__arquivo {
+  font-size: 13px;
+  color: #9397ab;
+}
+
+.detalhe-contrato__envio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detalhe-contrato__upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #3a3d4f;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}

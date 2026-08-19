@@ -126,5 +126,56 @@
         </tbody>
       </table>
     </section>
+
+    <section class="detalhe-contrato__documentos">
+      <h3>Documentos</h3>
+
+      @if (documentos().length === 0) {
+        <p class="detalhe-contrato__vazio">Nenhum documento anexado.</p>
+      } @else {
+        <ul>
+          @for (documento of documentos(); track documento.id) {
+            <li>
+              <button mat-button type="button" (click)="abrirDocumento(documento)">
+                <i class="ph ph-file-text"></i>
+                {{ tipoDocumentoLabel[documento.tipoDocumento] }}
+                @if (documento.nomeArquivo) {
+                  <span class="detalhe-contrato__arquivo">— {{ documento.nomeArquivo }}</span>
+                }
+              </button>
+              <button mat-icon-button type="button" (click)="removerDocumento(documento)" aria-label="Remover documento">
+                <i class="ph ph-trash"></i>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="detalhe-contrato__envio">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Tipo</mat-label>
+          <mat-select [value]="tipoDocumentoSelecionado()" (valueChange)="tipoDocumentoSelecionado.set($event)">
+            @for (tipo of tiposDocumento; track tipo) {
+              <mat-option [value]="tipo">{{ tipoDocumentoLabel[tipo] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <label class="detalhe-contrato__upload">
+          <i class="ph ph-upload-simple"></i>
+          {{ enviandoDocumento() ? 'Enviando...' : 'Anexar documento' }}
+          <input type="file" hidden [disabled]="enviandoDocumento()" (change)="enviarDocumento($event)" />
+        </label>
+      </div>
+    </section>
   </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    @if (contrato().situacao === 'ATIVO') {
+      <button mat-stroked-button type="button" color="primary" (click)="editar()">
+        <i class="ph ph-pencil-simple"></i>
+        Editar contrato
+      </button>
+    }
+  </mat-dialog-actions>
 </div>
