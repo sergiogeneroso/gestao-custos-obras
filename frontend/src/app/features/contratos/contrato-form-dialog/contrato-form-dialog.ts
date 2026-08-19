@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,11 +34,17 @@ type ParcelaFormGroup = FormGroup<{
 
 export interface ContratoFormDialogData {
   contrato: ContratoFinanceiroResponseDTO | null;
+  // Pré-preenchimento vindo do cadastro do imóvel parcelado (ADR-037).
+  imovelId?: number | null;
+  tipo?: TipoContratoFinanceiro | null;
+  contraparteId?: number | null;
+  dataCompra?: string | null;
 }
 
 @Component({
   selector: 'app-contrato-form-dialog',
   imports: [
+    CurrencyPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatDatepickerModule,
@@ -72,10 +80,20 @@ export class ContratoFormDialog implements OnInit {
   protected readonly salvando = signal(false);
 
   protected readonly form = this.fb.group({
-    imovelId: [this.contrato?.imovelId ?? (null as number | null), Validators.required],
-    tipo: [this.contrato?.tipo ?? (null as TipoContratoFinanceiro | null), Validators.required],
-    contraparteId: [this.contrato?.contraparteId ?? (null as number | null), Validators.required],
+    imovelId: [this.contrato?.imovelId ?? this.data?.imovelId ?? (null as number | null), Validators.required],
+    tipo: [this.contrato?.tipo ?? this.data?.tipo ?? (null as TipoContratoFinanceiro | null), Validators.required],
+    contraparteId: [
+      this.contrato?.contraparteId ?? this.data?.contraparteId ?? (null as number | null),
+      Validators.required,
+    ],
     valorContratado: [this.contrato?.valorContratado ?? (null as number | null), Validators.required],
+  });
+
+  // Só na compra do lote: a entrada e o preço à vista não fazem sentido nos outros tipos (ADR-037).
+  protected readonly compra = this.fb.group({
+    entradaValor: [null as number | null],
+    entradaData: [paraData(this.data?.dataCompra) ?? new Date() as Date | null],
+    precoAVistaLote: [null as number | null],
   });
 
   // Gerador de cronograma: preenche o FormArray de uma vez, e as linhas continuam editáveis depois.
@@ -86,6 +104,79 @@ export class ContratoFormDialog implements OnInit {
   });
 
   protected readonly parcelas = this.fb.array<ParcelaFormGroup>([]);
+
+  // As linhas do cronograma mudam por push/remove além de digitação, então a fonte destes computeds
+  // é o valueChanges do próprio FormArray, não uma leitura pontual dos controles.
+  private readonly tipoSelecionado = toSignal(this.form.controls.tipo.valueChanges, {
+    initialValue: this.form.controls.tipo.value,
+  });
+  private readonly entradaInformada = toSignal(this.compra.controls.entradaValor.valueChanges, {
+    initialValue: this.compra.controls.entradaValor.value,
+  });
+  private readonly precoInformado = toSignal(this.compra.controls.precoAVistaLote.valueChanges, {
+    initialValue: this.compra.controls.precoAVistaLote.value,
+  });
+  private readonly linhasParcela = toSignal(this.parcelas.valueChanges, {
+    initialValue: this.parcelas.getRawValue(),
+  });
+
+  // ---- Reconciliação preço do lote x cronograma (ADR-037) ------------------------------------
+  //
+  // O parcelamento do lote é normalmente SEM juros: entrada + parcelas fecham com o preço. Por isso
+  // isto é uma linha que se recalcula sozinha, não um botão que o usuário precise lembrar de apertar
+  // — no caminho normal ele não interage com juros em momento nenhum.
+
+  protected readonly ehCompraDeLote = computed(() => this.tipoSelecionado() === 'PARCELAMENTO_COMPRA');
+
+  protected readonly totalCronograma = computed(() => {
+    const entrada = this.entradaInformada() ?? 0;
+    return entrada + this.valoresParcelas().reduce((soma, valor) => soma + valor, 0);
+  });
+
+  /** Positivo = juros embutidos; zero = sem juros; negativo = preço informado maior que o total. */
+  protected readonly diferencaJuros = computed(() => {
+    const preco = this.precoInformado();
+    return preco == null ? 0 : Math.round((this.totalCronograma() - preco) * 100) / 100;
+  });
+
+  protected readonly precoNaoInformado = computed(() => this.precoInformado() == null);
+
+  protected distribuirJuros(): void {
+    const total = this.diferencaJuros();
+    const valores = this.valoresParcelas();
+    const somaParcelas = valores.reduce((soma, valor) => soma + valor, 0);
+    if (total <= 0 || somaParcelas <= 0) {
+      return;
+    }
+
+    // ponytail: rateio linear, proporcional ao valor da parcela — não é tabela Price/SAC. Para
+    // acompanhamento de custo basta, e a quitação antecipada tem valor próprio negociado que
+    // substitui as parcelas restantes de qualquer forma.
+    let alocado = 0;
+    this.parcelas.controls.forEach((linha, indice) => {
+      const ultima = indice === this.parcelas.length - 1;
+      const juros = ultima
+        ? Math.round((total - alocado) * 100) / 100 // a sobra de arredondamento fecha na última
+        : Math.round((total * (valores[indice] / somaParcelas)) * 100) / 100;
+      alocado += juros;
+      linha.controls.valorJuros.setValue(juros);
+    });
+  }
+
+  private valoresParcelas(): number[] {
+    return (this.linhasParcela() ?? []).map((linha) => linha.valor ?? 0);
+  }
+
+  constructor() {
+    // O valor contratado da compra do lote é entrada + parcelas. Segue o cronograma sozinho até o
+    // usuário digitar algo ali — a partir daí o que ele escreveu manda.
+    effect(() => {
+      const total = this.totalCronograma();
+      if (this.ehCompraDeLote() && this.form.controls.valorContratado.pristine && total > 0) {
+        this.form.controls.valorContratado.setValue(total, { emitEvent: false });
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.imoveisService.listar().subscribe((imoveis) => this.imoveis.set(imoveis.filter((i) => i.ativo)));
@@ -180,6 +271,9 @@ export class ContratoFormDialog implements OnInit {
     this.salvando.set(true);
 
     const bruto = this.form.getRawValue();
+    const compra = this.compra.getRawValue();
+    const ehLote = this.ehCompraDeLote() && !this.contrato;
+
     const dto: ContratoFinanceiroRequestDTO = {
       imovelId: bruto.imovelId!,
       tipo: bruto.tipo!,
@@ -191,6 +285,11 @@ export class ContratoFormDialog implements OnInit {
         valor: parcela.valor!,
         valorJuros: parcela.valorJuros,
       })),
+      // A entrada e o preço do lote só existem na criação da compra parcelada: na edição a parcela
+      // nº 0 já está no cronograma e o valor do imóvel já foi apurado.
+      entradaValor: ehLote ? compra.entradaValor : null,
+      entradaData: ehLote ? paraIso(compra.entradaData) : null,
+      precoAVistaLote: ehLote ? compra.precoAVistaLote : null,
     };
 
     const requisicao = this.contrato ? this.service.atualizar(this.contrato.id, dto) : this.service.criar(dto);

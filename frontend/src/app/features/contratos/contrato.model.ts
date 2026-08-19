@@ -35,6 +35,11 @@ export interface ContratoFinanceiroRequestDTO {
   contraparteId: number;
   valorContratado: number;
   parcelas: ParcelaContratoRequestDTO[] | null;
+  // Entrada da compra parcelada: vira a parcela nº 0, já baixada (ADR-037).
+  entradaValor: number | null;
+  entradaData: string | null;
+  // Entrada de cálculo, não gravada no contrato: em branco, o preço do lote é o próprio cronograma.
+  precoAVistaLote: number | null;
 }
 
 export interface ContratoFinanceiroResponseDTO {

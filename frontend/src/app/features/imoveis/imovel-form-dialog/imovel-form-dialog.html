@@ -49,11 +49,32 @@
           <input matInput formControlName="observacaoEndereco" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Valor de compra</mat-label>
-          <span matTextPrefix>R$&nbsp;</span>
-          <input matInput appMoeda formControlName="compraValor" />
-        </mat-form-field>
+        <div class="dialogo-imovel__campo-largo">
+          <p class="dialogo-imovel__rotulo">Pagamento da compra</p>
+          <mat-button-toggle-group
+            [value]="form.controls.compraParcelada.value"
+            (change)="form.controls.compraParcelada.setValue($event.value)"
+            aria-label="Forma de pagamento da compra"
+          >
+            <mat-button-toggle [value]="false">À vista</mat-button-toggle>
+            <mat-button-toggle [value]="true">Parcelado</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        @if (mostrarValorCompra()) {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ form.controls.compraParcelada.value ? 'Valor do lote (à vista)' : 'Valor de compra' }}</mat-label>
+            <span matTextPrefix>R$&nbsp;</span>
+            <input matInput appMoeda formControlName="compraValor" />
+            @if (form.controls.compraParcelada.value) {
+              <mat-hint>Cronograma do contrato: {{ totalCronogramaContrato() | currency: 'BRL' }}</mat-hint>
+            }
+          </mat-form-field>
+        } @else {
+          <p class="dialogo-imovel__nota dialogo-imovel__campo-largo">
+            O valor do lote vem do contrato de parcelamento, que será aberto ao salvar.
+          </p>
+        }
 
         <mat-form-field appearance="outline">
           <mat-label>Data da compra</mat-label>

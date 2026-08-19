@@ -129,6 +129,12 @@
               <td class="table__num">{{ r.jurosPagos | currency: 'BRL' }}</td>
             </tr>
           }
+          @if (r.ajusteQuitacao !== 0) {
+            <tr>
+              <td>{{ r.ajusteQuitacao < 0 ? 'Desconto na quitação' : 'Juros na quitação' }}</td>
+              <td class="table__num">{{ r.ajusteQuitacao | currency: 'BRL' }}</td>
+            </tr>
+          }
           <tr class="table__total">
             <td>Custo total</td>
             <td class="table__num">{{ r.custoTotal | currency: 'BRL' }}</td>
@@ -140,6 +146,25 @@
       }
     </section>
 
+
+    <section class="resultado__bloco">
+      <h2>Desembolso</h2>
+      <table class="table">
+        <tbody>
+          <tr>
+            <td>Já saiu do caixa</td>
+            <td class="table__num">{{ r.totalDesembolsado | currency: 'BRL' }}</td>
+          </tr>
+          <tr>
+            <td>Ainda a pagar</td>
+            <td class="table__num">{{ r.saldoAPagar | currency: 'BRL' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="resultado__nota">
+        Posição de caixa: nenhum destes valores entra no custo do imóvel.
+      </p>
+    </section>
     @if (temBlocoObra()) {
       <section class="resultado__bloco">
         <h2>Obra</h2>

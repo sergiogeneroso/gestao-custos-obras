@@ -43,6 +43,54 @@
         </mat-form-field>
       </div>
 
+      @if (ehCompraDeLote()) {
+        <section class="dialogo-contrato__compra" [formGroup]="compra">
+          <h3>Compra do lote</h3>
+
+          <div class="dialogo-contrato__compra-campos">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Entrada</mat-label>
+              <span matTextPrefix>R$&nbsp;</span>
+              <input matInput appMoeda formControlName="entradaValor" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Data da entrada</mat-label>
+              <input matInput [matDatepicker]="entradaPicker" formControlName="entradaData" />
+              <mat-datepicker-toggle matIconSuffix [for]="entradaPicker" />
+              <mat-datepicker #entradaPicker />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Preço à vista do lote</mat-label>
+              <span matTextPrefix>R$&nbsp;</span>
+              <input matInput appMoeda formControlName="precoAVistaLote" />
+              <mat-hint>Só se for diferente do total</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <p class="dialogo-contrato__reconciliacao">
+            Entrada + parcelas: <strong>{{ totalCronograma() | currency: 'BRL' }}</strong>
+
+            @if (precoNaoInformado() || diferencaJuros() === 0) {
+              <span class="dialogo-contrato__ok">· Sem juros</span>
+            } @else if (diferencaJuros() > 0) {
+              <span class="dialogo-contrato__juros">
+                · Juros embutidos: {{ diferencaJuros() | currency: 'BRL' }}
+              </span>
+              <button mat-stroked-button type="button" (click)="distribuirJuros()">
+                Distribuir nas parcelas
+              </button>
+            } @else {
+              <span class="dialogo-contrato__alerta">
+                · O preço informado supera o total a pagar em
+                {{ -diferencaJuros() | currency: 'BRL' }} — o custo do lote ficaria superestimado.
+              </span>
+            }
+          </p>
+        </section>
+      }
+
       <section class="dialogo-contrato__gerador" [formGroup]="gerador">
         <h3>Gerar cronograma</h3>
         <p class="dialogo-contrato__nota">

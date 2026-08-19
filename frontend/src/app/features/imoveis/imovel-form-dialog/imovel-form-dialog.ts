@@ -1,15 +1,20 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ContratoFormDialog } from '../../contratos/contrato-form-dialog/contrato-form-dialog';
+import { ContratosService } from '../../contratos/contratos.service';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
@@ -24,8 +29,10 @@ export interface ImovelFormDialogData {
 @Component({
   selector: 'app-imovel-form-dialog',
   imports: [
+    CurrencyPipe,
     ReactiveFormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -40,7 +47,9 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ImoveisService);
   private readonly pessoasService = inject(PessoasService);
+  private readonly contratosService = inject(ContratosService);
   private readonly dialogRef = inject(MatDialogRef<ImovelFormDialog>);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   protected readonly data = inject<ImovelFormDialogData>(MAT_DIALOG_DATA);
 
@@ -102,12 +111,31 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     compraValor: [this.imovel?.compraValor ?? null],
     compraData: [paraData(this.imovel?.compraData) ?? new Date(), Validators.required],
     compraVendedorId: [this.imovel?.compraVendedorId ?? null],
+    compraParcelada: [this.imovel?.compraParcelada ?? false],
     vendaValorPretendido: [this.imovel?.vendaValorPretendido ?? null],
     descricao: [this.imovel?.descricao ?? ''],
   });
 
+  // Na criação parcelada o valor do lote não é pedido: ele espelharia um cronograma que ainda não
+  // existe, e digitar às cegas viraria diferença lida como juros inexistentes (ADR-037). Na edição
+  // o contrato já existe e a correção é deliberada.
+  protected readonly parceladaSelecionada = toSignal(this.form.controls.compraParcelada.valueChanges, {
+    initialValue: this.form.controls.compraParcelada.value,
+  });
+  protected readonly mostrarValorCompra = computed(() => !!this.imovel || !this.parceladaSelecionada());
+
+  protected readonly totalCronogramaContrato = signal(0);
+
   ngOnInit(): void {
     this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+
+    if (this.imovel?.compraParcelada) {
+      this.contratosService.listar(this.imovel.id).subscribe((contratos) => {
+        const compra = contratos.find((c) => c.tipo === 'PARCELAMENTO_COMPRA');
+        const total = (compra?.parcelas ?? []).reduce((soma, p) => soma + p.valor, 0);
+        this.totalCronogramaContrato.set(total);
+      });
+    }
 
     if (this.imovel) {
       this.service.listarFotos(this.imovel.id).subscribe((fotos) => {
@@ -178,6 +206,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
       compraValor: bruto.compraValor,
       compraData: paraIso(bruto.compraData),
       compraVendedorId: bruto.compraVendedorId,
+      compraParcelada: !!bruto.compraParcelada,
       vendaValorPretendido: bruto.vendaValorPretendido,
       descricao: bruto.descricao || null,
     } as ImovelRequestDTO;
@@ -198,8 +227,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   private enviarFotosPendentes(imovelId: number): void {
     const pendentes = this.fotosPendentes();
     if (pendentes.length === 0) {
-      this.snackBar.open('Imóvel salvo com sucesso.', 'Fechar', { duration: 4000 });
-      this.dialogRef.close(true);
+      this.finalizar(imovelId, true);
       return;
     }
 
@@ -214,11 +242,40 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
         ),
       ),
     ).subscribe(() => {
-      const mensagem = falhas.length
-        ? `Imóvel salvo, mas estas fotos não subiram: ${falhas.join(', ')}.`
-        : 'Imóvel salvo com sucesso.';
-      this.snackBar.open(mensagem, 'Fechar', { duration: falhas.length ? 8000 : 4000 });
-      this.dialogRef.close(true);
+      if (falhas.length) {
+        this.snackBar.open(`Imóvel salvo, mas estas fotos não subiram: ${falhas.join(', ')}.`, 'Fechar', {
+          duration: 8000,
+        });
+      }
+      this.finalizar(imovelId, falhas.length === 0);
+    });
+  }
+
+  // Compra parcelada: o contrato é o que define o valor do lote, então ele é aberto na sequência, já
+  // preenchido, em vez de virar uma segunda seção dentro deste formulário (ADR-037).
+  private finalizar(imovelId: number, avisar: boolean): void {
+    const parcelada = !!this.form.controls.compraParcelada.value;
+
+    if (avisar) {
+      this.snackBar.open('Imóvel salvo com sucesso.', 'Fechar', { duration: 4000 });
+    }
+    this.dialogRef.close(true);
+
+    if (this.imovel || !parcelada) {
+      return;
+    }
+
+    this.dialog.open(ContratoFormDialog, {
+      data: {
+        contrato: null,
+        imovelId,
+        tipo: 'PARCELAMENTO_COMPRA' as const,
+        contraparteId: this.form.controls.compraVendedorId.value,
+        dataCompra: paraIso(this.form.controls.compraData.value),
+      },
+      autoFocus: false,
+      width: '680px',
+      maxWidth: '95vw',
     });
   }
 

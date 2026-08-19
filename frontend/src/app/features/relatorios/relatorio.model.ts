@@ -27,6 +27,9 @@ export interface ResultadoImovelDTO {
   custoEstimadoObra: number | null;
   previsaoConclusao: string | null;
   custoRealObra: number;
+  ajusteQuitacao: number;
+  totalDesembolsado: number;
+  saldoAPagar: number;
   despesasPorEtapa: Partial<Record<EtapaConstrucao, number>>;
   valorVenda: number | null;
   valorVendaPretendido: number | null;

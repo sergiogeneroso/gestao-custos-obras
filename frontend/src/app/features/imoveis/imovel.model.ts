@@ -69,6 +69,7 @@ export interface ImovelRequestDTO {
   compraValor: number | null;
   compraData: string;
   compraVendedorId: number | null;
+  compraParcelada: boolean;
   vendaValorPretendido: number | null;
   descricao: string | null;
 }
@@ -91,6 +92,7 @@ export interface ImovelResponseDTO {
   compraValor: number | null;
   compraData: string;
   compraVendedorId: number | null;
+  compraParcelada: boolean;
   compraVendedorNome: string | null;
   vendaValor: number | null;
   vendaData: string | null;

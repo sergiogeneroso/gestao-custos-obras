@@ -89,3 +89,35 @@
   width: 40px;
   color: #6fcf97;
 }
+
+.dialogo-contrato__compra {
+  margin-top: 8px;
+}
+
+.dialogo-contrato__compra-campos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.dialogo-contrato__reconciliacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: #c8cadb;
+  margin: 12px 0 4px;
+}
+
+.dialogo-contrato__ok {
+  color: #6fcf97;
+}
+
+.dialogo-contrato__juros {
+  color: #ffd48a;
+}
+
+.dialogo-contrato__alerta {
+  color: #ff9b9b;
+}
