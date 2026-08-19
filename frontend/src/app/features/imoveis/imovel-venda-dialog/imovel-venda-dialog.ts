@@ -2,11 +2,14 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { paraIso } from '../../../shared/data/data.util';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { ImovelResponseDTO } from '../imovel.model';
@@ -21,10 +24,12 @@ export interface ImovelVendaDialogData {
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MoedaDirective,
   ],
   templateUrl: './imovel-venda-dialog.html',
   styleUrl: './imovel-venda-dialog.scss',
@@ -42,8 +47,8 @@ export class ImovelVendaDialog implements OnInit {
   protected readonly salvando = signal(false);
 
   protected readonly form = this.fb.group({
-    valorVenda: [this.formatarMoeda(this.imovel.vendaValorPretendido), Validators.required],
-    dataVenda: [new Date().toISOString().slice(0, 10), Validators.required],
+    valorVenda: [this.imovel.vendaValorPretendido ?? null, Validators.required],
+    dataVenda: [new Date() as Date | null, Validators.required],
     compradorId: [null as number | null, Validators.required],
   });
 
@@ -61,8 +66,8 @@ export class ImovelVendaDialog implements OnInit {
     this.service
       .alterarSituacao(this.imovel.id, {
         novaSituacao: 'VENDIDO',
-        valorVenda: this.parseMoeda(bruto.valorVenda),
-        dataVenda: bruto.dataVenda,
+        valorVenda: bruto.valorVenda,
+        dataVenda: paraIso(bruto.dataVenda),
         compradorId: bruto.compradorId,
       })
       .subscribe({
@@ -81,22 +86,5 @@ export class ImovelVendaDialog implements OnInit {
 
   protected fechar(): void {
     this.dialogRef.close();
-  }
-
-  protected formatarCampoValor(): void {
-    const controle = this.form.controls.valorVenda;
-    controle.setValue(this.formatarMoeda(this.parseMoeda(controle.value)), { emitEvent: false });
-  }
-
-  private formatarMoeda(valor: number | null): string {
-    return valor != null ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
-  }
-
-  private parseMoeda(texto: string | null): number | null {
-    if (!texto) {
-      return null;
-    }
-    const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
-    return Number.isNaN(numero) ? null : numero;
   }
 }

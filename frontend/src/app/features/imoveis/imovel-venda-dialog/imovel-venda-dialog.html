@@ -13,12 +13,14 @@
       <mat-form-field appearance="outline">
         <mat-label>Valor de venda</mat-label>
         <span matTextPrefix>R$&nbsp;</span>
-        <input matInput type="text" inputmode="decimal" formControlName="valorVenda" (blur)="formatarCampoValor()" />
+        <input matInput appMoeda formControlName="valorVenda" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Data da venda</mat-label>
-        <input matInput type="date" formControlName="dataVenda" />
+        <input matInput [matDatepicker]="dataVendaPicker" formControlName="dataVenda" />
+        <mat-datepicker-toggle matIconSuffix [for]="dataVendaPicker" />
+        <mat-datepicker #dataVendaPicker />
       </mat-form-field>
 
       <mat-form-field appearance="outline">

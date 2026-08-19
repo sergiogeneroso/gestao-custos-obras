@@ -6,6 +6,7 @@ import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { ImovelResponseDTO } from '../imovel.model';
 import { ImoveisService } from '../imoveis.service';
 
@@ -17,7 +18,14 @@ export interface ImovelAVendaDialogData {
 // situação passa por um formulário em vez de ser uma chamada direta.
 @Component({
   selector: 'app-imovel-a-venda-dialog',
-  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MoedaDirective,
+  ],
   templateUrl: './imovel-a-venda-dialog.html',
   styleUrl: './imovel-a-venda-dialog.scss',
 })
