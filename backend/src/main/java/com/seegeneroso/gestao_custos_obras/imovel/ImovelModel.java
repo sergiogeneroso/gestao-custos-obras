@@ -3,9 +3,6 @@ package com.seegeneroso.gestao_custos_obras.imovel;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 
@@ -33,31 +30,41 @@ public class ImovelModel {
     @Builder.Default
     private SituacaoImovel situacao = SituacaoImovel.ADQUIRIDO;
 
+    // Endereço na raiz, no formato convencional (ADR-031): vale para o imóvel inteiro e não muda
+    // de significado quando a fase avança.
     private String endereco;
 
-    // Duas metragens porque o imóvel muda de natureza ao longo do ciclo (ADR-030): a do lote vem
-    // da compra, a construída só existe a partir da obra. Ambas opcionais — a área construída nem
-    // sempre é conhecida quando a construção começa.
-    @Column(name = "area_lote", precision = 10, scale = 2)
-    private BigDecimal areaLote;
+    @Column(length = 20)
+    private String numero;
 
-    @Column(name = "area_construida", precision = 10, scale = 2)
-    private BigDecimal areaConstruida;
+    @Column(length = 100)
+    private String bairro;
 
-    @Column(name = "data_inicio_lote", nullable = false)
-    private LocalDate dataInicioLote;
+    @Column(length = 100)
+    private String cidade;
 
-    @Column(name = "data_inicio_construcao")
-    private LocalDate dataInicioConstrucao;
+    @Column(length = 2)
+    private String uf;
 
-    @Column(name = "data_conclusao_obra")
-    private LocalDate dataConclusaoObra;
+    @Column(length = 9)
+    private String cep;
 
-    @Column(name = "custo_estimado_obra", precision = 14, scale = 2)
-    private BigDecimal custoEstimadoObra;
+    @Column(name = "observacao_endereco")
+    private String observacaoEndereco;
 
-    @Column(name = "previsao_conclusao")
-    private LocalDate previsaoConclusao;
+    // Um @Embedded por fase (ADR-031): as propriedades de lote, construção e casa vivem agrupadas
+    // aqui, numa tabela só, com os nulos das fases ainda não atingidas sendo esperados.
+    @Embedded
+    @Builder.Default
+    private DadosLote lote = new DadosLote();
+
+    @Embedded
+    @Builder.Default
+    private DadosConstrucao construcao = new DadosConstrucao();
+
+    @Embedded
+    @Builder.Default
+    private DadosCasa casa = new DadosCasa();
 
     @Embedded
     @Builder.Default
@@ -74,13 +81,35 @@ public class ImovelModel {
     @Builder.Default
     private Boolean ativo = true;
 
-    // Getters manuais (Lombok não gera os de compra/venda quando já existem): o Hibernate
-    // devolve null para um @Embedded com todas as colunas nulas no banco (em vez do objeto
-    // com campos null que o @Builder.Default promete para uma instância nova), porque
-    // DadosVenda tem uma associação @ManyToOne, fora do que
-    // hibernate.create_empty_composites.enabled cobre. Nunca deixar essa entidade devolver
-    // null aqui é o que garante que ImovelService e RelatorioService podem tratar
-    // imovel.getCompra()/getVenda() como sempre presentes.
+    // Getters manuais (Lombok não gera os que já existem): o Hibernate devolve null para um
+    // @Embedded com todas as colunas nulas no banco (em vez do objeto com campos null que o
+    // @Builder.Default promete para uma instância nova) quando o embeddable tem uma associação
+    // @ManyToOne — caso de DadosVenda e DadosConstrucao —, fora do que
+    // hibernate.create_empty_composites.enabled cobre. Os demais seguem o mesmo padrão de
+    // propósito: o modo de falha é um NPE no meio de cálculo financeiro, e a defesa custa três
+    // linhas. Nunca devolver null aqui é o que garante que ImovelService e RelatorioService podem
+    // tratar estes grupos como sempre presentes.
+    public DadosLote getLote() {
+        if (lote == null) {
+            lote = new DadosLote();
+        }
+        return lote;
+    }
+
+    public DadosConstrucao getConstrucao() {
+        if (construcao == null) {
+            construcao = new DadosConstrucao();
+        }
+        return construcao;
+    }
+
+    public DadosCasa getCasa() {
+        if (casa == null) {
+            casa = new DadosCasa();
+        }
+        return casa;
+    }
+
     public DadosCompra getCompra() {
         if (compra == null) {
             compra = new DadosCompra();

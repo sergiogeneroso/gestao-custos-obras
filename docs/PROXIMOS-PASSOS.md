@@ -227,24 +227,29 @@ fechável e revisável sozinha, na ordem em que estão.
 - [x] Exportação CSV e "Salvar em PDF" via impressão do navegador (`@media
       print` em `relatorios.scss` e `styles.scss`), sem dependência nova
 
-### Etapa L — Backend: propriedades por fase (ADR-031, ADR-032, ADR-033)
+### Etapa L — Backend: propriedades por fase ✅ (ADR-031, ADR-032, ADR-033)
 **Ler antes:** ADR-031 a ADR-033 e `.agents/rules/ciclo-vida-imovel.md`.
-- [ ] `DadosLote`, `DadosConstrucao` e `DadosCasa` como `@Embedded` em
+- [x] `DadosLote`, `DadosConstrucao` e `DadosCasa` como `@Embedded` em
       `ImovelModel`, reaproveitando as colunas que já existem (`area_lote`,
       `area_construida`, `data_inicio_construcao`, `custo_estimado_obra`,
       `previsao_conclusao`, `data_conclusao_obra`) e acrescentando as novas
-- [ ] `DadosConstrucao` tem `@ManyToOne` para `Pessoa` (responsável técnico), então
-      precisa do mesmo getter manual que `compra`/`venda` já têm — sem ele o
-      Hibernate devolve `null` para o embeddable todo-nulo
-- [ ] Remover `dataInicioLote`; `compra.data` vira obrigatória e assume o papel de
+- [x] Getters manuais para os três, como `compra`/`venda` já tinham
+- [x] Remover `dataInicioLote`; `compra.data` obrigatória e assumindo o papel de
       marco inicial em `RelatorioService` (dias em carteira e tempo por fase)
-- [ ] `PATCH /fase` passa a aceitar os dados da fase de destino e
-      `PATCH /situacao` o valor pretendido; `POST` só aceita dados do lote
-- [ ] Migração manual no banco de dev (Flyway pausado): copiar `data_inicio_lote`
-      para `compra_data` onde estiver nula e derrubar a coluna
+- [x] `PATCH /fase` aceita os dados da fase de destino e `PATCH /situacao` o valor
+      pretendido; `POST` só aceita dados do lote
+- [x] Migração manual no banco de dev
+- [x] Endereço na raiz: logradouro, número, bairro, cidade, UF, CEP e observação
+- [x] Frontend ajustado ao contrato novo (só o necessário para seguir funcionando)
 
-**Pronto quando:** dá para cadastrar um lote com matrícula e inscrição municipal,
-avançar para construção informando alvará e ART, e concluir com habite-se.
+**Nota da implementação (Ago 2026):** os DTOs viraram records aninhados
+(`DadosLoteDTO`, `DadosConstrucaoDTO`, `DadosCasaDTO`), reusados entre o cadastro
+e o `PATCH /fase` para a lista de campos de cada fase existir num lugar só. A
+regra "o PUT não preenche fase futura" mora em `ImovelMapper.updateEntityFromDto`,
+que só aplica um grupo quando `imovel.fase` já alcançou aquela fase. O
+`ddl-auto=update` **não** aplica `NOT NULL` em coluna existente, então o
+`ALTER TABLE imovel ALTER COLUMN compra_data SET NOT NULL` foi manual, junto do
+`DROP COLUMN data_inicio_lote`.
 
 ### Etapa M — Frontend: cadastro e transições por fase
 - [ ] Formulário de criação só com os campos do lote

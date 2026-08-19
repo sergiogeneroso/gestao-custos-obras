@@ -16,7 +16,8 @@ public class DadosCompra {
     @Column(name = "compra_valor", precision = 14, scale = 2)
     private BigDecimal valor;
 
-    @Column(name = "compra_data")
+    // Marco inicial da carteira e da fase LOTE (ADR-032) — não existe dataInicioLote separada.
+    @Column(name = "compra_data", nullable = false)
     private LocalDate data;
 
     @ManyToOne

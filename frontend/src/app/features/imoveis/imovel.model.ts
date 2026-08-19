@@ -20,18 +20,54 @@ export const PROXIMA_FASE: Record<FaseImovel, FaseImovel | null> = {
   CASA: null,
 };
 
+// Um grupo por fase do ciclo (ADR-031); o cadastro só preenche o do lote (ADR-033).
+export interface DadosLoteDTO {
+  matricula: string | null;
+  cartorio: string | null;
+  dataRegistro: string | null;
+  inscricaoMunicipal: string | null;
+  area: number | null;
+}
+
+export interface DadosConstrucaoDTO {
+  area: number | null;
+  dataInicio: string | null;
+  previsaoConclusao: string | null;
+  custoEstimado: number | null;
+  alvaraNumero: string | null;
+  alvaraEmissao: string | null;
+  alvaraValidade: string | null;
+  artNumero: string | null;
+  responsavelTecnicoId: number | null;
+  responsavelTecnicoNome: string | null;
+  cno: string | null;
+}
+
+export interface DadosCasaDTO {
+  dataConclusaoObra: string | null;
+  habiteSeNumero: string | null;
+  habiteSeData: string | null;
+  dataAverbacao: string | null;
+  quartos: number | null;
+  suites: number | null;
+  banheiros: number | null;
+  vagasGaragem: number | null;
+}
+
 export interface ImovelRequestDTO {
   identificador: string;
   endereco: string | null;
-  areaLote: number | null;
-  areaConstruida: number | null;
-  dataInicioLote: string;
-  dataInicioConstrucao: string | null;
-  dataConclusaoObra: string | null;
-  custoEstimadoObra: number | null;
-  previsaoConclusao: string | null;
+  numero: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  observacaoEndereco: string | null;
+  lote: DadosLoteDTO | null;
+  construcao: DadosConstrucaoDTO | null;
+  casa: DadosCasaDTO | null;
   compraValor: number | null;
-  compraData: string | null;
+  compraData: string;
   compraVendedorId: number | null;
   vendaValorPretendido: number | null;
   descricao: string | null;
@@ -43,15 +79,17 @@ export interface ImovelResponseDTO {
   fase: FaseImovel;
   situacao: SituacaoImovel;
   endereco: string | null;
-  areaLote: number | null;
-  areaConstruida: number | null;
-  dataInicioLote: string;
-  dataInicioConstrucao: string | null;
-  dataConclusaoObra: string | null;
-  custoEstimadoObra: number | null;
-  previsaoConclusao: string | null;
+  numero: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  observacaoEndereco: string | null;
+  lote: DadosLoteDTO;
+  construcao: DadosConstrucaoDTO;
+  casa: DadosCasaDTO;
   compraValor: number | null;
-  compraData: string | null;
+  compraData: string;
   compraVendedorId: number | null;
   compraVendedorNome: string | null;
   vendaValor: number | null;
@@ -68,6 +106,9 @@ export interface ImovelResponseDTO {
 export interface ImovelFaseRequestDTO {
   novaFase: FaseImovel;
   data: string;
+  // Dados da fase de destino; o dialog que os coleta é a Etapa M.
+  construcao?: Partial<DadosConstrucaoDTO> | null;
+  casa?: Partial<DadosCasaDTO> | null;
 }
 
 export interface ImovelSituacaoRequestDTO {
@@ -75,6 +116,7 @@ export interface ImovelSituacaoRequestDTO {
   valorVenda: number | null;
   dataVenda: string | null;
   compradorId: number | null;
+  vendaValorPretendido?: number | null;
 }
 
 export interface ImovelFotoResponseDTO {

@@ -5,7 +5,10 @@ import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiro
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ParcelaContratoModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
+import com.seegeneroso.gestao_custos_obras.imovel.DadosCasa;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
+import com.seegeneroso.gestao_custos_obras.imovel.DadosConstrucao;
+import com.seegeneroso.gestao_custos_obras.imovel.DadosLote;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosVenda;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
@@ -244,13 +247,30 @@ class RelatorioServiceTest {
     @Test
     void custoObraPorM2ENuloSemAreaConstruida() {
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
-        imovel.setAreaConstruida(null);
+        imovel.getConstrucao().setArea(null);
         mockarSemContratos(imovel, List.of(despesa(imovel, FaseImovel.CONSTRUCAO, new BigDecimal("200000"))));
 
         CustoPorM2DTO custo = relatorioService.custoPorM2(1L, null, null, null);
 
         assertThat(custo.custoObra()).isEqualByComparingTo("200000");
         assertThat(custo.custoObraPorM2()).isNull();
+    }
+
+    @Test
+    void diasEmCarteiraETempoDeLoteContamDaDataDaCompra() {
+        // ADR-032: não existe dataInicioLote — a compra é o marco inicial do ciclo. Se alguém
+        // trocar a origem dessa contagem, giro e rentabilidade passam a mentir em silêncio.
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        imovel.getCompra().setData(LocalDate.now().minusDays(200));
+        imovel.getConstrucao().setDataInicio(LocalDate.now().minusDays(50));
+
+        mockar(imovel, List.of(), List.of());
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.diasEmCarteira()).isEqualTo(200L);
+        assertThat(resultado.tempoPorFase().get(FaseImovel.LOTE)).isEqualTo(150L);
+        assertThat(resultado.tempoPorFase().get(FaseImovel.CONSTRUCAO)).isEqualTo(50L);
     }
 
     // custoPorM2 não consulta contratos — stubar findByImovelId aqui viraria UnnecessaryStubbing.
@@ -271,9 +291,9 @@ class RelatorioServiceTest {
                 .identificador("Lote " + id)
                 .fase(FaseImovel.LOTE)
                 .situacao(SituacaoImovel.ADQUIRIDO)
-                .dataInicioLote(LocalDate.now().minusDays(100))
-                .areaLote(new BigDecimal("500"))
-                .areaConstruida(new BigDecimal("100"))
+                .lote(DadosLote.builder().area(new BigDecimal("500")).build())
+                .construcao(DadosConstrucao.builder().area(new BigDecimal("100")).build())
+                .casa(new DadosCasa())
                 .compra(DadosCompra.builder().valor(valorCompra).data(LocalDate.now().minusDays(100)).build())
                 .venda(new DadosVenda())
                 .ativo(true)

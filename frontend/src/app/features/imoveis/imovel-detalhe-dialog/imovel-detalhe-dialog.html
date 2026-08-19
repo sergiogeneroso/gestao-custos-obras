@@ -70,22 +70,22 @@
       <div>
         <p class="detalhe-imovel__label">Área do lote</p>
         <p class="detalhe-imovel__valor">
-          @if (imovel().areaLote !== null) {
-            {{ imovel().areaLote | number: '1.0-2' }} m²
+          @if (imovel().lote.area !== null) {
+            {{ imovel().lote.area | number: '1.0-2' }} m²
           } @else {
             —
           }
         </p>
       </div>
-      @if (imovel().areaConstruida !== null) {
+      @if (imovel().construcao.area !== null) {
         <div>
           <p class="detalhe-imovel__label">Área construída</p>
-          <p class="detalhe-imovel__valor">{{ imovel().areaConstruida | number: '1.0-2' }} m²</p>
+          <p class="detalhe-imovel__valor">{{ imovel().construcao.area | number: '1.0-2' }} m²</p>
         </div>
       }
       <div>
-        <p class="detalhe-imovel__label">Data de início como lote</p>
-        <p class="detalhe-imovel__valor">{{ imovel().dataInicioLote | date: 'dd/MM/yyyy' }}</p>
+        <p class="detalhe-imovel__label">Data da compra</p>
+        <p class="detalhe-imovel__valor">{{ imovel().compraData | date: 'dd/MM/yyyy' }}</p>
       </div>
       <div class="detalhe-imovel__campo-largo">
         <p class="detalhe-imovel__label">Endereço</p>
@@ -123,16 +123,16 @@
         </div>
       }
 
-      @if (imovel().custoEstimadoObra !== null) {
+      @if (imovel().construcao.custoEstimado !== null) {
         <div>
           <p class="detalhe-imovel__label">Custo estimado da obra</p>
-          <p class="detalhe-imovel__valor">{{ imovel().custoEstimadoObra | currency: 'BRL' }}</p>
+          <p class="detalhe-imovel__valor">{{ imovel().construcao.custoEstimado | currency: 'BRL' }}</p>
         </div>
       }
-      @if (imovel().previsaoConclusao !== null) {
+      @if (imovel().construcao.previsaoConclusao !== null) {
         <div>
           <p class="detalhe-imovel__label">Previsão de conclusão</p>
-          <p class="detalhe-imovel__valor">{{ imovel().previsaoConclusao | date: 'dd/MM/yyyy' }}</p>
+          <p class="detalhe-imovel__valor">{{ imovel().construcao.previsaoConclusao | date: 'dd/MM/yyyy' }}</p>
         </div>
       }
 

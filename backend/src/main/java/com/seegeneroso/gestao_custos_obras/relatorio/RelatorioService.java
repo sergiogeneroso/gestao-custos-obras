@@ -77,11 +77,11 @@ public class RelatorioService {
         // Dois indicadores porque as metragens medem coisas diferentes (ADR-030): o custo do imóvel
         // sobre a área do lote, e o custo da obra sobre a área construída — este último é o que
         // compara uma construção com outra.
-        BigDecimal custoPorM2 = dividirPorArea(custoTotal, imovel.getAreaLote());
-        BigDecimal custoObraPorM2 = dividirPorArea(custoObra, imovel.getAreaConstruida());
+        BigDecimal custoPorM2 = dividirPorArea(custoTotal, imovel.getLote().getArea());
+        BigDecimal custoObraPorM2 = dividirPorArea(custoObra, imovel.getConstrucao().getArea());
 
-        return new CustoPorM2DTO(imovelId, imovel.getIdentificador(), imovel.getAreaLote(),
-                imovel.getAreaConstruida(), custoTotal, custoPorM2, custoObra, custoObraPorM2);
+        return new CustoPorM2DTO(imovelId, imovel.getIdentificador(), imovel.getLote().getArea(),
+                imovel.getConstrucao().getArea(), custoTotal, custoPorM2, custoObra, custoObraPorM2);
     }
 
     private BigDecimal dividirPorArea(BigDecimal valor, BigDecimal area) {
@@ -147,7 +147,7 @@ public class RelatorioService {
         boolean vendido = imovel.getSituacao() == SituacaoImovel.VENDIDO;
         LocalDate fimCarteira = vendido && imovel.getVenda().getData() != null
                 ? imovel.getVenda().getData() : LocalDate.now();
-        long diasEmCarteira = ChronoUnit.DAYS.between(imovel.getDataInicioLote(), fimCarteira);
+        long diasEmCarteira = ChronoUnit.DAYS.between(imovel.getCompra().getData(), fimCarteira);
 
         BigDecimal lucro = null;
         BigDecimal margem = null;
@@ -172,7 +172,7 @@ public class RelatorioService {
                 imovel.getId(), imovel.getIdentificador(), imovel.getFase(), imovel.getSituacao(),
                 imovel.getCompra().getValor(),
                 despesasPorFase, totalDespesas, jurosPagos, custoTotal,
-                imovel.getCustoEstimadoObra(), imovel.getPrevisaoConclusao(),
+                imovel.getConstrucao().getCustoEstimado(), imovel.getConstrucao().getPrevisaoConclusao(),
                 despesasPorFase.getOrDefault(FaseImovel.CONSTRUCAO, BigDecimal.ZERO),
                 imovel.getVenda().getValor(), imovel.getVenda().getValorPretendido(), imovel.getVenda().getData(),
                 lucro, margem, diasEmCarteira, tempoPorFase(imovel), rentabilidadeAnualizada, resultadoProvisorio,
@@ -296,18 +296,18 @@ public class RelatorioService {
         LocalDate hoje = LocalDate.now();
         Map<FaseImovel, Long> tempo = new EnumMap<>(FaseImovel.class);
 
-        LocalDate fimLote = imovel.getDataInicioConstrucao() != null ? imovel.getDataInicioConstrucao() : hoje;
-        tempo.put(FaseImovel.LOTE, ChronoUnit.DAYS.between(imovel.getDataInicioLote(), fimLote));
+        LocalDate fimLote = imovel.getConstrucao().getDataInicio() != null ? imovel.getConstrucao().getDataInicio() : hoje;
+        tempo.put(FaseImovel.LOTE, ChronoUnit.DAYS.between(imovel.getCompra().getData(), fimLote));
 
-        if (imovel.getDataInicioConstrucao() != null) {
-            LocalDate fimConstrucao = imovel.getDataConclusaoObra() != null ? imovel.getDataConclusaoObra() : hoje;
-            tempo.put(FaseImovel.CONSTRUCAO, ChronoUnit.DAYS.between(imovel.getDataInicioConstrucao(), fimConstrucao));
+        if (imovel.getConstrucao().getDataInicio() != null) {
+            LocalDate fimConstrucao = imovel.getCasa().getDataConclusaoObra() != null ? imovel.getCasa().getDataConclusaoObra() : hoje;
+            tempo.put(FaseImovel.CONSTRUCAO, ChronoUnit.DAYS.between(imovel.getConstrucao().getDataInicio(), fimConstrucao));
         }
 
-        if (imovel.getDataConclusaoObra() != null) {
+        if (imovel.getCasa().getDataConclusaoObra() != null) {
             boolean vendido = imovel.getSituacao() == SituacaoImovel.VENDIDO && imovel.getVenda().getData() != null;
             LocalDate fimCasa = vendido ? imovel.getVenda().getData() : hoje;
-            tempo.put(FaseImovel.CASA, ChronoUnit.DAYS.between(imovel.getDataConclusaoObra(), fimCasa));
+            tempo.put(FaseImovel.CASA, ChronoUnit.DAYS.between(imovel.getCasa().getDataConclusaoObra(), fimCasa));
         }
 
         return tempo;

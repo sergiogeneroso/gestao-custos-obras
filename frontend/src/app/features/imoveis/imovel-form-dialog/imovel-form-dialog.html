@@ -14,14 +14,39 @@
           <input matInput formControlName="identificador" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Data de início como lote</mat-label>
-          <input matInput type="date" formControlName="dataInicioLote" />
-        </mat-form-field>
-
         <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
           <mat-label>Endereço</mat-label>
           <input matInput formControlName="endereco" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Número</mat-label>
+          <input matInput formControlName="numero" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Bairro</mat-label>
+          <input matInput formControlName="bairro" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Cidade</mat-label>
+          <input matInput formControlName="cidade" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>UF</mat-label>
+          <input matInput maxlength="2" formControlName="uf" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>CEP</mat-label>
+          <input matInput formControlName="cep" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
+          <mat-label>Observação do endereço</mat-label>
+          <input matInput formControlName="observacaoEndereco" />
         </mat-form-field>
 
         <mat-form-field appearance="outline">

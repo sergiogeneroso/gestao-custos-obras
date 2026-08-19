@@ -1,8 +1,12 @@
 package com.seegeneroso.gestao_custos_obras.imovel;
 
+import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosCasaDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosConstrucaoDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosLoteDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,32 +23,35 @@ public class ImovelMapper {
                 .valorPretendido(dto.vendaValorPretendido())
                 .build();
 
-        return ImovelModel.builder()
+        ImovelModel imovel = ImovelModel.builder()
                 .identificador(dto.identificador())
                 .endereco(dto.endereco())
-                .areaLote(dto.areaLote())
-                .areaConstruida(dto.areaConstruida())
-                .dataInicioLote(dto.dataInicioLote())
-                .dataInicioConstrucao(dto.dataInicioConstrucao())
-                .dataConclusaoObra(dto.dataConclusaoObra())
-                .custoEstimadoObra(dto.custoEstimadoObra())
-                .previsaoConclusao(dto.previsaoConclusao())
+                .numero(dto.numero())
+                .bairro(dto.bairro())
+                .cidade(dto.cidade())
+                .uf(dto.uf())
+                .cep(dto.cep())
+                .observacaoEndereco(dto.observacaoEndereco())
                 .compra(compra)
                 .venda(venda)
                 .descricao(dto.descricao())
                 .build();
+
+        // Imóvel novo nasce LOTE (ADR-020), então só o grupo do lote é aplicado aqui.
+        aplicarLote(dto.lote(), imovel);
+        return imovel;
     }
 
-    public void updateEntityFromDto(ImovelRequestDTO dto, PessoaModel vendedor, ImovelModel imovel) {
+    public void updateEntityFromDto(ImovelRequestDTO dto, PessoaModel vendedor,
+                                    PessoaModel responsavelTecnico, ImovelModel imovel) {
         imovel.setIdentificador(dto.identificador());
         imovel.setEndereco(dto.endereco());
-        imovel.setAreaLote(dto.areaLote());
-        imovel.setAreaConstruida(dto.areaConstruida());
-        imovel.setDataInicioLote(dto.dataInicioLote());
-        imovel.setDataInicioConstrucao(dto.dataInicioConstrucao());
-        imovel.setDataConclusaoObra(dto.dataConclusaoObra());
-        imovel.setCustoEstimadoObra(dto.custoEstimadoObra());
-        imovel.setPrevisaoConclusao(dto.previsaoConclusao());
+        imovel.setNumero(dto.numero());
+        imovel.setBairro(dto.bairro());
+        imovel.setCidade(dto.cidade());
+        imovel.setUf(dto.uf());
+        imovel.setCep(dto.cep());
+        imovel.setObservacaoEndereco(dto.observacaoEndereco());
         imovel.setDescricao(dto.descricao());
 
         imovel.getCompra().setValor(dto.compraValor());
@@ -52,6 +59,72 @@ public class ImovelMapper {
         imovel.getCompra().setVendedor(vendedor);
 
         imovel.getVenda().setValorPretendido(dto.vendaValorPretendido());
+
+        aplicarLote(dto.lote(), imovel);
+
+        // A edição corrige dado de fase já vivida, nunca preenche fase futura (ADR-033): quem não
+        // chegou na construção não grava alvará pelo PUT, e sim pela transição de fase.
+        if (alcancou(imovel, FaseImovel.CONSTRUCAO)) {
+            aplicarConstrucao(dto.construcao(), responsavelTecnico, imovel);
+        }
+        if (alcancou(imovel, FaseImovel.CASA)) {
+            aplicarCasa(dto.casa(), imovel);
+        }
+    }
+
+    public boolean alcancou(ImovelModel imovel, FaseImovel fase) {
+        return imovel.getFase().ordinal() >= fase.ordinal();
+    }
+
+    public void aplicarLote(DadosLoteDTO dto, ImovelModel imovel) {
+        if (dto == null) {
+            return;
+        }
+        DadosLote lote = imovel.getLote();
+        lote.setMatricula(dto.matricula());
+        lote.setCartorio(dto.cartorio());
+        lote.setDataRegistro(dto.dataRegistro());
+        lote.setInscricaoMunicipal(dto.inscricaoMunicipal());
+        lote.setArea(dto.area());
+    }
+
+    public void aplicarConstrucao(DadosConstrucaoDTO dto, PessoaModel responsavelTecnico, ImovelModel imovel) {
+        if (dto == null) {
+            return;
+        }
+        DadosConstrucao construcao = imovel.getConstrucao();
+        construcao.setArea(dto.area());
+        construcao.setPrevisaoConclusao(dto.previsaoConclusao());
+        construcao.setCustoEstimado(dto.custoEstimado());
+        construcao.setAlvaraNumero(dto.alvaraNumero());
+        construcao.setAlvaraEmissao(dto.alvaraEmissao());
+        construcao.setAlvaraValidade(dto.alvaraValidade());
+        construcao.setArtNumero(dto.artNumero());
+        construcao.setResponsavelTecnico(responsavelTecnico);
+        construcao.setCno(dto.cno());
+
+        // dataInicio não vem daqui na transição: quem grava é avancarFase, com a data do fato.
+        if (dto.dataInicio() != null) {
+            construcao.setDataInicio(dto.dataInicio());
+        }
+    }
+
+    public void aplicarCasa(DadosCasaDTO dto, ImovelModel imovel) {
+        if (dto == null) {
+            return;
+        }
+        DadosCasa casa = imovel.getCasa();
+        casa.setHabiteSeNumero(dto.habiteSeNumero());
+        casa.setHabiteSeData(dto.habiteSeData());
+        casa.setDataAverbacao(dto.dataAverbacao());
+        casa.setQuartos(dto.quartos());
+        casa.setSuites(dto.suites());
+        casa.setBanheiros(dto.banheiros());
+        casa.setVagasGaragem(dto.vagasGaragem());
+
+        if (dto.dataConclusaoObra() != null) {
+            casa.setDataConclusaoObra(dto.dataConclusaoObra());
+        }
     }
 
     public ImovelResponseDTO toResponseDTO(ImovelModel imovel, String fotoPrincipalUrl) {
@@ -61,6 +134,10 @@ public class ImovelMapper {
     public ImovelResponseDTO toResponseDTO(ImovelModel imovel, String fotoPrincipalUrl, String aviso) {
         DadosCompra compra = imovel.getCompra();
         DadosVenda venda = imovel.getVenda();
+        DadosLote lote = imovel.getLote();
+        DadosConstrucao construcao = imovel.getConstrucao();
+        DadosCasa casa = imovel.getCasa();
+        PessoaModel responsavelTecnico = construcao.getResponsavelTecnico();
 
         return new ImovelResponseDTO(
                 imovel.getId(),
@@ -68,22 +145,35 @@ public class ImovelMapper {
                 imovel.getFase(),
                 imovel.getSituacao(),
                 imovel.getEndereco(),
-                imovel.getAreaLote(),
-                imovel.getAreaConstruida(),
-                imovel.getDataInicioLote(),
-                imovel.getDataInicioConstrucao(),
-                imovel.getDataConclusaoObra(),
-                imovel.getCustoEstimadoObra(),
-                imovel.getPrevisaoConclusao(),
-                compra != null ? compra.getValor() : null,
-                compra != null ? compra.getData() : null,
-                compra != null && compra.getVendedor() != null ? compra.getVendedor().getId() : null,
-                compra != null && compra.getVendedor() != null ? compra.getVendedor().getNome() : null,
-                venda != null ? venda.getValor() : null,
-                venda != null ? venda.getData() : null,
-                venda != null && venda.getComprador() != null ? venda.getComprador().getId() : null,
-                venda != null && venda.getComprador() != null ? venda.getComprador().getNome() : null,
-                venda != null ? venda.getValorPretendido() : null,
+                imovel.getNumero(),
+                imovel.getBairro(),
+                imovel.getCidade(),
+                imovel.getUf(),
+                imovel.getCep(),
+                imovel.getObservacaoEndereco(),
+                new DadosLoteDTO(
+                        lote.getMatricula(), lote.getCartorio(), lote.getDataRegistro(),
+                        lote.getInscricaoMunicipal(), lote.getArea()),
+                new DadosConstrucaoDTO(
+                        construcao.getArea(), construcao.getDataInicio(), construcao.getPrevisaoConclusao(),
+                        construcao.getCustoEstimado(), construcao.getAlvaraNumero(), construcao.getAlvaraEmissao(),
+                        construcao.getAlvaraValidade(), construcao.getArtNumero(),
+                        responsavelTecnico != null ? responsavelTecnico.getId() : null,
+                        responsavelTecnico != null ? responsavelTecnico.getNome() : null,
+                        construcao.getCno()),
+                new DadosCasaDTO(
+                        casa.getDataConclusaoObra(), casa.getHabiteSeNumero(), casa.getHabiteSeData(),
+                        casa.getDataAverbacao(), casa.getQuartos(), casa.getSuites(),
+                        casa.getBanheiros(), casa.getVagasGaragem()),
+                compra.getValor(),
+                compra.getData(),
+                compra.getVendedor() != null ? compra.getVendedor().getId() : null,
+                compra.getVendedor() != null ? compra.getVendedor().getNome() : null,
+                venda.getValor(),
+                venda.getData(),
+                venda.getComprador() != null ? venda.getComprador().getId() : null,
+                venda.getComprador() != null ? venda.getComprador().getNome() : null,
+                venda.getValorPretendido(),
                 imovel.getDescricao(),
                 imovel.getAtivo(),
                 fotoPrincipalUrl,

@@ -49,15 +49,20 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
     endereco: [this.imovel?.endereco ?? ''],
-    areaLote: [this.imovel?.areaLote ?? null, Validators.min(0)],
-    areaConstruida: [this.imovel?.areaConstruida ?? null, Validators.min(0)],
-    dataInicioLote: [this.imovel?.dataInicioLote ?? this.hoje(), Validators.required],
-    dataInicioConstrucao: [this.imovel?.dataInicioConstrucao ?? ''],
-    dataConclusaoObra: [this.imovel?.dataConclusaoObra ?? ''],
-    custoEstimadoObra: [this.formatarMoeda(this.imovel?.custoEstimadoObra ?? null)],
-    previsaoConclusao: [this.imovel?.previsaoConclusao ?? ''],
+    numero: [this.imovel?.numero ?? ''],
+    bairro: [this.imovel?.bairro ?? ''],
+    cidade: [this.imovel?.cidade ?? ''],
+    uf: [this.imovel?.uf ?? ''],
+    cep: [this.imovel?.cep ?? ''],
+    observacaoEndereco: [this.imovel?.observacaoEndereco ?? ''],
+    areaLote: [this.imovel?.lote?.area ?? null, Validators.min(0)],
+    areaConstruida: [this.imovel?.construcao?.area ?? null, Validators.min(0)],
+    dataInicioConstrucao: [this.imovel?.construcao?.dataInicio ?? ''],
+    dataConclusaoObra: [this.imovel?.casa?.dataConclusaoObra ?? ''],
+    custoEstimadoObra: [this.formatarMoeda(this.imovel?.construcao?.custoEstimado ?? null)],
+    previsaoConclusao: [this.imovel?.construcao?.previsaoConclusao ?? ''],
     compraValor: [this.formatarMoeda(this.imovel?.compraValor ?? null)],
-    compraData: [this.imovel?.compraData ?? ''],
+    compraData: [this.imovel?.compraData ?? this.hoje(), Validators.required],
     compraVendedorId: [this.imovel?.compraVendedorId ?? null],
     vendaValorPretendido: [this.formatarMoeda(this.imovel?.vendaValorPretendido ?? null)],
     descricao: [this.imovel?.descricao ?? ''],
@@ -86,15 +91,40 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     this.salvando.set(true);
 
     const bruto = this.form.getRawValue();
+    // Os campos das fases vão agrupados (ADR-031); construcao e casa só são aplicados pelo backend
+    // se o imóvel já alcançou aquela fase.
     const dto = {
-      ...bruto,
-      dataInicioConstrucao: bruto.dataInicioConstrucao || null,
-      dataConclusaoObra: bruto.dataConclusaoObra || null,
-      previsaoConclusao: bruto.previsaoConclusao || null,
-      compraData: bruto.compraData || null,
-      custoEstimadoObra: this.parseMoeda(bruto.custoEstimadoObra),
+      identificador: bruto.identificador,
+      endereco: bruto.endereco || null,
+      numero: bruto.numero || null,
+      bairro: bruto.bairro || null,
+      cidade: bruto.cidade || null,
+      uf: bruto.uf || null,
+      cep: bruto.cep || null,
+      observacaoEndereco: bruto.observacaoEndereco || null,
+      lote: {
+        matricula: this.imovel?.lote?.matricula ?? null,
+        cartorio: this.imovel?.lote?.cartorio ?? null,
+        dataRegistro: this.imovel?.lote?.dataRegistro ?? null,
+        inscricaoMunicipal: this.imovel?.lote?.inscricaoMunicipal ?? null,
+        area: bruto.areaLote,
+      },
+      construcao: {
+        ...this.imovel?.construcao,
+        area: bruto.areaConstruida,
+        dataInicio: bruto.dataInicioConstrucao || null,
+        previsaoConclusao: bruto.previsaoConclusao || null,
+        custoEstimado: this.parseMoeda(bruto.custoEstimadoObra),
+      },
+      casa: {
+        ...this.imovel?.casa,
+        dataConclusaoObra: bruto.dataConclusaoObra || null,
+      },
       compraValor: this.parseMoeda(bruto.compraValor),
+      compraData: bruto.compraData,
+      compraVendedorId: bruto.compraVendedorId,
       vendaValorPretendido: this.parseMoeda(bruto.vendaValorPretendido),
+      descricao: bruto.descricao || null,
     } as ImovelRequestDTO;
     const requisicao = this.imovel ? this.service.atualizar(this.imovel.id, dto) : this.service.criar(dto);
 

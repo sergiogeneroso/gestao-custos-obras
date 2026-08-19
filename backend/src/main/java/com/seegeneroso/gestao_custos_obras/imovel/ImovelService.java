@@ -78,7 +78,10 @@ public class ImovelService {
         }
 
         PessoaModel vendedor = buscarPessoaOpcional(dto.compraVendedorId());
-        imovelMapper.updateEntityFromDto(dto, vendedor, imovel);
+        PessoaModel responsavelTecnico = dto.construcao() != null
+                ? buscarPessoaOpcional(dto.construcao().responsavelTecnicoId())
+                : null;
+        imovelMapper.updateEntityFromDto(dto, vendedor, responsavelTecnico, imovel);
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
         return imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
     }
@@ -98,9 +101,11 @@ public class ImovelService {
                             (atual + 1 < ordem.length ? " → " + ordem[atual + 1] : "") + ").");
         }
 
+        // A data da compra é o marco inicial do ciclo (ADR-032), então é ela que a entrada na
+        // construção não pode anteceder.
         java.time.LocalDate dataAnterior = switch (dto.novaFase()) {
-            case CONSTRUCAO -> imovel.getDataInicioLote();
-            case CASA -> imovel.getDataInicioConstrucao();
+            case CONSTRUCAO -> imovel.getCompra().getData();
+            case CASA -> imovel.getConstrucao().getDataInicio();
             case LOTE -> throw new RegraDeNegocioException("LOTE é a fase inicial; não é um destino de transição.");
         };
 
@@ -108,9 +113,20 @@ public class ImovelService {
             throw new RegraDeNegocioException("A data da transição não pode ser anterior à data da fase anterior.");
         }
 
+        // Os dados da fase de destino chegam junto com a transição (ADR-033); a data do fato é
+        // sempre a informada aqui, não a que vier dentro do grupo.
         switch (dto.novaFase()) {
-            case CONSTRUCAO -> imovel.setDataInicioConstrucao(dto.data());
-            case CASA -> imovel.setDataConclusaoObra(dto.data());
+            case CONSTRUCAO -> {
+                PessoaModel responsavelTecnico = dto.construcao() != null
+                        ? buscarPessoaOpcional(dto.construcao().responsavelTecnicoId())
+                        : null;
+                imovelMapper.aplicarConstrucao(dto.construcao(), responsavelTecnico, imovel);
+                imovel.getConstrucao().setDataInicio(dto.data());
+            }
+            case CASA -> {
+                imovelMapper.aplicarCasa(dto.casa(), imovel);
+                imovel.getCasa().setDataConclusaoObra(dto.data());
+            }
             case LOTE -> { }
         }
         imovel.setFase(dto.novaFase());
@@ -148,6 +164,11 @@ public class ImovelService {
             imovel.getVenda().setValor(dto.valorVenda());
             imovel.getVenda().setData(dto.dataVenda());
             imovel.getVenda().setComprador(comprador);
+        }
+
+        // Colocar à venda é o momento em que o valor pretendido é decidido (ADR-033).
+        if (dto.novaSituacao() == SituacaoImovel.A_VENDA && dto.vendaValorPretendido() != null) {
+            imovel.getVenda().setValorPretendido(dto.vendaValorPretendido());
         }
 
         imovel.setSituacao(dto.novaSituacao());

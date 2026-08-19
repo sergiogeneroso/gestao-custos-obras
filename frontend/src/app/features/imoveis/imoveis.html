@@ -67,8 +67,8 @@
             <td><span class="tag" [class]="'tag--' + imovel.fase">{{ faseLabel[imovel.fase] }}</span></td>
             <td><span class="tag" [class]="'tag--' + imovel.situacao">{{ situacaoLabel[imovel.situacao] }}</span></td>
             <td class="table__num">
-              @if (imovel.areaLote !== null) {
-                {{ imovel.areaLote | number: '1.0-2' }} m²
+              @if (imovel.lote.area !== null) {
+                {{ imovel.lote.area | number: '1.0-2' }} m²
               } @else {
                 —
               }
@@ -113,8 +113,8 @@
               <div>
                 <p class="card__metrica-label">Área do lote</p>
                 <p class="card__metrica-valor">
-                  @if (imovel.areaLote !== null) {
-                    {{ imovel.areaLote | number: '1.0-2' }} m²
+                  @if (imovel.lote.area !== null) {
+                    {{ imovel.lote.area | number: '1.0-2' }} m²
                   } @else {
                     —
                   }

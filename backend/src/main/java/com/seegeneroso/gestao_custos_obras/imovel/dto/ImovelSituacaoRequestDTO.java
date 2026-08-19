@@ -12,5 +12,8 @@ public record ImovelSituacaoRequestDTO(
 
         BigDecimal valorVenda,
         LocalDate dataVenda,
-        Long compradorId
+        Long compradorId,
+
+        // Só faz sentido ao colocar à venda; é o momento em que o valor pretendido é decidido.
+        BigDecimal vendaValorPretendido
 ) {}
