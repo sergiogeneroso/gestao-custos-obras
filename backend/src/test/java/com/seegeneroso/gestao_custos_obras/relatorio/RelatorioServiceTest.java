@@ -164,6 +164,34 @@ class RelatorioServiceTest {
         assertThat(relatorioService.resultadoImovel(1L).resultadoProvisorio()).isTrue();
     }
 
+    // ADR-038: lote comprado e revendido sem obra nenhuma fecha o ciclo em LOTE — nada mais vai
+    // chegar, então o resultado é definitivo. Antes, `fase != CASA` marcava esse caso para sempre.
+    @Test
+    void loteRevendidoSemObraNaoTemResultadoProvisorio() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.getVenda().setValor(new BigDecimal("150000"));
+        imovel.getVenda().setData(LocalDate.now());
+        mockar(imovel, List.of(), List.of());
+
+        assertThat(relatorioService.resultadoImovel(1L).resultadoProvisorio()).isFalse();
+    }
+
+    // Chave nula derrubava o groupingBy por fase e devolvia 500 na tela de resultado.
+    @Test
+    void despesaComFaseNulaNaoDerrubaOResultado() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        DespesaModel semFase = despesa(imovel, null, new BigDecimal("2000"));
+        mockar(imovel, List.of(despesa(imovel, FaseImovel.LOTE, new BigDecimal("1000")), semFase), List.of());
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.despesasPorFase()).containsOnlyKeys(FaseImovel.LOTE);
+        // Fora do quadro por fase, mas dentro do total e, portanto, do custo.
+        assertThat(resultado.totalDespesas()).isEqualByComparingTo("3000");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("103000");
+    }
+
     @Test
     void quitacaoEntraNoTotalPagoNuncaNoCustoESaldoDevedorZera() {
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));

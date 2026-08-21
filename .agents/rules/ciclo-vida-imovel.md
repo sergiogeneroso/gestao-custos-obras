@@ -25,8 +25,10 @@ cometer aqui:
 - **Imóvel vendido continua aceitando despesa** — obra em andamento, corretagem,
   imposto sobre o ganho e acertos chegam depois da venda e são custo real
 - **Resultado de imóvel vendido com obra pendente é provisório**
-  (`situacao = VENDIDO` e `fase != CASA`): marcar como tal e mostrar apenas o
-  realizado, sem projetar lucro
+  (`situacao = VENDIDO` e `fase = CONSTRUCAO`): marcar como tal e mostrar apenas
+  o realizado, sem projetar lucro. Obra pendente é obra **em andamento**, não
+  "fase diferente de CASA" (ADR-038): lote comprado e revendido sem obra nenhuma
+  fecha o ciclo em `LOTE` e tem resultado definitivo
 - **A despesa guarda a fase em que foi incorrida**, não a fase atual do imóvel —
   é o que faz lançamento retroativo cair no lugar certo. Preencher com a fase
   atual só como padrão, sempre editável
@@ -71,7 +73,11 @@ LOTE, e é obrigatória (ADR-032).
   Não ser automática não significa poder ficar vazia
 - **Ordem coerente:** `compra.data` ≤ `dataInicioConstrucao` ≤
   `dataConclusaoObra`. Validar na transição e na edição — data fora de ordem
-  produziria tempo negativo por fase no relatório
+  produziria tempo negativo por fase no relatório. A checagem vive em
+  `ImovelService.validarOrdemDatas`, chamada por `atualizar` e por `avancarFase`
+  **sobre o estado já aplicado**: um ponto só, para as duas portas não
+  divergirem. Data nula é ignorada, não recusada — fase não alcançada não tem
+  data
 
 **Não são decorativas:** alimentam tempo por fase, giro e rentabilidade, e são
 dado que não pode ser reconstruído depois.

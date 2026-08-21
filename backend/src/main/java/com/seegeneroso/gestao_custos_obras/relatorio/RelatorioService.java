@@ -138,7 +138,12 @@ public class RelatorioService {
         List<DespesaModel> despesas = despesaRepository.findByImovelIdAndAtivoTrue(imovelId);
         List<ContratoFinanceiroModel> contratos = contratoFinanceiroRepository.findByImovelId(imovelId);
 
+        // Despesa de imóvel sempre nasce com fase (DespesaService herda a fase atual quando o
+        // usuário não informa), mas linha antiga ou editada à mão pode ter fase nula — e chave nula
+        // derruba o groupingBy. Fica de fora do quadro, como já acontece com a etapa de obra;
+        // totalDespesas continua somando todas, então o custo não muda.
         Map<FaseImovel, BigDecimal> despesasPorFase = despesas.stream()
+                .filter(d -> d.getFaseImovel() != null)
                 .collect(Collectors.groupingBy(DespesaModel::getFaseImovel,
                         Collectors.reducing(BigDecimal.ZERO, DespesaModel::getValor, BigDecimal::add)));
         // Recorte só de apresentação: não entra no custoTotal, que já contabiliza estas mesmas
@@ -174,7 +179,11 @@ public class RelatorioService {
             rentabilidadeAnualizada = Math.pow(1 + roi, 365.0 / diasEmCarteira) - 1;
         }
 
-        boolean resultadoProvisorio = vendido && imovel.getFase() != FaseImovel.CASA;
+        // Provisório é o imóvel vendido com a obra correndo, não todo vendido fora da fase CASA
+        // (ADR-038): lote comprado e revendido sem obra nenhuma fecha o ciclo em LOTE e tem
+        // resultado definitivo. Se o comprador começar a obra depois, a fase avança para CONSTRUCAO
+        // e o resultado volta a ser provisório sozinho.
+        boolean resultadoProvisorio = vendido && imovel.getFase() == FaseImovel.CONSTRUCAO;
 
         return new ResultadoImovelDTO(
                 imovel.getId(), imovel.getIdentificador(), imovel.getFase(), imovel.getSituacao(),

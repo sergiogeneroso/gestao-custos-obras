@@ -17,6 +17,10 @@ public class ImovelModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Único sem depender do case ("LOTE-01" e "lote-01" são o mesmo imóvel). A garantia mora no
+    // índice funcional ux_imovel_identificador_lower (db/manual/2026-08-identificador-imovel-unico.sql),
+    // que o Hibernate não sabe expressar — por isso nada de unique = true aqui, que criaria uma
+    // constraint case-sensitive em paralelo. O índice entra no baseline quando o Flyway voltar.
     @Column(nullable = false, length = 50)
     private String identificador;
 

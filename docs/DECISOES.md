@@ -767,3 +767,36 @@ Coberto por `RelatorioServiceTest` e `ContratoFinanceiroServiceTest`.
 **Pendência conhecida, deliberadamente fora deste escopo:** a mesma matemática
 valeria para `FINANCIAMENTO_CONSTRUCAO`, onde a parte de juros embutida na
 quitação também se perde hoje. Não é esquecimento — é escopo.
+
+## ADR-038 — Resultado provisório é obra em andamento, não "fase ≠ CASA" (Ago 2026)
+
+Corrige a redação da **ADR-020**, que definiu o resultado provisório como
+`situacao = VENDIDO` **e** `fase != CASA`. A intenção estava certa — imóvel
+vendido com a obra correndo ainda vai receber despesa, então o lucro exibido não
+é o final. A tradução em código é que estava larga demais.
+
+`FaseImovel` tem três valores, e "diferente de CASA" varre dois casos que não são
+o mesmo:
+
+- **`CONSTRUCAO` + `VENDIDO`** — obra em andamento, vendida na planta ou no meio.
+  Novas despesas de construção ainda chegam: provisório de verdade.
+- **`LOTE` + `VENDIDO`** — lote comprado e revendido **sem obra nenhuma**. É um
+  dos fluxos normais do negócio (construir é opcional, ver ADR-019): o ciclo
+  fechou, nada mais vai chegar, e o resultado é definitivo. Ainda assim a tela
+  marcava esse imóvel como provisório **para sempre**, já que a fase nunca mais
+  avançaria.
+
+A decisão é usar `vendido && fase == CONSTRUCAO`. A regra fica auto-corretiva:
+quem está em `LOTE` nunca começou a obra, quem está em `CASA` terminou, e se um
+lote vendido começar a obra depois, a fase avança para `CONSTRUCAO` e o resultado
+volta a ser provisório sozinho — sem flag nova nem campo de "obra prevista".
+
+**Alternativa descartada:** deduzir a obra pendente de `custoEstimadoObra` ou
+`previsaoConclusao` preenchidos. São dados de planejamento, opcionais e
+frequentemente vazios; a fase é o único registro confiável de que a obra começou.
+
+Registrado em `.agents/rules/ciclo-vida-imovel.md`, no comentário de
+`RelatorioService.resultadoImovel` e no teste
+`loteRevendidoSemObraNaoTemResultadoProvisorio`. O aviso da tela de resultado já
+dizia "obra ainda em andamento" e não mudou — o texto estava certo, quem estava
+errado era a condição que o disparava.

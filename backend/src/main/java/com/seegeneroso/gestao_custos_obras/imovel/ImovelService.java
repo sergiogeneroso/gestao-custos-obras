@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,7 +39,7 @@ public class ImovelService {
 
     @Transactional
     public ImovelResponseDTO criar(ImovelRequestDTO dto) {
-        if (imovelRepository.existsByIdentificador(dto.identificador())) {
+        if (imovelRepository.existsByIdentificadorIgnoreCase(dto.identificador())) {
             throw new RegraDeNegocioException("Já existe um imóvel registrado com o identificador: " + dto.identificador());
         }
 
@@ -73,7 +74,7 @@ public class ImovelService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
 
         if (!imovel.getIdentificador().equalsIgnoreCase(dto.identificador())
-                && imovelRepository.existsByIdentificador(dto.identificador())) {
+                && imovelRepository.existsByIdentificadorIgnoreCase(dto.identificador())) {
             throw new RegraDeNegocioException("Já existe outro imóvel registrado com o identificador: " + dto.identificador());
         }
 
@@ -82,6 +83,7 @@ public class ImovelService {
                 ? buscarPessoaOpcional(dto.construcao().responsavelTecnicoId())
                 : null;
         imovelMapper.updateEntityFromDto(dto, vendedor, responsavelTecnico, imovel);
+        validarOrdemDatas(imovel);
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
         return imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
     }
@@ -101,16 +103,8 @@ public class ImovelService {
                             (atual + 1 < ordem.length ? " → " + ordem[atual + 1] : "") + ").");
         }
 
-        // A data da compra é o marco inicial do ciclo (ADR-032), então é ela que a entrada na
-        // construção não pode anteceder.
-        java.time.LocalDate dataAnterior = switch (dto.novaFase()) {
-            case CONSTRUCAO -> imovel.getCompra().getData();
-            case CASA -> imovel.getConstrucao().getDataInicio();
-            case LOTE -> throw new RegraDeNegocioException("LOTE é a fase inicial; não é um destino de transição.");
-        };
-
-        if (dataAnterior != null && dto.data().isBefore(dataAnterior)) {
-            throw new RegraDeNegocioException("A data da transição não pode ser anterior à data da fase anterior.");
+        if (dto.novaFase() == FaseImovel.LOTE) {
+            throw new RegraDeNegocioException("LOTE é a fase inicial; não é um destino de transição.");
         }
 
         // Os dados da fase de destino chegam junto com a transição (ADR-033); a data do fato é
@@ -130,11 +124,32 @@ public class ImovelService {
             case LOTE -> { }
         }
         imovel.setFase(dto.novaFase());
+        validarOrdemDatas(imovel);
 
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
 
         String aviso = dto.novaFase() == FaseImovel.CONSTRUCAO ? avisoParcelamentoCompraAtivo(id) : null;
         return imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id), aviso);
+    }
+
+    // Ponto único da ordem das datas do ciclo (.agents/rules/ciclo-vida-imovel.md): vale tanto na
+    // transição de fase quanto na edição, porque data fora de ordem produz tempo negativo por fase
+    // no relatório. Roda sobre o estado já aplicado, então serve aos dois caminhos sem duplicar
+    // regra. Fase não alcançada não tem data — por isso os nulos são ignorados, não recusados.
+    private void validarOrdemDatas(ImovelModel imovel) {
+        LocalDate compra = imovel.getCompra().getData();
+        LocalDate inicioObra = imovel.getConstrucao().getDataInicio();
+        LocalDate conclusaoObra = imovel.getCasa().getDataConclusaoObra();
+
+        if (compra != null && inicioObra != null && inicioObra.isBefore(compra)) {
+            throw new RegraDeNegocioException("O início da construção não pode ser anterior à data da compra.");
+        }
+        if (inicioObra != null && conclusaoObra != null && conclusaoObra.isBefore(inicioObra)) {
+            throw new RegraDeNegocioException("A conclusão da obra não pode ser anterior ao início da construção.");
+        }
+        if (inicioObra == null && compra != null && conclusaoObra != null && conclusaoObra.isBefore(compra)) {
+            throw new RegraDeNegocioException("A conclusão da obra não pode ser anterior à data da compra.");
+        }
     }
 
     private String avisoParcelamentoCompraAtivo(Long imovelId) {

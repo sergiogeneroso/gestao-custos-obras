@@ -311,28 +311,48 @@ e valendo igual para fotos e anexos de despesa:**
    e as URLs antigas quebram; o certo é guardar o caminho relativo e montar a URL
    na leitura.
 
-### Etapa P — Datas: validar no PUT e na edição
-- [ ] `ImovelService.atualizar` valida a ordem `compra.data ≤
-      dataInicioConstrucao ≤ dataConclusaoObra`, que hoje só é checada na
-      transição, contrariando a rule do ciclo de vida
-- [ ] Datas incoerentes com a fase atual (conclusão preenchida num lote) deixam de
+### Etapa P — Datas: validar no PUT e na edição ✅
+- [x] `ImovelService.validarOrdemDatas` checa `compra.data ≤
+      dataInicioConstrucao ≤ dataConclusaoObra` e é chamada tanto por `atualizar`
+      quanto por `avancarFase`
+- [x] Datas incoerentes com a fase atual (conclusão preenchida num lote) deixam de
       passar
 
-### Etapa Q — Ajustes pontuais do resultado
-- [ ] `resultadoProvisorio` para de acusar lote revendido sem obra — hoje
-      `vendido && fase != CASA` marca para sempre um imóvel cujo ciclo fechou
-- [ ] Valor de compra aparece na composição por fase (hoje `despesasPorFase`
-      exclui a própria compra do lote)
-- [ ] Guarda contra `fase_imovel` nula no `groupingBy` de `resultadoImovel`
-- [ ] `identificador` único no banco e checagem case-insensitive
+**Nota da implementação (Ago 2026):** a validação roda **sobre o estado já
+aplicado** pelo mapper, o que a fez servir aos dois caminhos sem duplicar regra —
+com isso o `switch` de `dataAnterior` de `avancarFase` virou redundância e foi
+apagado, sobrando lá só o guard de `LOTE` como destino, que é outra regra. O
+segundo item não precisou de código: `ImovelMapper.updateEntityFromDto` já
+aplicava o grupo de construção/casa só quando a fase foi alcançada (ADR-033).
+
+### Etapa Q — Ajustes pontuais do resultado ✅
+- [x] `resultadoProvisorio` passa a ser `vendido && fase == CONSTRUCAO`
+      (ADR-038) — lote revendido sem obra tem resultado definitivo
+- [x] Guarda contra `fase_imovel` nula no `groupingBy` de `resultadoImovel`
+- [x] `identificador` único no banco e checagem case-insensitive
+- [~] Valor de compra na composição por fase — **descartado**: a tela de
+      resultado já mostra a linha "Compra do lote" a partir de `valorCompra`, e
+      empurrar a compra para dentro de `despesasPorFase` duplicaria o número no
+      mesmo quadro
+
+**Nota da implementação (Ago 2026):** o identificador único ficou num **índice
+funcional** (`ux_imovel_identificador_lower`, em
+`db/manual/2026-08-identificador-imovel-unico.sql`) em vez de `unique = true` na
+coluna: a regra é "LOTE-01 e lote-01 são o mesmo imóvel", e a constraint que o
+`ddl-auto=update` criaria seria case-sensitive — resolveria outra coisa. O
+service usa `existsByIdentificadorIgnoreCase` só para dar a mensagem amigável
+antes de o banco reclamar. Cobertura nova em `ImovelServiceTest` (8 testes,
+semente da rede de testes das pendências antigas) e em `RelatorioServiceTest`.
 
 ## Pendências antigas ainda válidas
 
 Do roadmap anterior ao reescopo, removido daqui por já estar cumprido ou
 superado; sobrou o que continua valendo:
 
-- [ ] Testes unitários dos demais services e de integração dos controllers
-      (`MockMvc`) — hoje só `RelatorioServiceTest` existe
+- [ ] Testes unitários dos demais services — falta `DespesaService` (fase ×
+      etapa de construção). Já existem `RelatorioServiceTest`,
+      `ContratoFinanceiroServiceTest` e `ImovelServiceTest`. Teste de integração
+      de controller (`MockMvc`) foi descartado: custo alto, cobertura baixa
 - [ ] Lançamento de despesa mobile-friendly (uso no canteiro)
 - [ ] RF07 — tema configurável: endpoint de config (`ROLE_ADMIN`), 5 paletas
       curadas (ADR-016/ADR-018) e painel para trocar

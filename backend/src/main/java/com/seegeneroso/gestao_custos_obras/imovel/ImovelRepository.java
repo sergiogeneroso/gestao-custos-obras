@@ -13,5 +13,5 @@ public interface ImovelRepository extends JpaRepository<ImovelModel, Long> {
 
     Optional<ImovelModel> findByIdAndAtivoTrue(Long id);
 
-    boolean existsByIdentificador(String identificador);
+    boolean existsByIdentificadorIgnoreCase(String identificador);
 }
