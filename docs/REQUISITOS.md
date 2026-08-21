@@ -158,7 +158,11 @@ cálculo financeiro não é refeito no frontend.
   por domínio pendentes (fase 2).
 - **RNF02 — Persistência** ✅: PostgreSQL, integridade referencial
   (`ON DELETE RESTRICT` em relações financeiras). Flyway pausado (ADR-013/029).
-- **RNF03 — Responsividade** ⏳ Pendente: Angular + Angular Material,
-  mobile-friendly para lançamento de despesas no canteiro de obras.
+- **RNF03 — Responsividade** ✅ (no fluxo de despesa): o lançamento de despesa —
+  listagem, formulário e anexo — é usável no celular. Abaixo de 600px a tabela
+  vira cartão por linha e o formulário vai para uma coluna; abaixo de 768px o
+  menu lateral vira gaveta sobreposta. No desktop o menu recolhe para o modo só
+  de ícones, e a escolha persiste. As demais telas continuam desktop-first: são
+  consulta, não uso no canteiro.
 - **RNF04 — Precisão Monetária** ✅: `BigDecimal` + `NUMERIC(14,2)`. Única
   exceção documentada: indicadores percentuais com expoente fracionário.

@@ -77,12 +77,20 @@ ajuste de coluna nesse estágio é atrito pago duas vezes: uma vez agora, outra
 no squash quando o modelo estabilizar. Decisão: pausar o Flyway (`FlywayConfig`
 sem `@Configuration`, `ddl-auto=update` no lugar de `validate`) e deixar o
 Hibernate gerir o schema direto pelas entidades enquanto a modelagem estiver
-em fluxo. As migrations em `db/migration/` ficam inertes, não são apagadas.
-Reativar (religar `@Configuration`, voltar `ddl-auto=validate`, consolidar as
-migrations antigas numa `V1` baseline única refletindo o modelo final) antes
-de existir dado real que importe ou mais alguém mexendo no projeto —
-retrofitar migrations num banco já povoado é bem mais caro que começar com
-elas desde o primeiro dado real.
+em fluxo. Reativar (religar `@Configuration`, voltar `ddl-auto=validate`,
+escrever uma `V1` baseline única refletindo o modelo final) antes de existir dado
+real que importe ou mais alguém mexendo no projeto — retrofitar migrations num
+banco já povoado é bem mais caro que começar com elas desde o primeiro dado real.
+
+**Atualização (Ago 2026):** as migrations de schema (V1, V3, V4, V5) foram
+**apagadas**, revertendo o "ficam inertes, não são apagadas" da redação
+original. Depois do reescopo elas descreviam tabelas que já não existem
+(`aportante`, `despesa_pagamento`, `etapa_projeto`) e seriam integralmente
+reescritas na baseline de qualquer maneira — mantê-las só oferecia um retrato
+enganoso do schema a quem abrisse a pasta. Sobrou `V6__seed_usuario_admin.sql`,
+que é dado, não schema. Enquanto a pausa durar, o que o `ddl-auto=update` não faz
+sozinho vive em `db/manual/` (ver `.agents/rules/banco-e-migrations.md`), e é o
+efeito acumulado desses scripts que a `V1` baseline precisará conter.
 
 ## ADR-014 — Frontend no mesmo repositório, Angular standalone sem NgRx (Ago 2026)
 Decisões tomadas antes de iniciar a geração do frontend (Etapa 9 do roadmap).

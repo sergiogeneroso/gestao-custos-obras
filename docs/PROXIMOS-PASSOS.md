@@ -302,14 +302,49 @@ POST multipart, junto de `tipoDocumento` e `faseImovel`, sem DTO de request — 
 arquivo já obriga o endpoint a ser multipart.
 
 **Duas dívidas confirmadas durante a verificação, ambas anteriores a esta etapa
-e valendo igual para fotos e anexos de despesa:**
-1. **Arquivo órfão:** remover documento/foto/anexo apaga só o registro; o arquivo
-   fica no disco para sempre. `StorageService` não tem operação de exclusão.
-2. **URL absoluta gravada no banco:** `ServletUriComponentsBuilder.fromCurrentContextPath()`
-   grava o host que atendeu o upload (`localhost:4200` pela tela via proxy,
-   `localhost:8080` se o upload for direto no backend). Muda de host ou de porta
-   e as URLs antigas quebram; o certo é guardar o caminho relativo e montar a URL
-   na leitura.
+e valendo igual para fotos e anexos de despesa — quitadas na Etapa R.**
+
+### Etapa R — Anexos: URL relativa e arquivo órfão ✅
+- [x] `shared/storage/ArquivoUrls` como ponto único da URL do anexo: os cinco
+      pontos de upload (fotos e documentos do imóvel, anexo de despesa, documento
+      de contrato e o `/api/arquivos/upload` genérico) gravam
+      `/api/arquivos/download/<subpasta>/<nome>`, sem host
+- [x] As quatro remoções passam a chamar `storageService.deletar(...)`, que já
+      existia e nunca era invocado — registro e arquivo somem juntos
+- [x] `db/manual/2026-08-url-anexo-relativa.sql` limpa o host das linhas antigas
+- [x] `ArquivoUrlsTest` cobre ida e volta, URL absoluta antiga e URL fora do padrão
+
+**Nota da implementação (Ago 2026):** a URL ficou **relativa à raiz** em vez de
+"caminho relativo no banco + URL montada na leitura", como a dívida sugeria. O
+frontend consome todo anexo por `HttpClient` e o `environment.apiUrl` dele já é
+`/api`, então a URL relativa resolve sozinha contra a origem de quem serve a
+aplicação — some o acoplamento ao host sem tocar em nenhum `toResponseDTO`, DTO
+ou tela. Os leitores toleram o formato absoluto antigo (descartam o `http://host`
+do começo), então rodar o SQL é higiene de dado, não pré-requisito.
+
+### Etapa S — Lançamento de despesa no celular e menu recolhível ✅ (RNF03)
+- [x] Menu lateral com modo compacto só de ícones (rótulo em `title`), botão de
+      alternar sobre o conteúdo e escolha persistida em `localStorage`
+- [x] Abaixo de 768px o `mat-sidenav` vira `mode="over"` e fecha ao navegar
+- [x] Abaixo de 600px a listagem de despesas vira cartão por linha e o
+      formulário passa a uma coluna
+- [x] Verificado em 375px: fluxo listagem → nova despesa → anexo sem rolagem
+      horizontal
+
+**Nota da implementação (Ago 2026):** o cartão do celular não é um segundo
+template — o `<td>` ganhou `data-rotulo` e o rótulo da coluna vem de
+`content: attr(data-rotulo)` num `::before`, dentro de um `@media` no
+`despesas.scss`. Manter duas marcações da mesma lista em sincronia custaria mais
+do que o problema. Os dialogs já abriam com `maxWidth: '95vw'`, então em 375px
+ficam com 356px e não precisaram de modo tela cheia — o que apertava era a grade
+de dois campos por linha, não a largura do dialog. As demais telas seguem
+desktop-first de propósito: o requisito é o canteiro, e canteiro é lançamento de
+despesa.
+
+**Armadilha de verificação:** com a aba do navegador oculta a página não
+compõe frames, e **transição CSS não avança** — o menu parecia travado na largura
+antiga ao alternar, embora a regra estivesse correta. Conferir largura depois de
+um `reload`, ou zerar a `transition` antes de medir.
 
 ### Etapa P — Datas: validar no PUT e na edição ✅
 - [x] `ImovelService.validarOrdemDatas` checa `compra.data ≤
@@ -353,7 +388,7 @@ superado; sobrou o que continua valendo:
       etapa de construção). Já existem `RelatorioServiceTest`,
       `ContratoFinanceiroServiceTest` e `ImovelServiceTest`. Teste de integração
       de controller (`MockMvc`) foi descartado: custo alto, cobertura baixa
-- [ ] Lançamento de despesa mobile-friendly (uso no canteiro)
+- [x] Lançamento de despesa mobile-friendly (uso no canteiro) — Etapa S
 - [ ] RF07 — tema configurável: endpoint de config (`ROLE_ADMIN`), 5 paletas
       curadas (ADR-016/ADR-018) e painel para trocar
 - [ ] Gráficos do dashboard (Custo Total, Orçado vs. Realizado — ADR-017/Chart.js)

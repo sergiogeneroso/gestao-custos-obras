@@ -21,11 +21,16 @@ exceptions, JWT, Flyway). Ver justificativa completa em `docs/DECISOES.md`
 
 Flyway está **pausado** enquanto a modelagem do MVP não fecha: schema gerido
 direto pelo Hibernate via `ddl-auto=update`, e `FlywayConfig` está sem
-`@Configuration` (beans não registrados). As migrations antigas em
-`backend/src/main/resources/db/migration/` (V1, V3, V4, V5, V6...) ficam inertes, não
-foram apagadas. Quando o Flyway for reativado: religar `@Configuration` em
-`shared/config/FlywayConfig.java`, voltar `ddl-auto=validate` e consolidar as
-migrations antigas numa `V1` baseline única. No Spring Boot 4.1 a
+`@Configuration` (beans não registrados). Em `db/migration/` sobrou só
+`V6__seed_usuario_admin.sql` — as migrations de schema (V1, V3, V4, V5) foram
+apagadas em Ago 2026, porque descreviam um modelo que o reescopo substituiu e
+seriam refeitas de qualquer forma. O que o `ddl-auto=update` não faz sozinho
+(dropar tabela morta, `NOT NULL` em coluna existente, índice funcional, migrar
+dado) vive como script avulso em `db/manual/`, rodado à mão — ver
+`.agents/rules/banco-e-migrations.md`. Quando o Flyway for reativado: religar
+`@Configuration` em `shared/config/FlywayConfig.java`, voltar
+`ddl-auto=validate` e escrever uma `V1` baseline única a partir do modelo final,
+já com o efeito acumulado dos scripts manuais. No Spring Boot 4.1 a
 `FlywayAutoConfiguration` foi removida do framework — por isso, quando
 reativado, o migrador volta a ser instanciado manualmente por esse `@Bean`,
 que roda `migrate()` antes do `EntityManagerFactory`. Detalhes: ADR-012/013.
