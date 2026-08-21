@@ -384,10 +384,14 @@ semente da rede de testes das pendências antigas) e em `RelatorioServiceTest`.
 Do roadmap anterior ao reescopo, removido daqui por já estar cumprido ou
 superado; sobrou o que continua valendo:
 
-- [ ] Testes unitários dos demais services — falta `DespesaService` (fase ×
-      etapa de construção). Já existem `RelatorioServiceTest`,
-      `ContratoFinanceiroServiceTest` e `ImovelServiceTest`. Teste de integração
-      de controller (`MockMvc`) foi descartado: custo alto, cobertura baixa
+- [x] Testes unitários dos services sensíveis: `RelatorioServiceTest` (20),
+      `ImovelServiceTest` (8), `DespesaServiceTest` (7),
+      `ContratoFinanceiroServiceTest` (5) e `ArquivoUrlsTest` (5) — 46 no total.
+      Teste de integração de controller (`MockMvc`) foi **descartado**: custo
+      alto e cobertura baixa frente aos testes de service, já que a regra de
+      negócio inteira mora no service. Os services que sobraram sem teste
+      (`Pessoa`, `CategoriaDespesa`, `OrcamentoCategoria`) são CRUD sem regra
+      própria — teste ali só repetiria o Spring Data
 - [x] Lançamento de despesa mobile-friendly (uso no canteiro) — Etapa S
 - [ ] RF07 — tema configurável: endpoint de config (`ROLE_ADMIN`), 5 paletas
       curadas (ADR-016/ADR-018) e painel para trocar
