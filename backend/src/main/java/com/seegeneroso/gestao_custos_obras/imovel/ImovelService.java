@@ -16,6 +16,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -220,12 +221,7 @@ public class ImovelService {
 
         String subpasta = "imoveis/" + imovelId;
         String nomeArquivo = storageService.salvar(arquivo, subpasta);
-
-        String fileUri = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/arquivos/download/")
-                .path(subpasta + "/")
-                .path(nomeArquivo)
-                .toUriString();
+        String fileUri = ArquivoUrls.montar(subpasta, nomeArquivo);
 
         ImovelFotoModel foto = ImovelFotoModel.builder()
                 .imovel(imovel)
@@ -281,6 +277,7 @@ public class ImovelService {
         }
 
         imovelFotoRepository.delete(foto);
+        storageService.deletar(ArquivoUrls.nomeArquivoDe(foto.getUrl()), ArquivoUrls.subpastaDe(foto.getUrl()));
     }
 
     @Transactional
@@ -293,12 +290,7 @@ public class ImovelService {
 
         String subpasta = "imoveis/" + imovelId + "/documentos";
         String nomeArquivo = storageService.salvar(arquivo, subpasta);
-
-        String fileUri = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/arquivos/download/")
-                .path(subpasta + "/")
-                .path(nomeArquivo)
-                .toUriString();
+        String fileUri = ArquivoUrls.montar(subpasta, nomeArquivo);
 
         ImovelDocumentoModel documento = ImovelDocumentoModel.builder()
                 .imovel(imovel)
@@ -336,6 +328,7 @@ public class ImovelService {
         }
 
         imovelDocumentoRepository.delete(documento);
+        storageService.deletar(ArquivoUrls.nomeArquivoDe(documento.getUrl()), ArquivoUrls.subpastaDe(documento.getUrl()));
     }
 
     private ImovelDocumentoResponseDTO toDocumentoResponseDTO(ImovelDocumentoModel documento) {

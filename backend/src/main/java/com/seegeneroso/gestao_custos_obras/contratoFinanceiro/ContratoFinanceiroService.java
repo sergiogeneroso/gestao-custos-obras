@@ -15,12 +15,12 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -247,12 +247,7 @@ public class ContratoFinanceiroService {
 
         String subpasta = "contratos/" + contratoId;
         String nomeArmazenado = storageService.salvar(arquivo, subpasta);
-
-        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/arquivos/download/")
-                .path(subpasta + "/")
-                .path(nomeArmazenado)
-                .toUriString();
+        String url = ArquivoUrls.montar(subpasta, nomeArmazenado);
 
         ContratoDocumentoModel documento = ContratoDocumentoModel.builder()
                 .contrato(contrato)
@@ -283,6 +278,7 @@ public class ContratoFinanceiroService {
         }
 
         contratoDocumentoRepository.delete(documento);
+        storageService.deletar(ArquivoUrls.nomeArquivoDe(documento.getUrl()), ArquivoUrls.subpastaDe(documento.getUrl()));
     }
 
     private ContratoDocumentoResponseDTO toDocumentoResponseDTO(ContratoDocumentoModel documento) {

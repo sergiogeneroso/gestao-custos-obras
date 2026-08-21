@@ -9,7 +9,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -26,12 +25,7 @@ public class ArquivoController {
             @RequestParam(value = "subpasta", defaultValue = "geral") String subpasta) {
 
         String nomeArquivo = storageService.salvar(arquivo, subpasta);
-
-        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/arquivos/download/")
-                .path(subpasta + "/")
-                .path(nomeArquivo)
-                .toUriString();
+        String fileDownloadUri = ArquivoUrls.montar(subpasta, nomeArquivo);
 
         ArquivoResponseDTO response = new ArquivoResponseDTO(
                 nomeArquivo,

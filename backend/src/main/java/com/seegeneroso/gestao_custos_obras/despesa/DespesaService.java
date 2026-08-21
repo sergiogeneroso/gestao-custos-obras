@@ -16,6 +16,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -184,12 +185,7 @@ public class DespesaService {
 
         String subpasta = "despesas/" + despesaId;
         String nomeArquivo = storageService.salvar(arquivo, subpasta);
-
-        String fileUri = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/arquivos/download/")
-                .path(subpasta + "/")
-                .path(nomeArquivo)
-                .toUriString();
+        String fileUri = ArquivoUrls.montar(subpasta, nomeArquivo);
 
         DespesaAnexoModel anexo = DespesaAnexoModel.builder()
                 .despesa(despesa)
@@ -222,6 +218,7 @@ public class DespesaService {
         }
 
         despesaAnexoRepository.delete(anexo);
+        storageService.deletar(ArquivoUrls.nomeArquivoDe(anexo.getUrl()), ArquivoUrls.subpastaDe(anexo.getUrl()));
     }
 
     private DespesaAnexoResponseDTO toAnexoResponseDTO(DespesaAnexoModel anexo) {
