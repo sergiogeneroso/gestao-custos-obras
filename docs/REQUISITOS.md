@@ -42,6 +42,13 @@ inicial da carteira e da fase LOTE — não existe `dataInicioLote` separada
 (ADR-032). As demais datas de transição são informadas pelo usuário na ação
 correspondente.
 
+**Forma de pagamento da compra** (ADR-037): à vista ou parcelada. Na compra
+parcelada o cadastro **não pede o valor do lote** — ele vem do contrato de
+`PARCELAMENTO_COMPRA`, aberto na sequência, como `entrada + parcelas` ou como o
+preço à vista declarado ali. O custo do lote é reconhecido na compra e não se
+move conforme as parcelas são pagas; quanto já saiu do caixa aparece no bloco
+Desembolso do resultado.
+
 Ações: criar, listar, editar, inativar (soft delete), avançar fase, mudar
 situação. `/api/imoveis`
 
@@ -128,6 +135,13 @@ de pagamento (parcela sem data de pagamento está em aberto).
 O contrato é **editável** (ADR-036), com duas travas: contrato quitado não muda,
 e parcela já paga não pode ser alterada nem removida. Há gerador de cronograma
 (quantidade, valor e primeiro vencimento) e anexo de documentos ao contrato.
+
+No `PARCELAMENTO_COMPRA` (ADR-037) o contrato ainda recebe a **entrada**, gravada
+como parcela nº 0 já baixada, e uma linha que reconcilia o preço do lote com
+`entrada + parcelas`: sem diferença não há juros — o caso normal —, e com
+diferença positiva ela pode ser distribuída como juros nas parcelas. A quitação
+antecipada ajusta o custo do lote pela diferença entre o valor negociado e o
+principal em aberto.
 `/api/contratos-financeiros`
 
 ### RF10 — Dashboard da Carteira 🆕

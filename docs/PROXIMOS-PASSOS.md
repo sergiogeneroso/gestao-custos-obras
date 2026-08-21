@@ -194,13 +194,19 @@ depois: é o único CRUD com delete físico (`DELETE` real, sem `ativo`), então
 o botão de exclusão chama `excluir()`/`service.deletar()` em vez do
 `inativar()` dos demais domínios.
 
-### Etapa H — Schema e skills
-- [ ] Recriar o banco local do zero — `ddl-auto=update` não remove tabelas
-      antigas, e `aportante`, `despesa_pagamento` e `etapa_projeto` ficariam
-      órfãs
-- [ ] Atualizar os exemplos que citam `aportante`/`etapa` em
+### Etapa H — Schema e skills ✅
+- [x] Tabelas órfãs do `ddl-auto=update` — `aportante`, `despesa_pagamento` e
+      `etapa_projeto` já haviam sumido quando o banco foi recriado na Etapa D;
+      sobrou só `fornecedor`, removida com `DROP TABLE`
+- [x] Atualizar os exemplos que citam `aportante`/`etapa` em
       `.agents/skills/gerar-crud-dominio/SKILL.md` e `gerar-crud-frontend/SKILL.md`
-- [ ] Atualizar a estrutura de pastas em `docs/FRONTEND.md`
+- [x] Atualizar a estrutura de pastas em `docs/FRONTEND.md`
+
+**Nota da implementação (Ago 2026):** as skills também citavam `fornecedor/`
+como exemplo canônico (domínio extinto pela ADR-034), `TIPO_IMOVEL_LABEL`/
+`STATUS_IMOVEL_LABEL` (renomeados para `FASE_`/`SITUACAO_` na Etapa D) e
+"`contratos/` não tem `PUT`" (ganhou `PUT` na ADR-036) — tudo corrigido junto,
+porque exemplo errado em skill contamina todo código gerado depois.
 
 ## Revisão do domínio Imóvel (Ago 2026)
 
@@ -363,8 +369,29 @@ cinco etapas. Detalhe das decisões nas ADR-034 a ADR-036.
 - [x] **E5 — Fornecedor vira marca em Pessoa** (ADR-034) e menu de Orçamentos
       oculto (a rota e o componente placeholder continuam no código)
 
-**Pendência operacional:** rodar
+**Pendência operacional — encerrada na Etapa H:** a tabela `fornecedor` estava
+vazia (nenhum fornecedor chegou a ser cadastrado), então não houve dado a migrar
+e o `INSERT`/`UPDATE` de
 `backend/src/main/resources/db/manual/2026-08-migrar-fornecedor-para-pessoa.sql`
-antes de dar por concluída a ADR-034 — as colunas novas em `pessoa` já existem via
-`ddl-auto=update`, mas os dados da tabela `fornecedor` não migram sozinhos e o
-`DROP TABLE` precisa ser manual.
+**não foi executado** — só o `DROP TABLE fornecedor`. As colunas novas em
+`pessoa` já existiam via `ddl-auto=update`. O script fica no repositório apenas
+como registro; se outro ambiente tiver dados na tabela, rodá-lo lá antes de
+dropar.
+
+## Compra parcelada do lote (Ago 2026) ✅ — ADR-037
+
+Escopo restrito a `PARCELAMENTO_COMPRA`.
+
+- [x] `DadosCompra.parcelada`; entrada como parcela nº 0 já baixada;
+      `compra_valor` deduzido do cronograma na criação do contrato
+- [x] Ajuste de quitação no custo, calculado contra o **principal** em aberto
+- [x] Bloco Desembolso (`totalDesembolsado`, `saldoAPagar`) no resultado
+- [x] Cadastro do imóvel com toggle à vista/parcelado; na criação parcelada o
+      valor do lote não é pedido, e o contrato abre pré-preenchido em seguida
+- [x] Linha de reconciliação no contrato, com distribuição de juros só quando a
+      diferença existe
+- [x] 10 testes novos (`RelatorioServiceTest`, `ContratoFinanceiroServiceTest`)
+
+**Pendência conhecida, fora do escopo por decisão:** a mesma matemática do ajuste
+de quitação valeria para `FINANCIAMENTO_CONSTRUCAO`, onde a parte de juros
+embutida no valor negociado da quitação se perde hoje.

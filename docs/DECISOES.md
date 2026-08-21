@@ -680,3 +680,90 @@ registrada.
 
 Continua valendo da ADR-025: **não** validar a soma das parcelas contra
 `valorContratado`, porque juros fazem a soma exceder o principal legitimamente.
+
+## ADR-037 — Compra parcelada do lote: entrada, preço e quitação (Ago 2026)
+
+Complementa a ADR-025 e vale **somente para `PARCELAMENTO_COMPRA`** — o contrato
+de compra do lote com o vendedor. `FINANCIAMENTO_CONSTRUCAO` e
+`PARCELAMENTO_VENDA` não mudam.
+
+Três lacunas motivaram a decisão. **A entrada não existia** no modelo: não era
+parcela do contrato nem despesa, simplesmente sumia. **`compraValor` era
+ambíguo**, sem dizer se recebia o preço do lote ou o total do parcelamento — e
+lançar o total jogava eventuais juros no custo de uma vez, na data da compra,
+contando-os duas vezes quando as parcelas também tinham `valorJuros`. E **o
+desconto na quitação antecipada não reduzia o custo**: quem devia 49.000 e quitou
+por 45.000 continuava com o lote custando o preço cheio.
+
+### O parcelamento do lote é normalmente sem juros
+
+Esta é a premissa que decide o desenho, e é fácil supor o contrário. No negócio,
+o padrão é entrada mais parcelas em que o restante do preço é apenas dividido.
+Juros existem, mas são minoritários e dependem do valor da entrada — entrada maior
+costuma eliminá-los. Portanto: **o caminho principal não exige nada sobre juros**,
+e a alocação de juros só aparece quando os números de fato não fecham. Uma tela
+que peça juros para completar o cadastro está desenhada para a exceção.
+
+### Por que o custo NÃO passou a acumular conforme as parcelas são pagas
+
+A proposta inicial era regime de caixa: cada baixa de parcela viraria custo. Foi
+descartada, e o motivo precisa ficar registrado porque a ideia volta a parecer
+óbvia:
+
+- **Comparabilidade**: dois lotes de 100.000, um à vista e outro em 30.000 +
+  20 × 3.500 (mesmo preço, sem juros). Por caixa, no sexto mês um "custou"
+  100.000 e o outro 51.000 — mesmo ativo, custo diferente só por causa do
+  cronograma, e margem e rentabilidade dos dois deixam de ser comparáveis.
+- **Revenda sem obra**: parte dos lotes é comprada e revendida sem construção. Se
+  a revenda ocorre antes de terminar de pagar, o lucro aparece inflado no saldo
+  devedor — que costuma ser quitado com o dinheiro da própria venda.
+
+O que a proposta queria enxergar — "quanto já saiu do meu bolso" — passou a ser
+entregue por um bloco **Desembolso** separado, sem contaminar o custo.
+
+### Decisões
+
+1. **A entrada é a parcela nº 0**, criada já com `dataPagamento` e `valorPago` —
+   é fato consumado no momento da compra, não evento futuro. Reaproveita baixa,
+   total pago e saldo devedor sem caso especial, e na edição cai sozinha sob a
+   guarda de parcela paga da ADR-036. `ParcelaContratoRequestDTO.numero` passou a
+   aceitar zero.
+2. **O formulário do imóvel não pede o valor do lote na compra parcelada.** Ele
+   espelharia um cronograma que ainda não existe naquela tela, e digitar às cegas
+   produziria uma divergência que o sistema leria como juros inexistentes. Quem
+   grava é `ContratoFinanceiroService.criar`: o `precoAVistaLote` informado (campo
+   de entrada de cálculo, não persistido) ou, na falta dele, `entrada + Σ
+   parcelas`. Nunca sobrescreve valor já preenchido, e **só na criação** —
+   reescrever ao editar o cronograma mudaria em silêncio o custo de um imóvel já
+   apurado. Correção depois é pelo `PUT` do imóvel, deliberadamente.
+3. **`DadosCompra.parcelada`** é declarado no cadastro, não derivado da existência
+   de contrato: é o que diz ao relatório se o valor de compra saiu do bolso na
+   data da compra ou está diluído no cronograma.
+4. **O ajuste de quitação entra no custo**, comparado contra o **principal** em
+   aberto — nunca contra o total das parcelas. As parcelas em aberto carregam
+   juros que jamais foram pagos e portanto nunca entraram no custo; comparar com o
+   total inteiro os subtrairia de novo. Negativo é desconto e abate o custo;
+   positivo é a parte de juros embutida no valor negociado e soma. As parcelas
+   originais não são tocadas (ADR-025) — o ajuste é calculado, nunca gravado.
+5. **`totalDesembolsado` e `saldoAPagar`** no resultado são posição de caixa e
+   **nunca** somam ao `custoTotal`.
+
+### A invariante que prova a fórmula
+
+Num `PARCELAMENTO_COMPRA` quitado, o custo do lote converge exatamente para o
+desembolso real, nos dois regimes:
+
+| | Sem juros | Com juros |
+|---|---|---|
+| Preço / entrada / parcelas | 100.000 / 30.000 / 20 × 3.500 | 100.000 / 30.000 / 24 × 4.000 |
+| Em aberto na quitação | 49.000 | 72.000 |
+| **Principal** em aberto | 49.000 | 52.500 |
+| Valor negociado | 45.000 | 66.000 |
+| `ajusteQuitacao` | −4.000 | +13.500 |
+| `custoTotal` = desembolso | 96.000 | 120.000 |
+
+Coberto por `RelatorioServiceTest` e `ContratoFinanceiroServiceTest`.
+
+**Pendência conhecida, deliberadamente fora deste escopo:** a mesma matemática
+valeria para `FINANCIAMENTO_CONSTRUCAO`, onde a parte de juros embutida na
+quitação também se perde hoje. Não é esquecimento — é escopo.

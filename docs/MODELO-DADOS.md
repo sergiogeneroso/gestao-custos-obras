@@ -63,8 +63,9 @@ erDiagram
         INT casa_suites
         INT casa_banheiros
         INT casa_vagas_garagem
-        NUMERIC compra_valor "14,2"
+        NUMERIC compra_valor "14,2 - preco do lote; deduzido do cronograma se parcelada (ADR-037)"
         DATE compra_data "marco inicial do ciclo (ADR-032)"
+        BOOLEAN compra_parcelada "a vista x parcelada (ADR-037)"
         BIGINT compra_vendedor_id FK
         NUMERIC venda_valor "14,2"
         DATE venda_data
@@ -89,7 +90,7 @@ erDiagram
     PARCELA_CONTRATO {
         BIGSERIAL id PK
         BIGINT contrato_id FK
-        INT numero
+        INT numero "0 = entrada da compra parcelada (ADR-037)"
         DATE data_vencimento
         NUMERIC valor "14,2"
         NUMERIC valor_juros "14,2"
@@ -169,6 +170,11 @@ erDiagram
   reconstruídas depois (ADR-020)
 - `imovel.compra_data` é o **marco inicial** da carteira e da fase LOTE; não
   existe `data_inicio_lote` separada (ADR-032)
+- **Na compra parcelada, `imovel.compra_valor` é gravado pelo contrato**, não pelo
+  cadastro (ADR-037): o preço à vista informado ou `entrada + Σ parcelas`. Nunca é
+  sobrescrito depois, nem ao editar o cronograma
+- **`parcela_contrato.numero = 0` é a entrada** da compra parcelada, criada já com
+  `data_pagamento` e `valor_pago`. As prestações começam em 1
 - As colunas com prefixo `lote_`, `construcao_` e `casa_` são os `@Embedded`
   `DadosLote`/`DadosConstrucao`/`DadosCasa` (ADR-031) — agrupamento lógico numa
   tabela só, sem tabela por fase. Nulos nas fases ainda não atingidas são

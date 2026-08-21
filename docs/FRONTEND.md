@@ -25,17 +25,18 @@ frontend/src/app/
     layout/           # Shell (toolbar/sidenav) e landing page pública
   features/
     imoveis/          # + imovel-detalhe-dialog, imovel-form-dialog,
-                       #   imovel-fase-dialog, imovel-venda-dialog
-    pessoas/          # + pessoa-form-dialog
-    fornecedores/     # + fornecedor-form-dialog
-    categorias-despesa/
-    orcamento-categoria/
-    despesas/         # + despesa-form-dialog
+                       #   imovel-fase-dialog, imovel-venda-dialog,
+                       #   imovel-a-venda-dialog
+    pessoas/          # + pessoa-form-dialog (fornecedor é marca aqui, ADR-034)
+    categorias-despesa/  # + categoria-despesa-form-dialog
+    orcamento-categoria/ # placeholder, fora do MVP (menu oculto)
+    despesas/         # + despesa-form-dialog, despesa-detalhe-dialog
     contratos/        # + contrato-form-dialog, contrato-detalhe-dialog
     dashboard/
-    relatorios/
-  shared/             # componentes de UI genéricos reaproveitados por 2+ features
-                       # (ex.: auth-img, busca-toolbar)
+    relatorios/       # resultado por imóvel, com exportação CSV e impressão
+  shared/             # componentes, diretivas e providers reaproveitados por
+                       # 2+ features: auth-img, busca-toolbar, data (locale
+                       # pt-BR do MatDatepicker), moeda (diretiva appMoeda)
 ```
 
 Cada `features/<dominio>/` concentra os componentes (listagem, formulário,

@@ -1,25 +1,25 @@
 ---
 name: gerar-crud-frontend
-description: Use esta skill ao criar a tela CRUD Angular (listagem + formulário) de um domínio que já existe no backend (ex. "fornecedor", "categoria") seguindo o padrão já estabelecido no frontend (standalone components, signals, MatDialog, package by feature). Não use para o CRUD do backend (ver gerar-crud-dominio), nem para telas de relatório/dashboard que não são um CRUD simples.
+description: Use esta skill ao criar a tela CRUD Angular (listagem + formulário) de um domínio que já existe no backend (ex. "categoria", "orçamento") seguindo o padrão já estabelecido no frontend (standalone components, signals, MatDialog, package by feature). Não use para o CRUD do backend (ver gerar-crud-dominio), nem para telas de relatório/dashboard que não são um CRUD simples.
 ---
 
 # Gerar tela CRUD de um domínio no frontend
 
 Use `features/imoveis/` como referência canônica — leia esses arquivos antes
 de gerar a tela nova. É o domínio mais completo (tem soft delete, enum com
-labels, upload de arquivo); os demais (`pessoas/`, `categorias-despesa/`,
-`fornecedores/`) seguem o mesmo padrão de listagem + form dialog sem o
-upload. `despesas/` reaproveita o padrão de upload de `imoveis` (fotos →
-anexos tipados); `contratos/` foge do padrão porque o backend não tem
-`PUT`/editar — só consulte os dois se o domínio novo precisar de algo fora
-do CRUD simples.
+labels, upload de arquivo); os demais (`pessoas/`, `categorias-despesa/`)
+seguem o mesmo padrão de listagem + form dialog sem o upload. `despesas/`
+reaproveita o padrão de upload de `imoveis` (fotos → anexos tipados);
+`contratos/` foge do padrão por ter cronograma de parcelas em `FormArray`,
+baixa de parcela e quitação como formulários inline — só consulte os dois se o
+domínio novo precisar de algo fora do CRUD simples.
 
 ## Passo a passo
 
 1. **Pergunte ao usuário, se não estiver claro**: o domínio tem soft delete
-   (ação "Inativar", como `Imovel`/`Pessoa`/`Fornecedor`/`Despesa`) ou delete
+   (ação "Inativar", como `Imovel`/`Pessoa`/`Despesa`) ou delete
    físico (como `CategoriaDespesa`)? Algum campo é enum (precisa de
-   `Record<Enum, string>` de labels, como `STATUS_IMOVEL_LABEL`)? Algum
+   `Record<Enum, string>` de labels, como `SITUACAO_IMOVEL_LABEL`)? Algum
    campo é monetário (precisa
    do padrão `matTextPrefix`/formatarMoeda abaixo)? Confirme os campos do
    `{Dominio}ResponseDTO`/`{Dominio}RequestDTO` do backend antes de criar o
@@ -28,7 +28,7 @@ do CRUD simples.
 2. **Criar o pacote** `frontend/src/app/features/{dominio}/`:
    - `{dominio}.model.ts` — `{Dominio}RequestDTO`/`{Dominio}ResponseDTO`
      (interfaces, espelhando os DTOs Java 1:1), tipos union para enums +
-     `Record<Enum, string>` de labels (ver `TIPO_IMOVEL_LABEL` em
+     `Record<Enum, string>` de labels (ver `FASE_IMOVEL_LABEL` em
      `imovel.model.ts`)
    - `{dominio}.service.ts` — `@Injectable({ providedIn: 'root' })`,
      `HttpClient` injetado via `inject()`, `baseUrl = ${environment.apiUrl}/{dominio-plural}`,
@@ -76,7 +76,8 @@ do CRUD simples.
 
 7. Se a tela tiver muitos registros, considerar grid de cards em vez de
    tabela apenas se o domínio tiver uma imagem/badge de destaque como
-   `imoveis` — CRUDs simples (aportante, etapa) usam `MatTable` padrão, não
+   `imoveis` — CRUDs simples (pessoa, categoria de despesa) usam `MatTable`
+   padrão, não
    copie o grid de cards sem necessidade.
 
 ## O que NUNCA fazer

@@ -2,7 +2,6 @@
 paths:
   - "backend/src/main/java/**/despesa/**"
   - "backend/src/main/java/**/pessoa/**"
-  - "backend/src/main/java/**/fornecedor/**"
   - "backend/src/main/java/**/imovel/**"
   - "backend/src/main/java/**/contratoFinanceiro/**"
   - "backend/src/main/java/**/relatorio/**"
@@ -53,8 +52,9 @@ Havendo contrato, valem também (detalhe em `contratos-financeiros.md`):
 
 - `pagador` é **obrigatório**; `beneficiario` é **opcional** (nem sempre se sabe
   quem recebeu no momento do lançamento no canteiro)
-- `beneficiario` referencia **Pessoa**, não Fornecedor — cobre quem recebeu sem
-  ter cadastro de fornecedor (vendedor do lote, banco, diarista)
+- `beneficiario` referencia **Pessoa** — cobre quem recebeu sem estar marcado
+  como fornecedor (vendedor do lote, banco, diarista). Fornecedor é só uma marca
+  no cadastro de Pessoa (ADR-034), não um domínio à parte
 - `imovel` é **opcional**: sem imóvel = gasto geral (contador, combustível,
   ferramentas), que fica fora do custo de qualquer imóvel
 - Valor sempre **positivo**. Devolução de material se resolve editando ou

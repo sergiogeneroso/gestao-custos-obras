@@ -99,3 +99,49 @@ A edição governa somente as parcelas **em aberto**. Cuidado de implementação
 não pode ser perdido: a coleção `parcelas` usa `orphanRemoval = true`, então
 `clear()` seguido de re-add **apaga do banco** as parcelas pagas antes de
 reinseri-las. Remover apenas as não pagas e nunca recriar as pagas.
+
+## Compra parcelada do lote (ADR-037) — só `PARCELAMENTO_COMPRA`
+
+**O parcelamento do lote é normalmente SEM juros.** O padrão do negócio é entrada
+mais parcelas em que o restante do preço é apenas dividido; juros existem, mas são
+minoritários e dependem do valor da entrada. Nenhum fluxo pode exigir informação
+sobre juros para se completar — quem assume juros como regra está desenhando para
+a exceção.
+
+- **A entrada é a parcela nº 0**, criada já com `dataPagamento` e `valorPago`: é
+  fato consumado na compra, não evento futuro. Não inventar campo próprio no
+  contrato — como parcela ela já entra em total pago e saldo devedor, e na edição
+  cai sob a guarda de parcela paga.
+- **Na compra parcelada, `compraValor` é o preço do lote**, gravado por
+  `ContratoFinanceiroService.criar`: o `precoAVistaLote` informado ou, na falta,
+  `entrada + Σ parcelas`. **Nunca sobrescrever** valor já preenchido e **nunca**
+  regravar ao editar o cronograma — isso mudaria em silêncio o custo de um imóvel
+  já apurado.
+- **`valorJuros` fica nulo** sempre que entrada + parcelas fecharem com o preço,
+  que é o esperado.
+
+### Ajuste de quitação: comparar com o PRINCIPAL, não com o total
+
+Ponto onde é fácil errar. A fórmula ingênua `valorQuitacao − Σ parcelas em aberto`
+funciona sem juros e erra feio com juros, porque as parcelas em aberto carregam
+juros que nunca foram pagos e portanto nunca entraram no custo — subtraí-los de
+novo derruba o custo indevidamente.
+
+```
+principalEmAberto = Σ (parcela.valor − coalesce(parcela.valorJuros, 0))
+                    das parcelas sem dataPagamento
+ajusteQuitacao    = valorQuitacao − principalEmAberto
+```
+
+Negativo é desconto e abate o custo; positivo é a parte de juros embutida no valor
+negociado e soma. **A invariante que prova a fórmula:** num `PARCELAMENTO_COMPRA`
+quitado, `custoTotal` do lote converge exatamente para o desembolso real. As
+parcelas originais continuam intocadas — o ajuste é calculado, nunca gravado.
+
+### Desembolso é caixa, não custo
+
+`totalDesembolsado` e `saldoAPagar` do `ResultadoImovelDTO` são posição de caixa e
+**nunca** somam ao `custoTotal` — mesma separação que já vale para saldo devedor.
+`totalDesembolsado` só inclui o valor de compra quando `compra.parcelada` é falso;
+na compra parcelada esse dinheiro flui pelas parcelas e contá-lo duas vezes
+dobraria o desembolso.

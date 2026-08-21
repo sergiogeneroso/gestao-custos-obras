@@ -11,7 +11,7 @@
   - `docs/PROXIMOS-PASSOS.md`
   - `docs/DECISOES.md`
   - `docs/MODELO-DADOS.md`
-- Ao criar um novo domínio de negócio (ex. `fornecedor`), use a skill
+- Ao criar um novo domínio de negócio (ex. `orcamento`), use a skill
   `gerar-crud-dominio` em vez de escrever o CRUD do zero
 - Use plan mode antes de mexer no cálculo de resultado
   (`relatorio/RelatorioService.java`) ou nas transições de fase/situação do

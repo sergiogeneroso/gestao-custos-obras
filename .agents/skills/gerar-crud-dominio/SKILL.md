@@ -1,20 +1,20 @@
 ---
 name: gerar-crud-dominio
-description: Use esta skill ao criar um novo domínio de negócio no backend (ex. "fornecedor", "categoria", "contrato") que precisa de um CRUD completo seguindo o padrão já estabelecido no projeto (package by feature com Model/Repository/Service/Mapper/Controller/dto). Não use para endpoints de agregação/relatório, nem para adicionar um único campo a um domínio existente.
+description: Use esta skill ao criar um novo domínio de negócio no backend (ex. "categoria", "contrato", "orçamento") que precisa de um CRUD completo seguindo o padrão já estabelecido no projeto (package by feature com Model/Repository/Service/Mapper/Controller/dto). Não use para endpoints de agregação/relatório, nem para adicionar um único campo a um domínio existente.
 ---
 
 # Gerar CRUD de um novo domínio
 
 Vários domínios do projeto seguem exatamente o mesmo padrão: `imovel/`,
-`pessoa/`, `fornecedor/`, `categoriaDespesa/`. Use `imovel/` como referência
-canônica — leia esses arquivos antes de gerar o novo domínio. `fornecedor/`
-é o exemplo mais simples (poucos campos, `@OneToOne` para `pessoa/`) se
+`pessoa/`, `categoriaDespesa/`, `contratoFinanceiro/`. Use `imovel/` como
+referência canônica — leia esses arquivos antes de gerar o novo domínio.
+`categoriaDespesa/` é o exemplo mais simples (poucos campos, delete físico) se
 preferir um ponto de partida menor.
 
 ## Passo a passo
 
 1. **Pergunte ao usuário, se não estiver claro**: o domínio precisa de soft
-   delete (`ativo BOOLEAN`, como `Imovel`/`Pessoa`/`Fornecedor`/`Despesa`) ou
+   delete (`ativo BOOLEAN`, como `Imovel`/`Pessoa`/`Despesa`) ou
    delete físico (como `CategoriaDespesa`)? Precisa de alguma constraint de
    unicidade (ex: nome único, como `CategoriaDespesa.nome`, ou documento
    único, como `Pessoa.documento`)?
