@@ -1,7 +1,12 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
+
+const CHAVE_MENU_RECOLHIDO = 'gestao-custos-obras.menuRecolhido';
 
 @Component({
   selector: 'app-shell',
@@ -12,8 +17,41 @@ import { AuthService } from '../../auth/auth.service';
 export class Shell {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly breakpointObserver = inject(BreakpointObserver);
 
   protected readonly usuario = this.authService.usuario;
+
+  /**
+   * No celular o menu vira gaveta sobreposta: ocupar coluna fixa numa tela de 375px não sobra
+   * espaço para o conteúdo. O `mode`/`opened` do sidenav seguem daqui.
+   */
+  protected readonly telaEstreita = toSignal(
+    this.breakpointObserver.observe('(max-width: 767px)').pipe(map((estado) => estado.matches)),
+    { initialValue: false },
+  );
+
+  /** No desktop o recolhimento é escolha do usuário e persiste; no celular a gaveta manda. */
+  protected readonly recolhido = signal(localStorage.getItem(CHAVE_MENU_RECOLHIDO) === 'true');
+
+  protected readonly gavetaAberta = signal(false);
+
+  constructor() {
+    effect(() => localStorage.setItem(CHAVE_MENU_RECOLHIDO, String(this.recolhido())));
+  }
+
+  protected alternarMenu(): void {
+    if (this.telaEstreita()) {
+      this.gavetaAberta.update((aberta) => !aberta);
+    } else {
+      this.recolhido.update((valor) => !valor);
+    }
+  }
+
+  protected fecharGaveta(): void {
+    if (this.telaEstreita()) {
+      this.gavetaAberta.set(false);
+    }
+  }
 
   protected readonly iniciais = computed(() => {
     const nome = this.usuario()?.nome ?? '';

@@ -96,3 +96,69 @@
     }
   }
 }
+
+// Lançamento no canteiro (RNF03): a tabela de 7 colunas não cabe num celular, então cada linha
+// vira um cartão e o rótulo da coluna passa a vir do data-rotulo de cada célula — sem segundo
+// template para manter em sincronia.
+@media (max-width: 600px) {
+  .despesas {
+    padding: 22px 16px 48px;
+  }
+
+  .despesas__cabecalho {
+    align-items: stretch;
+    margin-bottom: 22px;
+
+    button {
+      justify-content: center;
+    }
+  }
+
+  .despesas__toolbar {
+    align-items: stretch;
+
+    mat-button-toggle-group {
+      width: 100%;
+    }
+  }
+
+  .table {
+    thead {
+      display: none;
+    }
+
+    tr {
+      display: block;
+      border: 1px solid rgba(233, 233, 237, 0.16);
+      border-radius: var(--mat-sys-corner-small, 8px);
+      margin-bottom: 10px;
+      padding: 4px 0;
+    }
+
+    td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: none;
+      padding: 5px 12px;
+      text-align: left;
+
+      &::before {
+        content: attr(data-rotulo);
+        flex-shrink: 0;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #9397ab;
+      }
+    }
+
+    &__acoes {
+      justify-content: flex-end;
+      padding-top: 8px;
+      border-top: 1px solid rgba(233, 233, 237, 0.16);
+      margin-top: 4px;
+    }
+  }
+}

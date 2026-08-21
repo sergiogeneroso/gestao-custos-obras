@@ -43,12 +43,12 @@
       <tbody>
         @for (despesa of despesasFiltradas(); track despesa.id) {
           <tr class="table__linha" (click)="abrirDetalhe(despesa)">
-            <td>{{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}</td>
-            <td>{{ despesa.categoriaDespesaNome }}</td>
-            <td>{{ despesa.imovelIdentificador || 'Gasto geral' }}</td>
-            <td>{{ despesa.pagadorNome }}</td>
-            <td>{{ despesa.beneficiarioNome || '—' }}</td>
-            <td class="table__num">{{ despesa.valor | currency: 'BRL' }}</td>
+            <td data-rotulo="Data">{{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}</td>
+            <td data-rotulo="Categoria">{{ despesa.categoriaDespesaNome }}</td>
+            <td data-rotulo="Imóvel">{{ despesa.imovelIdentificador || 'Gasto geral' }}</td>
+            <td data-rotulo="Pagador">{{ despesa.pagadorNome }}</td>
+            <td data-rotulo="Beneficiário">{{ despesa.beneficiarioNome || '—' }}</td>
+            <td class="table__num" data-rotulo="Valor">{{ despesa.valor | currency: 'BRL' }}</td>
             <td class="table__acoes" (click)="$event.stopPropagation()">
               <div class="table__acoes-grupo">
                 <button mat-stroked-button type="button" (click)="editar(despesa)">Editar</button>

@@ -1,15 +1,21 @@
 <mat-sidenav-container class="shell">
-  <mat-sidenav mode="side" opened class="shell__sidebar">
+  <mat-sidenav
+    [mode]="telaEstreita() ? 'over' : 'side'"
+    [opened]="telaEstreita() ? gavetaAberta() : true"
+    (closedStart)="gavetaAberta.set(false)"
+    class="shell__sidebar"
+    [class.shell__sidebar--recolhido]="recolhido() && !telaEstreita()"
+  >
     <div class="shell__marca">
       <span class="shell__marca-dot" aria-hidden="true"></span>
-      <span>Gestão de Custos de Obras</span>
+      <span class="shell__rotulo">Gestão de Custos de Obras</span>
     </div>
 
     <nav class="shell__nav">
       @for (link of links; track link.path) {
-        <a [routerLink]="link.path" routerLinkActive="ativo">
+        <a [routerLink]="link.path" routerLinkActive="ativo" [title]="link.label" (click)="fecharGaveta()">
           <i class="ph {{ link.icone }}" aria-hidden="true"></i>
-          {{ link.label }}
+          <span class="shell__rotulo">{{ link.label }}</span>
         </a>
       }
     </nav>
@@ -17,7 +23,7 @@
     <div class="shell__usuario">
       <span class="shell__avatar">{{ iniciais() }}</span>
       @if (usuario(); as u) {
-        <div class="shell__usuario-info">
+        <div class="shell__usuario-info shell__rotulo">
           <p class="shell__usuario-nome">{{ u.nome }}</p>
           <p class="shell__usuario-papel">{{ u.role }}</p>
         </div>
@@ -29,6 +35,15 @@
   </mat-sidenav>
 
   <mat-sidenav-content class="shell__content">
+    <button
+      type="button"
+      class="shell__alternar"
+      (click)="alternarMenu()"
+      [attr.aria-label]="telaEstreita() ? 'Abrir menu' : recolhido() ? 'Expandir menu' : 'Recolher menu'"
+      [title]="telaEstreita() ? 'Abrir menu' : recolhido() ? 'Expandir menu' : 'Recolher menu'"
+    >
+      <i class="ph" [class.ph-list]="telaEstreita() || recolhido()" [class.ph-sidebar-simple]="!telaEstreita() && !recolhido()" aria-hidden="true"></i>
+    </button>
     <router-outlet />
   </mat-sidenav-content>
 </mat-sidenav-container>

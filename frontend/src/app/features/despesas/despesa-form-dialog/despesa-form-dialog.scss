@@ -92,3 +92,20 @@
   color: #9397ab;
   margin: 0 0 8px;
 }
+
+// Duas colunas de campo num celular espremem cada label a ~150px (RNF03).
+@media (max-width: 600px) {
+  .dialogo-despesa__grade {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogo-despesa__topo {
+    padding-left: 16px;
+  }
+
+  // O botão de anexar e o nome do arquivo escolhido lado a lado estouram a largura.
+  .dialogo-despesa__upload {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

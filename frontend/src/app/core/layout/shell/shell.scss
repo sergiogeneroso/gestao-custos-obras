@@ -10,6 +10,32 @@
   flex-direction: column;
   padding: 22px 0;
   box-sizing: border-box;
+  transition: width 160ms ease;
+}
+
+// Modo compacto: só os ícones, com o rótulo em `title`. Some a coluna de 236px e sobra largura
+// para as tabelas, que é o que aperta nas telas de listagem.
+.shell__sidebar--recolhido {
+  width: 64px;
+
+  .shell__rotulo {
+    display: none;
+  }
+
+  .shell__marca,
+  .shell__usuario {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .shell__nav a {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .shell__sair {
+    display: none;
+  }
 }
 
 .shell__marca {
@@ -131,4 +157,30 @@
 
 .shell__content {
   background: var(--mat-sys-background);
+  position: relative;
+}
+
+// Fica sobre o conteúdo, no canto onde a barra encosta: no desktop recolhe/expande, no celular
+// abre a gaveta. Um só botão porque é a mesma intenção — dar espaço à aplicação.
+.shell__alternar {
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  z-index: 2;
+  background: none;
+  border: none;
+  color: #9397ab;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--mat-sys-corner-small, 8px);
+  display: flex;
+
+  i {
+    font-size: 19px;
+  }
+
+  &:hover {
+    background: rgba(233, 233, 237, 0.08);
+    color: var(--mat-sys-on-surface);
+  }
 }
