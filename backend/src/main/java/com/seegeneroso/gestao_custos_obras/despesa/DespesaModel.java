@@ -63,6 +63,10 @@ public class DespesaModel {
 
     private String descricao;
 
+    // Anotação livre do lançamento (o que a descrição, limitada a 255, não comporta).
+    @Column(columnDefinition = "TEXT")
+    private String observacao;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean ativo = true;

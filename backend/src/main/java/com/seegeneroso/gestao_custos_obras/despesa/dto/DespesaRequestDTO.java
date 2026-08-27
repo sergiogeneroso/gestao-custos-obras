@@ -31,5 +31,8 @@ public record DespesaRequestDTO(
         LocalDate dataPagamento,
 
         @Size(max = 255, message = "Descrição deve ter no máximo 255 caracteres")
-        String descricao
+        String descricao,
+
+        // observacao é TEXT no banco: texto livre, sem teto.
+        String observacao
 ) {}

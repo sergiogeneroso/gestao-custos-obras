@@ -59,6 +59,7 @@ public class DespesaService {
                 .valor(dto.valor())
                 .dataPagamento(dto.dataPagamento())
                 .descricao(dto.descricao())
+                .observacao(dto.observacao())
                 .build();
 
         DespesaModel despesaSalva = despesaRepository.save(despesa);
@@ -88,6 +89,7 @@ public class DespesaService {
         despesa.setValor(dto.valor());
         despesa.setDataPagamento(dto.dataPagamento());
         despesa.setDescricao(dto.descricao());
+        despesa.setObservacao(dto.observacao());
 
         DespesaModel despesaAtualizada = despesaRepository.save(despesa);
         return despesaMapper.toResponseDTO(despesaAtualizada);

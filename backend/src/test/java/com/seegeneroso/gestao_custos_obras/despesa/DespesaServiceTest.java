@@ -168,6 +168,6 @@ class DespesaServiceTest {
 
     private DespesaRequestDTO dto(Long imovelId, FaseImovel fase, EtapaConstrucao etapa) {
         return new DespesaRequestDTO(imovelId, 2L, 3L, null, null, fase, etapa,
-                new BigDecimal("1500.00"), PAGAMENTO, "Compra de material");
+                new BigDecimal("1500.00"), PAGAMENTO, "Compra de material", null);
     }
 }

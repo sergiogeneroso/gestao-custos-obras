@@ -100,11 +100,13 @@ export class DespesaFormDialog implements OnInit {
     valor: [this.despesa?.valor ?? (null as number | null), Validators.required],
     dataPagamento: [paraData(this.despesa?.dataPagamento) ?? new Date(), Validators.required],
     descricao: [this.despesa?.descricao ?? ''],
+    observacao: [this.despesa?.observacao ?? ''],
   });
 
   ngOnInit(): void {
     this.imoveisService.listar().subscribe((imoveis) => {
       this.imoveis.set(imoveis.filter((i) => i.ativo));
+      this.preencherFaseDoImovel();
       this.atualizarMostrarEtapa();
     });
     this.categoriasService.listar().subscribe((categorias) => this.categorias.set(categorias));
@@ -113,6 +115,7 @@ export class DespesaFormDialog implements OnInit {
     this.carregarContratos(this.form.controls.imovelId.value);
     this.form.controls.imovelId.valueChanges.subscribe((imovelId) => {
       this.form.controls.contratoFinanceiroId.setValue(null);
+      this.preencherFaseDoImovel();
       this.carregarContratos(imovelId);
     });
     this.form.controls.faseImovel.valueChanges.subscribe(() => this.atualizarMostrarEtapa());
@@ -135,6 +138,7 @@ export class DespesaFormDialog implements OnInit {
       ...bruto,
       dataPagamento: paraIso(bruto.dataPagamento)!,
       descricao: bruto.descricao || null,
+      observacao: bruto.observacao || null,
     } as DespesaRequestDTO;
     const requisicao = this.despesa ? this.service.atualizar(this.despesa.id, dto) : this.service.criar(dto);
 
@@ -226,6 +230,23 @@ export class DespesaFormDialog implements OnInit {
     this.service.deletarAnexo(this.despesa.id, anexo.id).subscribe(() => {
       this.anexos.update((atuais) => atuais.filter((a) => a.id !== anexo.id));
     });
+  }
+
+  /**
+   * Mostra no combo a fase que o lançamento vai receber, em vez de deixá-lo vazio enquanto o
+   * backend herda a fase atual do imóvel por baixo. É sugestão, nunca valor imposto: a despesa
+   * guarda a fase em que o gasto foi incorrido, e lançamento retroativo é comum.
+   *
+   * Só na criação. Numa despesa em edição a fase gravada é dado histórico e trocar o imóvel não
+   * pode reescrevê-la sozinho.
+   */
+  private preencherFaseDoImovel(): void {
+    if (this.despesa) {
+      return;
+    }
+    const imovelId = this.form.controls.imovelId.value;
+    const fase = this.imoveis().find((i) => i.id === imovelId)?.fase ?? null;
+    this.form.controls.faseImovel.setValue(fase);
   }
 
   // Com a fase em "Automática" o backend adota a fase atual do imóvel, e a etapa só é aceita

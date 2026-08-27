@@ -66,6 +66,7 @@ export interface DespesaRequestDTO {
   valor: number;
   dataPagamento: string;
   descricao: string | null;
+  observacao: string | null;
 }
 
 export interface DespesaResponseDTO {
@@ -84,6 +85,7 @@ export interface DespesaResponseDTO {
   valor: number;
   dataPagamento: string;
   descricao: string | null;
+  observacao: string | null;
   ativo: boolean;
 }
 

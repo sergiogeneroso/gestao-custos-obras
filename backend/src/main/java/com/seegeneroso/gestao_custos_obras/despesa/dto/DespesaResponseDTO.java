@@ -22,5 +22,6 @@ public record DespesaResponseDTO(
         BigDecimal valor,
         LocalDate dataPagamento,
         String descricao,
+        String observacao,
         Boolean ativo
 ) {}

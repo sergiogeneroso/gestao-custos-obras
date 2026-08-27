@@ -23,6 +23,7 @@ public class DespesaMapper {
                 despesa.getValor(),
                 despesa.getDataPagamento(),
                 despesa.getDescricao(),
+                despesa.getObservacao(),
                 despesa.getAtivo()
         );
     }

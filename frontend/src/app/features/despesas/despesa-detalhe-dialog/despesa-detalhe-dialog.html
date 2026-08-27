@@ -48,6 +48,13 @@
           <dd>{{ despesa.descricao }}</dd>
         </div>
       }
+
+      @if (despesa.observacao) {
+        <div class="detalhe-despesa__largo">
+          <dt>Observação</dt>
+          <dd>{{ despesa.observacao }}</dd>
+        </div>
+      }
     </dl>
 
     <section class="detalhe-despesa__anexos">
