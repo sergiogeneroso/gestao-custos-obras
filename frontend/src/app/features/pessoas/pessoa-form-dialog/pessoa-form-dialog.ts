@@ -1,6 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -9,6 +8,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { mensagemErro } from '../../../shared/erro/erro.util';
+import { documentoValidator, mascaraDocumento } from '../../../shared/mascara/documento';
+import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
+import { MASCARA_TELEFONE } from '../../../shared/mascara/telefone';
 import { PessoaRequestDTO, PessoaResponseDTO, TIPO_PESSOA_LABEL, TipoPessoa } from '../pessoa.model';
 import { PessoasService } from '../pessoas.service';
 
@@ -26,6 +29,7 @@ export interface PessoaFormDialogData {
     MatInputModule,
     MatCheckboxModule,
     MatSelectModule,
+    MascaraDirective,
   ],
   templateUrl: './pessoa-form-dialog.html',
   styleUrl: './pessoa-form-dialog.scss',
@@ -43,16 +47,34 @@ export class PessoaFormDialog {
 
   protected readonly salvando = signal(false);
 
+  // O tipo decide a máscara e o dígito verificador, então o campo precisa reagir a ele.
+  protected readonly tipoSelecionado = signal<TipoPessoa>(this.pessoa?.tipoPessoa ?? 'FISICA');
+  protected readonly ehFisica = computed(() => this.tipoSelecionado() === 'FISICA');
+  protected readonly mascaraDoc = computed(() => mascaraDocumento(this.tipoSelecionado()));
+  protected readonly mascaraTelefone = MASCARA_TELEFONE;
+
   protected readonly form = this.fb.group({
     nome: [this.pessoa?.nome ?? '', Validators.required],
     tipoPessoa: [this.pessoa?.tipoPessoa ?? ('FISICA' as TipoPessoa), Validators.required],
-    documento: [this.pessoa?.documento ?? '', Validators.required],
+    documento: [
+      this.pessoa?.documento ?? '',
+      [Validators.required, documentoValidator(() => this.tipoSelecionado())],
+    ],
     email: [this.pessoa?.email ?? ''],
     telefone: [this.pessoa?.telefone ?? ''],
     fornecedor: [this.pessoa?.fornecedor ?? false],
     areaAtuacao: [this.pessoa?.areaAtuacao ?? ''],
     observacoes: [this.pessoa?.observacoes ?? ''],
   });
+
+  constructor() {
+    // Trocar o tipo troca a máscara e o algoritmo do dígito verificador: o documento já
+    // digitado precisa ser reavaliado, senão um CPF válido continua passando como CNPJ.
+    this.form.controls.tipoPessoa.valueChanges.subscribe((tipo) => {
+      this.tipoSelecionado.set(tipo ?? 'FISICA');
+      this.form.controls.documento.updateValueAndValidity();
+    });
+  }
 
   protected salvar(): void {
     if (this.form.invalid) {

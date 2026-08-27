@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.validacao.Documentos;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +18,14 @@ public class PessoaService {
     private final PessoaRepository pessoaRepository;
     private final PessoaMapper pessoaMapper;
 
-    // ponytail: documento sem validação de dígito verificador (CPF/CNPJ); entra se dado sujo incomodar (ADR-021)
+    // O dígito verificador de CPF/CNPJ é checado por PessoaRequestDTO.isDocumentoValido(). Aqui a
+    // comparação é sempre sobre o documento normalizado (o mesmo que o mapper grava): comparando a
+    // string crua, o mesmo CPF digitado com e sem pontuação entrava como duas pessoas.
     @Transactional
     public PessoaResponseDTO criar(PessoaRequestDTO dto) {
-        if (pessoaRepository.existsByDocumento(dto.documento())) {
-            throw new RegraDeNegocioException("Já existe uma pessoa cadastrada com o documento: " + dto.documento());
+        String documento = Documentos.normalizar(dto.documento());
+        if (pessoaRepository.existsByDocumento(documento)) {
+            throw new RegraDeNegocioException("Já existe uma pessoa cadastrada com o documento: " + documento);
         }
 
         PessoaModel entity = pessoaMapper.toEntity(dto);
@@ -49,9 +53,10 @@ public class PessoaService {
         PessoaModel entity = pessoaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pessoa não encontrada com id: " + id));
 
-        if (!entity.getDocumento().equalsIgnoreCase(dto.documento())
-                && pessoaRepository.existsByDocumento(dto.documento())) {
-            throw new RegraDeNegocioException("Já existe outra pessoa cadastrada com o documento: " + dto.documento());
+        String documento = Documentos.normalizar(dto.documento());
+        if (!entity.getDocumento().equalsIgnoreCase(documento)
+                && pessoaRepository.existsByDocumento(documento)) {
+            throw new RegraDeNegocioException("Já existe outra pessoa cadastrada com o documento: " + documento);
         }
 
         pessoaMapper.updateEntityFromDto(dto, entity);

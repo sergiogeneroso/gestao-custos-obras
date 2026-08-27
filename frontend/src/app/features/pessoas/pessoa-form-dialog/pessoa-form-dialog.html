@@ -24,8 +24,11 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Documento</mat-label>
-          <input matInput formControlName="documento" />
+          <mat-label>{{ ehFisica() ? 'CPF' : 'CNPJ' }}</mat-label>
+          <input matInput formControlName="documento" [appMascara]="mascaraDoc()" />
+          @if (form.controls.documento.hasError('documento')) {
+            <mat-error>{{ ehFisica() ? 'CPF inválido.' : 'CNPJ inválido.' }}</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -35,7 +38,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Telefone</mat-label>
-          <input matInput formControlName="telefone" />
+          <input matInput formControlName="telefone" [appMascara]="mascaraTelefone" />
         </mat-form-field>
 
         <div class="dialogo-pessoa__campo-largo">

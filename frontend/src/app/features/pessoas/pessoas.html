@@ -43,7 +43,7 @@
           <tr>
             <td class="table__nome">{{ pessoa.nome }}</td>
             <td>{{ tipoLabel[pessoa.tipoPessoa] }}</td>
-            <td>{{ pessoa.documento }}</td>
+            <td>{{ formatarDocumento(pessoa.documento, pessoa.tipoPessoa) }}</td>
             <td>
               @if (pessoa.fornecedor) {
                 <span class="tag tag--fornecedor">Fornecedor</span>
@@ -51,7 +51,7 @@
                 —
               }
             </td>
-            <td>{{ pessoa.email || pessoa.telefone || '—' }}</td>
+            <td>{{ pessoa.email || formatarTelefone(pessoa.telefone) || '—' }}</td>
             <td class="table__acoes">
               <div class="table__acoes-grupo">
                 <button mat-stroked-button type="button" (click)="editar(pessoa)">Editar</button>

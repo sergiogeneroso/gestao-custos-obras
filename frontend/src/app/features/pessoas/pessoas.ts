@@ -5,6 +5,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { PessoaFormDialog } from './pessoa-form-dialog/pessoa-form-dialog';
 import { PessoaResponseDTO, TIPO_PESSOA_LABEL } from './pessoa.model';
+import { formatarDocumento } from '../../shared/mascara/documento';
+import { formatarTelefone } from '../../shared/mascara/telefone';
 import { PessoasService } from './pessoas.service';
 
 @Component({
@@ -20,6 +22,9 @@ export class Pessoas implements OnInit {
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
   protected readonly carregando = signal(true);
   protected readonly tipoLabel = TIPO_PESSOA_LABEL;
+  // Documento e telefone são gravados sem pontuação (ver shared/mascara); a máscara é da tela.
+  protected readonly formatarDocumento = formatarDocumento;
+  protected readonly formatarTelefone = formatarTelefone;
 
   protected readonly busca = signal('');
   protected readonly filtro = signal<'todas' | 'fornecedores'>('todas');
@@ -31,7 +36,9 @@ export class Pessoas implements OnInit {
     return this.pessoas().filter((pessoa) => {
       if (filtro === 'fornecedores' && !pessoa.fornecedor) return false;
       if (!termo) return true;
-      return [pessoa.nome, pessoa.documento, pessoa.areaAtuacao]
+      // O documento é gravado sem pontuação, então a busca precisa das duas formas para
+      // achar tanto quem digita '52998' quanto quem digita '529.98'.
+      return [pessoa.nome, pessoa.documento, formatarDocumento(pessoa.documento, pessoa.tipoPessoa), pessoa.areaAtuacao]
         .filter((valor): valor is string => !!valor)
         .some((valor) => valor.toLowerCase().includes(termo));
     });
