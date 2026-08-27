@@ -13,11 +13,16 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
+import com.seegeneroso.gestao_custos_obras.shared.Buscas;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -193,12 +198,24 @@ public class ContratoFinanceiroService {
         return a.compareTo(b) == 0;
     }
 
+    /**
+     * Lista completa (ou a do imóvel). É o que alimenta o combo de contrato do lançamento de
+     * despesa e a conferência do cronograma no cadastro do imóvel. A tela de listagem usa
+     * {@link #buscar}.
+     */
     @Transactional(readOnly = true)
     public List<ContratoFinanceiroResponseDTO> listar(Long imovelId) {
         List<ContratoFinanceiroModel> contratos = imovelId != null
                 ? contratoFinanceiroRepository.findByImovelId(imovelId)
                 : contratoFinanceiroRepository.findAll();
         return contratos.stream().map(contratoFinanceiroMapper::toResponseDTO).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<ContratoFinanceiroResponseDTO> buscar(String busca, int pagina, int tamanho) {
+        Pageable pageable = PageRequest.of(pagina, tamanho, Sort.by(Sort.Direction.DESC, "id"));
+        return PaginaDTO.de(contratoFinanceiroRepository.buscar(Buscas.normalizar(busca), pageable),
+                contratoFinanceiroMapper::toResponseDTO);
     }
 
     @Transactional(readOnly = true)

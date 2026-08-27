@@ -2,9 +2,14 @@ package com.seegeneroso.gestao_custos_obras.categoriaDespesa;
 
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.dto.CategoriaDespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.dto.CategoriaDespesaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.shared.Buscas;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +33,23 @@ public class CategoriaDespesaService {
         return categoriaDespesaMapper.toResponseDTO(salva);
     }
 
+    /**
+     * Lista completa, sem paginar. É o que alimenta os combos de categoria dos formulários —
+     * um select paginado esconderia opções válidas. A tela de listagem usa {@link #buscar}.
+     */
     @Transactional(readOnly = true)
     public List<CategoriaDespesaResponseDTO> listarTodas() {
         return categoriaDespesaRepository.findAll()
                 .stream()
                 .map(categoriaDespesaMapper::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<CategoriaDespesaResponseDTO> buscar(String busca, int pagina, int tamanho) {
+        Pageable pageable = PageRequest.of(pagina, tamanho, Sort.by("nome"));
+        return PaginaDTO.de(categoriaDespesaRepository.buscar(Buscas.normalizar(busca), pageable),
+                categoriaDespesaMapper::toResponseDTO);
     }
 
     @Transactional(readOnly = true)

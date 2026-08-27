@@ -10,22 +10,24 @@
     </button>
   </header>
 
-  @if (!carregando() && pessoas().length > 0) {
-    <div class="pessoas__toolbar">
-      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar pessoa" placeholder="Nome, documento ou área" />
-      <mat-button-toggle-group [value]="filtro()" (change)="filtro.set($event.value)" aria-label="Filtrar por papel">
-        <mat-button-toggle value="todas">Todas</mat-button-toggle>
-        <mat-button-toggle value="fornecedores">Só fornecedores</mat-button-toggle>
-      </mat-button-toggle-group>
-    </div>
-  }
+  <div class="pessoas__toolbar">
+    <app-busca-toolbar [(valor)]="busca" rotulo="Buscar pessoa" placeholder="Nome, documento ou área" />
+    <mat-button-toggle-group [value]="filtro()" (change)="filtro.set($event.value)" aria-label="Filtrar por papel">
+      <mat-button-toggle value="todas">Todas</mat-button-toggle>
+      <mat-button-toggle value="fornecedores">Só fornecedores</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
 
-  @if (carregando()) {
+  @if (lista.carregando()) {
     <p class="pessoas__carregando">Carregando…</p>
-  } @else if (pessoas().length === 0) {
-    <p class="pessoas__vazio">Nenhuma pessoa cadastrada ainda.</p>
-  } @else if (pessoasFiltradas().length === 0) {
-    <p class="pessoas__vazio">Nenhuma pessoa encontrada para a busca.</p>
+  } @else if (lista.total() === 0) {
+    <p class="pessoas__vazio">
+      @if (busca().trim() || filtro() !== 'todas') {
+        Nenhuma pessoa encontrada para a busca.
+      } @else {
+        Nenhuma pessoa cadastrada ainda.
+      }
+    </p>
   } @else {
     <table class="table">
       <thead>
@@ -39,7 +41,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (pessoa of pessoasFiltradas(); track pessoa.id) {
+        @for (pessoa of lista.itens(); track pessoa.id) {
           <tr>
             <td class="table__nome">{{ pessoa.nome }}</td>
             <td>{{ tipoLabel[pessoa.tipoPessoa] }}</td>
@@ -64,5 +66,14 @@
         }
       </tbody>
     </table>
+
+    <mat-paginator
+      [length]="lista.total()"
+      [pageIndex]="lista.pagina()"
+      [pageSize]="lista.tamanho()"
+      [pageSizeOptions]="lista.tamanhos"
+      (page)="mudarPagina($event)"
+      aria-label="Paginação de pessoas"
+    />
   }
 </main>

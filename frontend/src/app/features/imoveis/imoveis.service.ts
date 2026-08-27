@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { PaginaDTO } from '../../shared/pagina/pagina.model';
 import {
   EnvioDocumento,
   ImovelDocumentoResponseDTO,
@@ -10,6 +11,8 @@ import {
   ImovelRequestDTO,
   ImovelResponseDTO,
   ImovelSituacaoRequestDTO,
+  FaseImovel,
+  SituacaoImovel,
 } from './imovel.model';
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +22,23 @@ export class ImoveisService {
 
   listar(): Observable<ImovelResponseDTO[]> {
     return this.http.get<ImovelResponseDTO[]>(this.baseUrl);
+  }
+
+  /** Página da tela de listagem: busca, fase e situação são resolvidos no backend. */
+  listarPagina(
+    busca: string,
+    fase: FaseImovel | '',
+    situacao: SituacaoImovel | '',
+    pagina: number,
+    tamanho: number,
+  ): Observable<PaginaDTO<ImovelResponseDTO>> {
+    let params = new HttpParams()
+      .set('busca', busca)
+      .set('pagina', pagina)
+      .set('tamanho', tamanho);
+    if (fase) params = params.set('fase', fase);
+    if (situacao) params = params.set('situacao', situacao);
+    return this.http.get<PaginaDTO<ImovelResponseDTO>>(`${this.baseUrl}/pagina`, { params });
   }
 
   criar(dto: ImovelRequestDTO): Observable<ImovelResponseDTO> {

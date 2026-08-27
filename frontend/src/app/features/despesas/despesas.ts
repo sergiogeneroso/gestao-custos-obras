@@ -1,9 +1,11 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { DespesaDetalheDialog } from './despesa-detalhe-dialog/despesa-detalhe-dialog';
 import { DespesaFormDialog } from './despesa-form-dialog/despesa-form-dialog';
 import { DespesaResponseDTO } from './despesa.model';
@@ -11,36 +13,38 @@ import { DespesasService } from './despesas.service';
 
 @Component({
   selector: 'app-despesas',
-  imports: [CurrencyPipe, DatePipe, MatButtonModule, MatButtonToggleModule, BuscaToolbar],
+  imports: [CurrencyPipe, DatePipe, MatButtonModule, MatButtonToggleModule, MatPaginatorModule, BuscaToolbar],
   templateUrl: './despesas.html',
   styleUrl: './despesas.scss',
 })
-export class Despesas implements OnInit {
+export class Despesas {
   private readonly service = inject(DespesasService);
   private readonly dialog = inject(MatDialog);
-
-  protected readonly despesas = signal<DespesaResponseDTO[]>([]);
-  protected readonly carregando = signal(true);
 
   protected readonly busca = signal('');
   protected readonly filtro = signal<'todas' | 'imovel' | 'geral'>('todas');
 
-  protected readonly despesasFiltradas = computed(() => {
-    const termo = this.busca().trim().toLowerCase();
-    const filtro = this.filtro();
+  // Busca e filtro são resolvidos no backend junto com a paginação: filtrar só a página
+  // carregada esconderia lançamentos que casam com o termo mas estão em outra página.
+  protected readonly lista = new ListagemPaginada<DespesaResponseDTO>(
+    inject(DestroyRef),
+    (pagina, tamanho) => this.service.listarPagina(this.busca().trim(), this.escopo(), pagina, tamanho),
+  );
 
-    return this.despesas().filter((despesa) => {
-      if (filtro === 'imovel' && despesa.imovelId === null) return false;
-      if (filtro === 'geral' && despesa.imovelId !== null) return false;
-      if (!termo) return true;
-      return [despesa.categoriaDespesaNome, despesa.pagadorNome, despesa.beneficiarioNome, despesa.imovelIdentificador, despesa.descricao]
-        .filter((valor): valor is string => !!valor)
-        .some((valor) => valor.toLowerCase().includes(termo));
+  constructor() {
+    effect(() => {
+      this.busca();
+      this.filtro();
+      this.lista.reiniciar();
     });
-  });
+  }
 
-  ngOnInit(): void {
-    this.carregar();
+  private escopo(): 'TODAS' | 'IMOVEL' | 'GERAL' {
+    return this.filtro() === 'imovel' ? 'IMOVEL' : this.filtro() === 'geral' ? 'GERAL' : 'TODAS';
+  }
+
+  protected mudarPagina(evento: PageEvent): void {
+    this.lista.mudarPagina(evento);
   }
 
   protected novo(): void {
@@ -67,21 +71,14 @@ export class Despesas implements OnInit {
     if (!confirm(`Inativar esta despesa de ${despesa.categoriaDespesaNome}?`)) {
       return;
     }
-    this.service.inativar(despesa.id).subscribe(() => this.carregar());
+    this.service.inativar(despesa.id).subscribe(() => this.lista.carregar());
   }
 
   private abrirFormulario(despesa: DespesaResponseDTO | null): void {
     this.dialog
       .open(DespesaFormDialog, { data: { despesa }, autoFocus: false, width: '640px', maxWidth: '95vw' })
       .afterClosed()
-      .subscribe(() => this.carregar());
+      .subscribe(() => this.lista.carregar());
   }
 
-  private carregar(): void {
-    this.carregando.set(true);
-    this.service.listar().subscribe((despesas) => {
-      this.despesas.set(despesas);
-      this.carregando.set(false);
-    });
-  }
 }

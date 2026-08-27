@@ -9,6 +9,8 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoImovel;
 import jakarta.validation.Valid;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
+import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,18 @@ public class ImovelController {
     @GetMapping
     public ResponseEntity<List<ImovelResponseDTO>> listarTodos() {
         return ResponseEntity.ok(imovelService.listarTodos());
+    }
+
+    // Endpoint da tela de listagem: busca e filtros vão para o banco junto com a paginação.
+    // O GET sem /pagina continua devolvendo a lista inteira, que é o que alimenta os combos.
+    @GetMapping("/pagina")
+    public ResponseEntity<PaginaDTO<ImovelResponseDTO>> buscar(
+            @RequestParam(defaultValue = "") String busca,
+            @RequestParam(required = false) FaseImovel fase,
+            @RequestParam(required = false) SituacaoImovel situacao,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho) {
+        return ResponseEntity.ok(imovelService.buscar(busca, fase, situacao, pagina, tamanho));
     }
 
     @GetMapping("/{id}")

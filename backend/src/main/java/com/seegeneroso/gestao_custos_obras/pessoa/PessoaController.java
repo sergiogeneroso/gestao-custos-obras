@@ -3,6 +3,7 @@ package com.seegeneroso.gestao_custos_obras.pessoa;
 import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaResponseDTO;
 import jakarta.validation.Valid;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,17 @@ public class PessoaController {
     @GetMapping
     public ResponseEntity<List<PessoaResponseDTO>> listarTodos() {
         return ResponseEntity.ok(pessoaService.listarTodos());
+    }
+
+    // Endpoint da tela de listagem: busca e filtros vão para o banco junto com a paginação.
+    // O GET sem /pagina continua devolvendo a lista inteira, que é o que alimenta os combos.
+    @GetMapping("/pagina")
+    public ResponseEntity<PaginaDTO<PessoaResponseDTO>> buscar(
+            @RequestParam(defaultValue = "") String busca,
+            @RequestParam(defaultValue = "false") boolean somenteFornecedores,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho) {
+        return ResponseEntity.ok(pessoaService.buscar(busca, somenteFornecedores, pagina, tamanho));
     }
 
     @GetMapping("/{id}")

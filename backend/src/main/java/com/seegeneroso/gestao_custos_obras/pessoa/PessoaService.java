@@ -2,10 +2,15 @@ package com.seegeneroso.gestao_custos_obras.pessoa;
 
 import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.shared.Buscas;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.validacao.Documentos;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +38,26 @@ public class PessoaService {
         return pessoaMapper.toResponseDTO(salvo);
     }
 
+    /**
+     * Lista completa, sem paginar. É o que alimenta os combos de pagador, beneficiário,
+     * vendedor e contraparte — um select paginado esconderia pessoas válidas. A tela de
+     * listagem usa {@link #buscar}.
+     */
     @Transactional(readOnly = true)
     public List<PessoaResponseDTO> listarTodos() {
         return pessoaRepository.findByAtivoTrue()
                 .stream()
                 .map(pessoaMapper::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<PessoaResponseDTO> buscar(String busca, boolean somenteFornecedores, int pagina, int tamanho) {
+        // "Todas" aceita os dois valores do booleano; "só fornecedores" aceita apenas true.
+        List<Boolean> fornecedores = somenteFornecedores ? List.of(true) : List.of(true, false);
+        Pageable pageable = PageRequest.of(pagina, tamanho, Sort.by("nome"));
+        return PaginaDTO.de(pessoaRepository.buscar(Buscas.normalizar(busca), fornecedores, pageable),
+                pessoaMapper::toResponseDTO);
     }
 
     @Transactional(readOnly = true)

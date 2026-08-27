@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { PaginaDTO } from '../../shared/pagina/pagina.model';
 import {
   ContratoDocumentoResponseDTO,
   ContratoFinanceiroRequestDTO,
@@ -22,6 +23,15 @@ export class ContratosService {
       params = params.set('imovelId', imovelId);
     }
     return this.http.get<ContratoFinanceiroResponseDTO[]>(this.baseUrl, { params });
+  }
+
+  /** Página da tela de listagem: busca e filtros são resolvidos no backend. */
+  listarPagina(busca: string, pagina: number, tamanho: number): Observable<PaginaDTO<ContratoFinanceiroResponseDTO>> {
+    let params = new HttpParams()
+      .set('busca', busca)
+      .set('pagina', pagina)
+      .set('tamanho', tamanho);
+    return this.http.get<PaginaDTO<ContratoFinanceiroResponseDTO>>(`${this.baseUrl}/pagina`, { params });
   }
 
   criar(dto: ContratoFinanceiroRequestDTO): Observable<ContratoFinanceiroResponseDTO> {

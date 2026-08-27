@@ -10,18 +10,20 @@
     </button>
   </header>
 
-  @if (!carregando() && contratos().length > 0) {
-    <div class="contratos__toolbar">
-      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar contrato" placeholder="Imóvel ou contraparte" />
-    </div>
-  }
+  <div class="contratos__toolbar">
+    <app-busca-toolbar [(valor)]="busca" rotulo="Buscar contrato" placeholder="Imóvel ou contraparte" />
+  </div>
 
-  @if (carregando()) {
+  @if (lista.carregando()) {
     <p class="contratos__carregando">Carregando…</p>
-  } @else if (contratos().length === 0) {
-    <p class="contratos__vazio">Nenhum contrato cadastrado ainda.</p>
-  } @else if (contratosFiltrados().length === 0) {
-    <p class="contratos__vazio">Nenhum contrato encontrado para a busca.</p>
+  } @else if (lista.total() === 0) {
+    <p class="contratos__vazio">
+      @if (busca().trim()) {
+        Nenhum contrato encontrado para a busca.
+      } @else {
+        Nenhum contrato cadastrado ainda.
+      }
+    </p>
   } @else {
     <table class="table">
       <thead>
@@ -34,7 +36,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (contrato of contratosFiltrados(); track contrato.id) {
+        @for (contrato of lista.itens(); track contrato.id) {
           <tr class="table__linha" (click)="verDetalhe(contrato)">
             <td class="table__nome">{{ contrato.imovelIdentificador }}</td>
             <td>{{ tipoLabel[contrato.tipo] }}</td>
@@ -45,5 +47,14 @@
         }
       </tbody>
     </table>
+
+    <mat-paginator
+      [length]="lista.total()"
+      [pageIndex]="lista.pagina()"
+      [pageSize]="lista.tamanho()"
+      [pageSizeOptions]="lista.tamanhos"
+      (page)="mudarPagina($event)"
+      aria-label="Paginação de contratos"
+    />
   }
 </main>

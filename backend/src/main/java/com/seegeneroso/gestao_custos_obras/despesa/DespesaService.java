@@ -14,11 +14,16 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
+import com.seegeneroso.gestao_custos_obras.shared.Buscas;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -114,6 +119,24 @@ public class DespesaService {
         return despesas.stream()
                 .map(despesaMapper::toResponseDTO)
                 .toList();
+    }
+
+    /**
+     * Busca paginada da tela de despesas. `escopo` é "TODAS", "IMOVEL" (só de imóvel) ou "GERAL"
+     * (só gasto geral, sem imóvel) — os mesmos três estados do filtro da tela.
+     */
+    @Transactional(readOnly = true)
+    public PaginaDTO<DespesaResponseDTO> buscar(String busca, String escopo, int pagina, int tamanho) {
+        String escopoValido = switch (escopo == null ? "TODAS" : escopo.toUpperCase()) {
+            case "IMOVEL", "GERAL" -> escopo.toUpperCase();
+            default -> "TODAS";
+        };
+        // Mais recente primeiro, e o id desempata lançamentos do mesmo dia para a paginação não
+        // repetir nem pular linha entre páginas.
+        Pageable pageable = PageRequest.of(pagina, tamanho,
+                Sort.by(Sort.Direction.DESC, "dataPagamento", "id"));
+        return PaginaDTO.de(despesaRepository.buscar(Buscas.normalizar(busca), escopoValido, pageable),
+                despesaMapper::toResponseDTO);
     }
 
     @Transactional(readOnly = true)

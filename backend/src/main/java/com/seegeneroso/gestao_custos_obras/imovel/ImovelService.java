@@ -14,10 +14,16 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoImovel;
+import com.seegeneroso.gestao_custos_obras.shared.Buscas;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,7 +58,26 @@ public class ImovelService {
 
     @Transactional(readOnly = true)
     public List<ImovelResponseDTO> listarTodos() {
-        List<ImovelModel> imoveis = imovelRepository.findByAtivoTrue();
+        return comFotosPrincipais(imovelRepository.findByAtivoTrue());
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaDTO<ImovelResponseDTO> buscar(String busca, FaseImovel fase, SituacaoImovel situacao,
+                                               int pagina, int tamanho) {
+        // Filtro ausente vira "todos os valores do enum" — ver a explicação em ImovelRepository.
+        List<FaseImovel> fases = fase != null ? List.of(fase) : List.of(FaseImovel.values());
+        List<SituacaoImovel> situacoes = situacao != null ? List.of(situacao) : List.of(SituacaoImovel.values());
+        Pageable pageable = PageRequest.of(pagina, tamanho, Sort.by("identificador"));
+
+        Page<ImovelModel> page = imovelRepository.buscar(Buscas.normalizar(busca), fases, situacoes, pageable);
+        // As fotos principais saem numa consulta só para a página inteira, como já era feito para
+        // a lista completa — uma consulta por imóvel devolveria o N+1 pela porta dos fundos.
+        List<ImovelResponseDTO> conteudo = comFotosPrincipais(page.getContent());
+        return new PaginaDTO<>(conteudo, page.getNumber(), page.getSize(), page.getTotalElements(),
+                page.getTotalPages());
+    }
+
+    private List<ImovelResponseDTO> comFotosPrincipais(List<ImovelModel> imoveis) {
         List<Long> ids = imoveis.stream().map(ImovelModel::getId).toList();
         Map<Long, String> fotosPrincipaisPorImovel = imovelFotoRepository.findByImovelIdInAndPrincipalTrue(ids).stream()
                 .collect(Collectors.toMap(foto -> foto.getImovel().getId(), ImovelFotoModel::getUrl));

@@ -1,8 +1,10 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { ContratoDetalheDialog } from './contrato-detalhe-dialog/contrato-detalhe-dialog';
 import { ContratoFormDialog } from './contrato-form-dialog/contrato-form-dialog';
 import { ContratoFinanceiroResponseDTO, SITUACAO_CONTRATO_LABEL, TIPO_CONTRATO_LABEL } from './contrato.model';
@@ -10,33 +12,35 @@ import { ContratosService } from './contratos.service';
 
 @Component({
   selector: 'app-contratos',
-  imports: [CurrencyPipe, MatButtonModule, BuscaToolbar],
+  imports: [CurrencyPipe, MatButtonModule, MatPaginatorModule, BuscaToolbar],
   templateUrl: './contratos.html',
   styleUrl: './contratos.scss',
 })
-export class Contratos implements OnInit {
+export class Contratos {
   private readonly service = inject(ContratosService);
   private readonly dialog = inject(MatDialog);
 
-  protected readonly contratos = signal<ContratoFinanceiroResponseDTO[]>([]);
-  protected readonly carregando = signal(true);
   protected readonly tipoLabel = TIPO_CONTRATO_LABEL;
   protected readonly situacaoLabel = SITUACAO_CONTRATO_LABEL;
 
   protected readonly busca = signal('');
 
-  protected readonly contratosFiltrados = computed(() => {
-    const termo = this.busca().trim().toLowerCase();
-    if (!termo) {
-      return this.contratos();
-    }
-    return this.contratos().filter((contrato) =>
-      [contrato.imovelIdentificador, contrato.contraparteNome].some((valor) => valor.toLowerCase().includes(termo)),
-    );
-  });
+  // A busca é resolvida no backend junto com a paginação: filtrar só a página carregada
+  // esconderia contratos que casam com o termo mas estão em outra página.
+  protected readonly lista = new ListagemPaginada<ContratoFinanceiroResponseDTO>(
+    inject(DestroyRef),
+    (pagina, tamanho) => this.service.listarPagina(this.busca().trim(), pagina, tamanho),
+  );
 
-  ngOnInit(): void {
-    this.carregar();
+  constructor() {
+    effect(() => {
+      this.busca();
+      this.lista.reiniciar();
+    });
+  }
+
+  protected mudarPagina(evento: PageEvent): void {
+    this.lista.mudarPagina(evento);
   }
 
   protected novo(): void {
@@ -51,7 +55,7 @@ export class Contratos implements OnInit {
     this.dialog
       .open(ContratoFormDialog, { data: { contrato }, autoFocus: false, width: '680px', maxWidth: '95vw' })
       .afterClosed()
-      .subscribe(() => this.carregar());
+      .subscribe(() => this.lista.carregar());
   }
 
   protected verDetalhe(contrato: ContratoFinanceiroResponseDTO): void {
@@ -59,18 +63,10 @@ export class Contratos implements OnInit {
       .open(ContratoDetalheDialog, { data: { contrato }, autoFocus: false, width: '680px', maxWidth: '95vw' })
       .afterClosed()
       .subscribe((acao) => {
-        this.carregar();
+        this.lista.carregar();
         if (acao === 'editar') {
           this.abrirFormulario(contrato);
         }
       });
-  }
-
-  private carregar(): void {
-    this.carregando.set(true);
-    this.service.listar().subscribe((contratos) => {
-      this.contratos.set(contratos);
-      this.carregando.set(false);
-    });
   }
 }

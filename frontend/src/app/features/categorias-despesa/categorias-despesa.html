@@ -10,18 +10,20 @@
     </button>
   </header>
 
-  @if (!carregando() && categorias().length > 0) {
-    <div class="categorias-despesa__toolbar">
-      <app-busca-toolbar [(valor)]="busca" rotulo="Buscar categoria" placeholder="Nome ou descrição" />
-    </div>
-  }
+  <div class="categorias-despesa__toolbar">
+    <app-busca-toolbar [(valor)]="busca" rotulo="Buscar categoria" placeholder="Nome ou descrição" />
+  </div>
 
-  @if (carregando()) {
+  @if (lista.carregando()) {
     <p class="categorias-despesa__carregando">Carregando…</p>
-  } @else if (categorias().length === 0) {
-    <p class="categorias-despesa__vazio">Nenhuma categoria cadastrada ainda.</p>
-  } @else if (categoriasFiltradas().length === 0) {
-    <p class="categorias-despesa__vazio">Nenhuma categoria encontrada para a busca.</p>
+  } @else if (lista.total() === 0) {
+    <p class="categorias-despesa__vazio">
+      @if (busca().trim()) {
+        Nenhuma categoria encontrada para a busca.
+      } @else {
+        Nenhuma categoria cadastrada ainda.
+      }
+    </p>
   } @else {
     <table class="table">
       <thead>
@@ -32,7 +34,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (categoria of categoriasFiltradas(); track categoria.id) {
+        @for (categoria of lista.itens(); track categoria.id) {
           <tr>
             <td class="table__nome">{{ categoria.nome }}</td>
             <td>{{ categoria.descricao || '—' }}</td>
@@ -48,5 +50,14 @@
         }
       </tbody>
     </table>
+
+    <mat-paginator
+      [length]="lista.total()"
+      [pageIndex]="lista.pagina()"
+      [pageSize]="lista.tamanho()"
+      [pageSizeOptions]="lista.tamanhos"
+      (page)="mudarPagina($event)"
+      aria-label="Paginação de categorias"
+    />
   }
 </main>

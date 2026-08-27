@@ -5,6 +5,7 @@ import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import jakarta.validation.Valid;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,17 @@ public class DespesaController {
             @RequestParam(required = false) Long categoriaDespesaId,
             @RequestParam(required = false) Boolean semImovel) {
         return ResponseEntity.ok(despesaService.listar(imovelId, categoriaDespesaId, semImovel));
+    }
+
+    // Endpoint da tela de listagem: busca e escopo (TODAS/IMOVEL/GERAL) vão para o banco junto
+    // com a paginação. O GET sem /pagina continua devolvendo a lista inteira.
+    @GetMapping("/pagina")
+    public ResponseEntity<PaginaDTO<DespesaResponseDTO>> buscar(
+            @RequestParam(defaultValue = "") String busca,
+            @RequestParam(defaultValue = "TODAS") String escopo,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho) {
+        return ResponseEntity.ok(despesaService.buscar(busca, escopo, pagina, tamanho));
     }
 
     @GetMapping("/imovel/{imovelId}")

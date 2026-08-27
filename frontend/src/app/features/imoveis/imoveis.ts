@@ -1,11 +1,13 @@
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
+import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ImovelDetalheDialog } from './imovel-detalhe-dialog/imovel-detalhe-dialog';
 import { ContratoFormDialog } from '../contratos/contrato-form-dialog/contrato-form-dialog';
@@ -27,6 +29,7 @@ import { ImoveisService } from './imoveis.service';
     MatButtonModule,
     MatButtonToggleModule,
     MatFormFieldModule,
+    MatPaginatorModule,
     MatSelectModule,
     AuthImgDirective,
     BuscaToolbar,
@@ -34,12 +37,10 @@ import { ImoveisService } from './imoveis.service';
   templateUrl: './imoveis.html',
   styleUrl: './imoveis.scss',
 })
-export class Imoveis implements OnInit {
+export class Imoveis {
   private readonly service = inject(ImoveisService);
   private readonly dialog = inject(MatDialog);
 
-  protected readonly imoveis = signal<ImovelResponseDTO[]>([]);
-  protected readonly carregando = signal(true);
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
   protected readonly situacaoLabel = SITUACAO_IMOVEL_LABEL;
 
@@ -51,23 +52,25 @@ export class Imoveis implements OnInit {
   protected readonly faseOpcoes = Object.entries(FASE_IMOVEL_LABEL) as [FaseImovel, string][];
   protected readonly situacaoOpcoes = Object.entries(SITUACAO_IMOVEL_LABEL) as [SituacaoImovel, string][];
 
-  protected readonly imoveisFiltrados = computed(() => {
-    const termo = this.busca().trim().toLowerCase();
-    const fase = this.faseFiltro();
-    const situacao = this.situacaoFiltro();
+  // Busca e filtros são resolvidos no backend junto com a paginação: filtrar só a página
+  // carregada esconderia imóveis que casam com os critérios mas estão em outra página.
+  protected readonly lista = new ListagemPaginada<ImovelResponseDTO>(
+    inject(DestroyRef),
+    (pagina, tamanho) =>
+      this.service.listarPagina(this.busca().trim(), this.faseFiltro(), this.situacaoFiltro(), pagina, tamanho),
+  );
 
-    return this.imoveis().filter((imovel) => {
-      if (fase && imovel.fase !== fase) return false;
-      if (situacao && imovel.situacao !== situacao) return false;
-      if (!termo) return true;
-      return [imovel.identificador, imovel.endereco]
-        .filter((valor): valor is string => !!valor)
-        .some((valor) => valor.toLowerCase().includes(termo));
+  constructor() {
+    effect(() => {
+      this.busca();
+      this.faseFiltro();
+      this.situacaoFiltro();
+      this.lista.reiniciar();
     });
-  });
+  }
 
-  ngOnInit(): void {
-    this.carregar();
+  protected mudarPagina(evento: PageEvent): void {
+    this.lista.mudarPagina(evento);
   }
 
   protected novo(): void {
@@ -82,14 +85,14 @@ export class Imoveis implements OnInit {
     this.dialog
       .open(ImovelDetalheDialog, { data: { imovel }, autoFocus: false, width: '720px', maxWidth: '95vw' })
       .afterClosed()
-      .subscribe(() => this.carregar());
+      .subscribe(() => this.lista.carregar());
   }
 
   protected inativar(imovel: ImovelResponseDTO): void {
     if (!confirm(`Inativar o imóvel "${imovel.identificador}"?`)) {
       return;
     }
-    this.service.inativar(imovel.id).subscribe(() => this.carregar());
+    this.service.inativar(imovel.id).subscribe(() => this.lista.carregar());
   }
 
   private abrirFormulario(imovel: ImovelResponseDTO | null): void {
@@ -97,7 +100,7 @@ export class Imoveis implements OnInit {
       .open(ImovelFormDialog, { data: { imovel }, autoFocus: false, width: '640px', maxWidth: '95vw' })
       .afterClosed()
       .subscribe((resultado?: ImovelFormResultado) => {
-        this.carregar();
+        this.lista.carregar();
         if (resultado?.contratoCompra) {
           this.abrirContratoDaCompra(resultado.contratoCompra);
         }
@@ -126,14 +129,6 @@ export class Imoveis implements OnInit {
         maxWidth: '95vw',
       })
       .afterClosed()
-      .subscribe(() => this.carregar());
-  }
-
-  private carregar(): void {
-    this.carregando.set(true);
-    this.service.listar().subscribe((imoveis) => {
-      this.imoveis.set(imoveis);
-      this.carregando.set(false);
-    });
+      .subscribe(() => this.lista.carregar());
   }
 }

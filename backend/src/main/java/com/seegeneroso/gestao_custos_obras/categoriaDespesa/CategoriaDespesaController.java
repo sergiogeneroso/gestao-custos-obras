@@ -3,6 +3,7 @@ package com.seegeneroso.gestao_custos_obras.categoriaDespesa;
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.dto.CategoriaDespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.dto.CategoriaDespesaResponseDTO;
 import jakarta.validation.Valid;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,16 @@ public class CategoriaDespesaController {
     @GetMapping
     public ResponseEntity<List<CategoriaDespesaResponseDTO>> listarTodas() {
         return ResponseEntity.ok(categoriaDespesaService.listarTodas());
+    }
+
+    // Endpoint da tela de listagem: busca e filtros vão para o banco junto com a paginação.
+    // O GET sem /pagina continua devolvendo a lista inteira, que é o que alimenta os combos.
+    @GetMapping("/pagina")
+    public ResponseEntity<PaginaDTO<CategoriaDespesaResponseDTO>> buscar(
+            @RequestParam(defaultValue = "") String busca,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho) {
+        return ResponseEntity.ok(categoriaDespesaService.buscar(busca, pagina, tamanho));
     }
 
     @GetMapping("/{id}")

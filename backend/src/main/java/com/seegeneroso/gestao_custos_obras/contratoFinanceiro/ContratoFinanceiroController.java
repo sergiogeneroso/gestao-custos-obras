@@ -7,6 +7,7 @@ import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoQuitac
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaPagamentoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
 import jakarta.validation.Valid;
+import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,16 @@ public class ContratoFinanceiroController {
     @GetMapping
     public ResponseEntity<List<ContratoFinanceiroResponseDTO>> listar(@RequestParam(required = false) Long imovelId) {
         return ResponseEntity.ok(contratoFinanceiroService.listar(imovelId));
+    }
+
+    // Endpoint da tela de listagem: busca e filtros vão para o banco junto com a paginação.
+    // O GET sem /pagina continua devolvendo a lista inteira, que é o que alimenta os combos.
+    @GetMapping("/pagina")
+    public ResponseEntity<PaginaDTO<ContratoFinanceiroResponseDTO>> buscar(
+            @RequestParam(defaultValue = "") String busca,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho) {
+        return ResponseEntity.ok(contratoFinanceiroService.buscar(busca, pagina, tamanho));
     }
 
     @GetMapping("/{id}")
