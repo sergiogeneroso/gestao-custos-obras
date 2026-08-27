@@ -37,3 +37,7 @@ backend/src/main/resources/application.properties
 .claude/-settings.local.json
 .claude/settings.local.json
 uploads/
+
+# Snapshot do banco: contém dados reais (CPF/CNPJ, matrículas, valores). Fica só no disco.
+# Regerar com backend/db/snapshot/gerar.ps1.
+backend/db/snapshot/snapshot.sql
