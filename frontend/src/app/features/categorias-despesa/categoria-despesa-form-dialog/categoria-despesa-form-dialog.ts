@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -53,7 +54,7 @@ export class CategoriaDespesaFormDialog {
       },
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
-        const mensagem = erro.error?.mensagem ?? 'Não foi possível salvar a categoria.';
+        const mensagem = mensagemErro(erro, 'Não foi possível salvar a categoria.');
         this.snackBar.open(mensagem, 'Fechar', { duration: 6000 });
       },
     });

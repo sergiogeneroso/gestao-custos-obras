@@ -2,6 +2,7 @@ import { CurrencyPipe } from '@angular/common';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -302,7 +303,7 @@ export class ContratoFormDialog implements OnInit {
       },
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
-        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível salvar o contrato.', 'Fechar', { duration: 6000 });
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível salvar o contrato.'), 'Fechar', { duration: 6000 });
       },
     });
   }

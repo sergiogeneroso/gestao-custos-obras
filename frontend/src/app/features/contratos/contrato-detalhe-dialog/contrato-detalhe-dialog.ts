@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -111,7 +112,7 @@ export class ContratoDetalheDialog implements OnInit {
         },
         error: (erro: HttpErrorResponse) => {
           this.salvando.set(false);
-          this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível dar baixa na parcela.', 'Fechar', {
+          this.snackBar.open(mensagemErro(erro, 'Não foi possível dar baixa na parcela.'), 'Fechar', {
             duration: 6000,
           });
         },
@@ -146,7 +147,7 @@ export class ContratoDetalheDialog implements OnInit {
         },
         error: (erro: HttpErrorResponse) => {
           this.salvando.set(false);
-          this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível quitar o contrato.', 'Fechar', {
+          this.snackBar.open(mensagemErro(erro, 'Não foi possível quitar o contrato.'), 'Fechar', {
             duration: 6000,
           });
         },
@@ -170,7 +171,7 @@ export class ContratoDetalheDialog implements OnInit {
       error: (erro: HttpErrorResponse) => {
         this.enviandoDocumento.set(false);
         input.value = '';
-        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível enviar o documento.', 'Fechar', { duration: 6000 });
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível enviar o documento.'), 'Fechar', { duration: 6000 });
       },
     });
   }

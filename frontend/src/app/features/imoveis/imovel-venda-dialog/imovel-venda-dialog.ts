@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -77,7 +78,7 @@ export class ImovelVendaDialog implements OnInit {
         },
         error: (erro: HttpErrorResponse) => {
           this.salvando.set(false);
-          this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível registrar a venda.', 'Fechar', {
+          this.snackBar.open(mensagemErro(erro, 'Não foi possível registrar a venda.'), 'Fechar', {
             duration: 6000,
           });
         },

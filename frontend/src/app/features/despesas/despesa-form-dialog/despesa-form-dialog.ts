@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -141,7 +142,7 @@ export class DespesaFormDialog implements OnInit {
       next: (salva) => this.enviarAnexosPendentes(salva.id),
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
-        const mensagem = erro.error?.mensagem ?? 'Não foi possível salvar a despesa.';
+        const mensagem = mensagemErro(erro, 'Não foi possível salvar a despesa.');
         this.snackBar.open(mensagem, 'Fechar', { duration: 6000 });
       },
     });
@@ -203,7 +204,7 @@ export class DespesaFormDialog implements OnInit {
       error: (erro: HttpErrorResponse) => {
         this.enviandoAnexo.set(false);
         input.value = '';
-        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível enviar o anexo.', 'Fechar', { duration: 6000 });
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível enviar o anexo.'), 'Fechar', { duration: 6000 });
       },
     });
   }

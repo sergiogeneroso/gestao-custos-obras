@@ -1,5 +1,6 @@
 import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../shared/erro/erro.util';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -79,7 +80,7 @@ export class Relatorios implements OnInit {
       },
       error: (erro: HttpErrorResponse) => {
         this.carregando.set(false);
-        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível carregar o resultado.', 'Fechar', {
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível carregar o resultado.'), 'Fechar', {
           duration: 6000,
         });
       },

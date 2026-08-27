@@ -2,6 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -216,7 +217,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
       next: (salvo) => this.enviarFotosPendentes(salvo.id),
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
-        const mensagem = erro.error?.mensagem ?? 'Não foi possível salvar o imóvel.';
+        const mensagem = mensagemErro(erro, 'Não foi possível salvar o imóvel.');
         this.snackBar.open(mensagem, 'Fechar', { duration: 6000 });
       },
     });
@@ -308,7 +309,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
       error: (erro: HttpErrorResponse) => {
         this.enviandoFoto.set(false);
         input.value = '';
-        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível enviar a foto.', 'Fechar', { duration: 6000 });
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível enviar a foto.'), 'Fechar', { duration: 6000 });
       },
     });
   }
@@ -326,7 +327,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
       },
       error: (erro: HttpErrorResponse) => {
         this.definindoPrincipal.set(false);
-        this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível definir a foto principal.', 'Fechar', {
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível definir a foto principal.'), 'Fechar', {
           duration: 6000,
         });
       },

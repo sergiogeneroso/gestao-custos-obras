@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -60,7 +61,7 @@ export class ImovelAVendaDialog {
         },
         error: (erro: HttpErrorResponse) => {
           this.salvando.set(false);
-          this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível colocar à venda.', 'Fechar', {
+          this.snackBar.open(mensagemErro(erro, 'Não foi possível colocar à venda.'), 'Fechar', {
             duration: 6000,
           });
         },

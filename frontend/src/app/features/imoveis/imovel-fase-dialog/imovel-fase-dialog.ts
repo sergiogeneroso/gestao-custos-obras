@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -125,7 +126,7 @@ export class ImovelFaseDialog implements OnInit {
         },
         error: (erro: HttpErrorResponse) => {
           this.salvando.set(false);
-          this.snackBar.open(erro.error?.mensagem ?? 'Não foi possível avançar a fase.', 'Fechar', { duration: 6000 });
+          this.snackBar.open(mensagemErro(erro, 'Não foi possível avançar a fase.'), 'Fechar', { duration: 6000 });
         },
       });
   }
