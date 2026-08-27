@@ -24,6 +24,9 @@ export interface ResultadoImovelDTO {
   totalDespesas: number;
   jurosPagos: number;
   custoTotal: number;
+  // Despesas de todas as fases + juros pagos, sem o preço do lote. Só apresentação: nunca soma
+  // ao custoTotal, ao lucro nem à margem.
+  custoSemCompra: number;
   custoEstimadoObra: number | null;
   previsaoConclusao: string | null;
   custoRealObra: number;

@@ -62,6 +62,22 @@ Havendo contrato, valem também (detalhe em `contratos-financeiros.md`):
 - Não existe rateio entre pessoas nem entre imóveis: um custo dividido são dois
   lançamentos
 
+## Indicadores de apresentação (ADR-039)
+
+Alguns números do relatório existem só para responder uma pergunta do usuário e
+**nunca podem ser somados ao custo**. Já são dois:
+
+- `despesasPorEtapa` — agrega por trecho da obra o mesmo dinheiro que já entra
+  por fase (ADR-035)
+- `custoSemCompra` — `totalDespesas + jurosPagos`: quanto o imóvel consumiu
+  **depois de adquirido**, em qualquer fase. Ficam de fora `valorCompra` **e**
+  `ajusteQuitacao`, porque os dois são preço do lote. Na carteira o agregado
+  equivalente é `totalGastoSemCompras`
+
+Nenhum dos dois participa de `custoTotal`, `lucro`, `margem`,
+`rentabilidadeAnualizada`, `totalInvestido` ou `lucroRealizado` — incluí-los
+contaria as mesmas despesas duas vezes e faria o resultado mentir.
+
 ## Catálogo
 
 - `CategoriaDespesa` é catálogo global (não por imóvel) — cadastrada uma vez,

@@ -152,6 +152,17 @@
     text-align: right;
   }
 
+  // Indicador de apresentação, não parcela do custo: fica discreto e acima da linha do total,
+  // para não ser lido como mais uma coisa a somar.
+  &__subtotal {
+    color: #9397ab;
+
+    td {
+      border-bottom: none;
+      border-top: 1px dashed rgba(233, 233, 237, 0.24);
+    }
+  }
+
   &__total {
     font-weight: 600;
 

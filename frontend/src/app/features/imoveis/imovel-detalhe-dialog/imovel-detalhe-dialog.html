@@ -403,6 +403,10 @@
                   <p class="detalhe-imovel__label">Custo acumulado</p>
                   <p class="detalhe-imovel__custo-total">{{ r.custoTotal | currency: 'BRL' }}</p>
                 </div>
+                <div>
+                  <p class="detalhe-imovel__label">Gasto sem a compra</p>
+                  <p class="detalhe-imovel__custo-total">{{ r.custoSemCompra | currency: 'BRL' }}</p>
+                </div>
                 @if (r.lucro !== null) {
                   <div>
                     <p class="detalhe-imovel__label">Lucro</p>

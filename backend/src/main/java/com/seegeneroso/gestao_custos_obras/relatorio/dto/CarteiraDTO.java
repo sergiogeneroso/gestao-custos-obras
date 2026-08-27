@@ -8,6 +8,7 @@ import java.util.Map;
 
 public record CarteiraDTO(
         BigDecimal totalInvestido,
+        BigDecimal totalGastoSemCompras,
         BigDecimal totalVendido,
         BigDecimal lucroRealizado,
         Map<FaseImovel, Long> imoveisPorFase,

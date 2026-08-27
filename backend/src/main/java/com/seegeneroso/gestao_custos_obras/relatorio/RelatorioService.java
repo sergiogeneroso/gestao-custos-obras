@@ -156,6 +156,7 @@ public class RelatorioService {
         BigDecimal jurosPagos = jurosPagos(contratos);
         BigDecimal ajusteQuitacao = ajusteQuitacao(contratos);
         BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos, ajusteQuitacao);
+        BigDecimal custoSemCompra = custoSemCompra(totalDespesas, jurosPagos);
 
         boolean vendido = imovel.getSituacao() == SituacaoImovel.VENDIDO;
         LocalDate fimCarteira = vendido && imovel.getVenda().getData() != null
@@ -188,7 +189,7 @@ public class RelatorioService {
         return new ResultadoImovelDTO(
                 imovel.getId(), imovel.getIdentificador(), imovel.getFase(), imovel.getSituacao(),
                 imovel.getCompra().getValor(),
-                despesasPorFase, totalDespesas, jurosPagos, custoTotal,
+                despesasPorFase, totalDespesas, jurosPagos, custoTotal, custoSemCompra,
                 imovel.getConstrucao().getCustoEstimado(), imovel.getConstrucao().getPrevisaoConclusao(),
                 despesasPorFase.getOrDefault(FaseImovel.CONSTRUCAO, BigDecimal.ZERO),
                 despesasPorEtapa,
@@ -208,6 +209,7 @@ public class RelatorioService {
         LocalDate limite30 = hoje.plusDays(30);
 
         BigDecimal totalInvestido = BigDecimal.ZERO;
+        BigDecimal totalGastoSemCompras = BigDecimal.ZERO;
         BigDecimal totalVendido = BigDecimal.ZERO;
         BigDecimal lucroRealizado = BigDecimal.ZERO;
         BigDecimal saldoDevedorTotal = BigDecimal.ZERO;
@@ -224,8 +226,12 @@ public class RelatorioService {
             List<DespesaModel> despesas = despesaRepository.findByImovelIdAndAtivoTrue(imovel.getId());
             BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
             List<ContratoFinanceiroModel> contratos = contratoFinanceiroRepository.findByImovelId(imovel.getId());
-            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos(contratos), ajusteQuitacao(contratos));
+            BigDecimal jurosPagos = jurosPagos(contratos);
+            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos, ajusteQuitacao(contratos));
             totalInvestido = totalInvestido.add(custoTotal);
+            // Mesmo indicador de apresentação do resultado por imóvel, somado na carteira: não
+            // participa de totalVendido nem de lucroRealizado, que continuam saindo do custoTotal.
+            totalGastoSemCompras = totalGastoSemCompras.add(custoSemCompra(totalDespesas, jurosPagos));
 
             if (imovel.getSituacao() == SituacaoImovel.VENDIDO && imovel.getVenda().getValor() != null) {
                 totalVendido = totalVendido.add(imovel.getVenda().getValor());
@@ -248,7 +254,8 @@ public class RelatorioService {
                 .map(DespesaModel::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new CarteiraDTO(totalInvestido, totalVendido, lucroRealizado, imoveisPorFase, imoveisPorSituacao,
+        return new CarteiraDTO(totalInvestido, totalGastoSemCompras, totalVendido, lucroRealizado,
+                imoveisPorFase, imoveisPorSituacao,
                 saldoDevedorTotal, saldoAReceberTotal, parcelasAVencer, parcelasAReceber, gastosGeraisPeriodo);
     }
 
@@ -335,6 +342,22 @@ public class RelatorioService {
                                  BigDecimal ajusteQuitacao) {
         BigDecimal valorCompra = imovel.getCompra().getValor() != null ? imovel.getCompra().getValor() : BigDecimal.ZERO;
         return valorCompra.add(totalDespesas).add(jurosPagos).add(ajusteQuitacao);
+    }
+
+    /**
+     * Quanto o imóvel consumiu **depois de adquirido**: despesas de todas as fases (lote,
+     * construção e casa) mais os juros efetivamente pagos.
+     *
+     * É indicador de apresentação, como `despesasPorEtapa`: responde "quanto já gastei neste
+     * imóvel, fora o que paguei pelo lote". **Nunca** entra em `custoTotal`, `lucro` ou `margem`
+     * — somá-lo contaria as mesmas despesas duas vezes.
+     *
+     * Ficam de fora `valorCompra` **e** `ajusteQuitacao`: os dois são preço do lote. O ajuste é o
+     * desconto (ou os juros) da quitação antecipada do parcelamento da compra, então deixá-lo aqui
+     * traria de volta, por outra porta, exatamente o que a linha da compra deveria excluir.
+     */
+    private BigDecimal custoSemCompra(BigDecimal totalDespesas, BigDecimal jurosPagos) {
+        return totalDespesas.add(jurosPagos);
     }
 
     // Soma das parcelas ainda não baixadas — a pagar num contrato de dívida, a receber num

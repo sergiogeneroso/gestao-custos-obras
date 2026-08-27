@@ -122,6 +122,46 @@ class RelatorioServiceTest {
     }
 
     @Test
+    void custoSemCompraSomaDespesasDeTodasAsFasesMaisJurosPagosSemTocarNoCustoTotal() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        DespesaModel despesaLote = despesa(imovel, FaseImovel.LOTE, new BigDecimal("2000"));
+        DespesaModel despesaObra = despesa(imovel, FaseImovel.CONSTRUCAO, new BigDecimal("200000"));
+        DespesaModel despesaCasa = despesa(imovel, FaseImovel.CASA, new BigDecimal("5000"));
+        ParcelaContratoModel paga = parcela(new BigDecimal("1000"), new BigDecimal("30"), LocalDate.now(), new BigDecimal("1000"));
+        ContratoFinanceiroModel contrato = contrato(TipoContratoFinanceiro.FINANCIAMENTO_CONSTRUCAO,
+                SituacaoContrato.ATIVO, new BigDecimal("200000"), null, null, paga);
+
+        mockar(imovel, List.of(despesaLote, despesaObra, despesaCasa), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        // 2000 + 200000 + 5000 de despesas + 30 de juros pagos, sem os 100000 da compra.
+        assertThat(resultado.custoSemCompra()).isEqualByComparingTo("207030");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("307030");
+        assertThat(resultado.custoTotal().subtract(resultado.custoSemCompra())).isEqualByComparingTo("100000");
+    }
+
+    // O ajuste da quitação antecipada é preço do lote (desconto ou juros embutidos no valor
+    // negociado), então ele fica fora do indicador junto com a compra — senão voltaria por outra
+    // porta exatamente o que a exclusão da compra deveria tirar.
+    @Test
+    void custoSemCompraIgnoraOAjusteDeQuitacaoQueEPrecoDoLote() {
+        ImovelModel imovel = imovelParcelado(1L, new BigDecimal("100000"));
+        DespesaModel despesaObra = despesa(imovel, FaseImovel.CONSTRUCAO, new BigDecimal("50000"));
+        ParcelaContratoModel aberta = parcela(new BigDecimal("20000"), null, null, null);
+        ContratoFinanceiroModel quitado = contrato(TipoContratoFinanceiro.PARCELAMENTO_COMPRA,
+                SituacaoContrato.QUITADO, new BigDecimal("100000"), LocalDate.now(), new BigDecimal("18000"), aberta);
+
+        mockar(imovel, List.of(despesaObra), List.of(quitado));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.ajusteQuitacao()).isEqualByComparingTo("-2000");
+        assertThat(resultado.custoSemCompra()).isEqualByComparingTo("50000");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("148000");
+    }
+
+    @Test
     void semContratoCustoEApenasCompraMaisDespesas() {
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
         DespesaModel despesa = despesa(imovel, FaseImovel.LOTE, new BigDecimal("3000"));

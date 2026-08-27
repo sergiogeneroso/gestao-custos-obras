@@ -6,6 +6,7 @@ import { FaseImovel, ImovelResponseDTO, SituacaoImovel } from '../imoveis/imovel
 
 interface CarteiraDTO {
   totalInvestido: number;
+  totalGastoSemCompras: number;
   totalVendido: number;
   lucroRealizado: number;
   imoveisPorFase: Partial<Record<FaseImovel, number>>;

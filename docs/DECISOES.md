@@ -808,3 +808,42 @@ Registrado em `.agents/rules/ciclo-vida-imovel.md`, no comentário de
 `loteRevendidoSemObraNaoTemResultadoProvisorio`. O aviso da tela de resultado já
 dizia "obra ainda em andamento" e não mudou — o texto estava certo, quem estava
 errado era a condição que o disparava.
+
+## ADR-039 — `custoSemCompra`: quanto o imóvel consumiu depois de adquirido (Ago 2026)
+
+O usuário pediu, no uso diário, "um totalizador ignorando somente o valor da
+compra do lote, para ter noção de tudo que já foi gasto naquele imóvel,
+independente se nele como lote, construção ou casa".
+
+A pergunta que ele quer responder é de **gestão de obra e de caixa**, não de
+apuração: o preço do lote é um número fechado no dia da compra e não se mexe
+mais, então ele polui a leitura de "quanto este imóvel está me consumindo". Com
+lotes de valores muito diferentes, o `custoTotal` de dois imóveis não é
+comparável; o gasto após a compra é.
+
+A fórmula é `totalDespesas + jurosPagos`. Duas escolhas importam:
+
+- **`ajusteQuitacao` fica de fora junto com `valorCompra`.** Ele é o desconto (ou
+  os juros embutidos) do valor negociado na quitação antecipada do
+  `PARCELAMENTO_COMPRA` — ou seja, é correção do **preço do lote** (ADR-037).
+  Mantê-lo dentro traria de volta, por outra porta, exatamente o que a exclusão
+  da compra deveria tirar.
+- **`jurosPagos` fica dentro.** É custo real de usar o dinheiro do banco durante
+  a vida do imóvel, incorrido depois da aquisição, não preço do lote.
+
+**É indicador de apresentação, na mesma categoria de `despesasPorEtapa`
+(ADR-035): nunca entra em `custoTotal`, `lucro`, `margem` ou
+`rentabilidadeAnualizada`.** Somá-lo contaria as mesmas despesas duas vezes e
+faria o resultado do imóvel mentir. Na carteira, o agregado equivalente é
+`totalGastoSemCompras`, que também não participa de `totalInvestido` nem de
+`lucroRealizado`.
+
+**Alternativa descartada:** expor só `totalDespesas`, que já existia. Ele
+responde quase a mesma coisa, mas deixa de fora os juros efetivamente pagos —
+que são custo do imóvel pela ADR-025 e aparecem na composição do custo. O
+usuário veria dois números próximos e diferentes sem saber por quê.
+
+Registrado em `.agents/rules/regras-negocio-financeiras.md`, no Javadoc de
+`RelatorioService.custoSemCompra` e nos testes
+`custoSemCompraSomaDespesasDeTodasAsFasesMaisJurosPagosSemTocarNoCustoTotal` e
+`custoSemCompraIgnoraOAjusteDeQuitacaoQueEPrecoDoLote`.

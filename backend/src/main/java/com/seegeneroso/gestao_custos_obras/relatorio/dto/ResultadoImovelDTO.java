@@ -19,6 +19,7 @@ public record ResultadoImovelDTO(
         BigDecimal totalDespesas,
         BigDecimal jurosPagos,
         BigDecimal custoTotal,
+        BigDecimal custoSemCompra,
         BigDecimal custoEstimadoObra,
         LocalDate previsaoConclusao,
         BigDecimal custoRealObra,

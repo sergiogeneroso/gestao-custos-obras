@@ -135,6 +135,10 @@
               <td class="table__num">{{ r.ajusteQuitacao | currency: 'BRL' }}</td>
             </tr>
           }
+          <tr class="table__subtotal">
+            <td>Gasto sem a compra do lote</td>
+            <td class="table__num">{{ r.custoSemCompra | currency: 'BRL' }}</td>
+          </tr>
           <tr class="table__total">
             <td>Custo total</td>
             <td class="table__num">{{ r.custoTotal | currency: 'BRL' }}</td>

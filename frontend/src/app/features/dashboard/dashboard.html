@@ -20,6 +20,10 @@
         <p class="card__valor">{{ r.totalInvestido | currency: 'BRL' }}</p>
       </div>
       <div class="card">
+        <p class="card__label">Gasto sem as compras</p>
+        <p class="card__valor">{{ r.totalGastoSemCompras | currency: 'BRL' }}</p>
+      </div>
+      <div class="card">
         <p class="card__label">Total vendido</p>
         <p class="card__valor">{{ r.totalVendido | currency: 'BRL' }}</p>
       </div>
