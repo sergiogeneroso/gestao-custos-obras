@@ -285,8 +285,21 @@
           }
 
           @for (pendente of fotosPendentes(); track pendente.previa; let i = $index) {
-            <div class="dialogo-imovel__foto dialogo-imovel__foto--pendente">
+            <div
+              class="dialogo-imovel__foto dialogo-imovel__foto--pendente"
+              [class.dialogo-imovel__foto--principal]="ehPrincipalPendente(i)"
+            >
               <img [src]="pendente.previa" [alt]="pendente.arquivo.name" />
+              <button
+                mat-icon-button
+                type="button"
+                class="dialogo-imovel__botao-principal"
+                [class.dialogo-imovel__botao-principal--ativo]="ehPrincipalPendente(i)"
+                (click)="marcarPendenteComoPrincipal(i)"
+                [attr.aria-label]="ehPrincipalPendente(i) ? 'Foto principal' : 'Definir como foto principal'"
+              >
+                <i class="ph ph-star"></i>
+              </button>
               <button mat-icon-button type="button" (click)="removerFotoPendente(i)" aria-label="Remover foto">
                 <i class="ph ph-trash"></i>
               </button>
@@ -296,7 +309,8 @@
 
         @if (fotosPendentes().length > 0) {
           <p class="dialogo-imovel__nota-pendente">
-            {{ fotosPendentes().length }} foto(s) sobem quando você salvar o imóvel.
+            {{ fotosPendentes().length }} foto(s) sobem quando você salvar o imóvel. A marcada com
+            a estrela vira a capa.
           </p>
         }
 

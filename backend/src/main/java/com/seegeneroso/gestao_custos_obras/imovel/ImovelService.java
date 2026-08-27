@@ -223,10 +223,17 @@ public class ImovelService {
         String nomeArquivo = storageService.salvar(arquivo, subpasta);
         String fileUri = ArquivoUrls.montar(subpasta, nomeArquivo);
 
+        // A primeira foto do imóvel vira a principal sozinha: sem isso um imóvel recém-cadastrado
+        // fica sem capa até alguém escolher uma à mão, e no cadastro esse botão nem existia (as
+        // fotos ainda não tinham id). A guarda vive aqui, por onde todo upload passa, em vez de
+        // uma no cadastro e outra na edição.
+        boolean primeira = imovelFotoRepository.findByImovelIdAndPrincipalTrue(imovelId).isEmpty();
+
         ImovelFotoModel foto = ImovelFotoModel.builder()
                 .imovel(imovel)
                 .url(fileUri)
                 .legenda(legenda)
+                .principal(primeira)
                 .build();
 
         ImovelFotoModel fotoSalva = imovelFotoRepository.save(foto);

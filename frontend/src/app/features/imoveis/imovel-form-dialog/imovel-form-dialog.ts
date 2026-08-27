@@ -9,12 +9,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ContratoFormDialog } from '../../contratos/contrato-form-dialog/contrato-form-dialog';
 import { ContratosService } from '../../contratos/contratos.service';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
@@ -25,6 +24,19 @@ import { ImoveisService } from '../imoveis.service';
 
 export interface ImovelFormDialogData {
   imovel: ImovelResponseDTO | null;
+}
+
+/**
+ * Resultado do diálogo. Quando a compra é parcelada, o cadastro do contrato é pedido a quem
+ * abriu este formulário em vez de aberto daqui de dentro (ver o método finalizar).
+ */
+export interface ImovelFormResultado {
+  salvo: true;
+  contratoCompra: {
+    imovelId: number;
+    contraparteId: number | null;
+    dataCompra: string | null;
+  };
 }
 
 @Component({
@@ -50,7 +62,6 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   private readonly pessoasService = inject(PessoasService);
   private readonly contratosService = inject(ContratosService);
   private readonly dialogRef = inject(MatDialogRef<ImovelFormDialog>);
-  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   protected readonly data = inject<ImovelFormDialogData>(MAT_DIALOG_DATA);
 
@@ -72,6 +83,10 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   // No cadastro ainda não há id para onde subir o arquivo: as fotos escolhidas ficam em memória e
   // sobem logo depois do POST. `previa` é a URL de objeto usada só para exibir a miniatura.
   protected readonly fotosPendentes = signal<{ arquivo: File; previa: string }[]>([]);
+
+  // No cadastro as fotos ainda não têm id, então a capa é escolhida por posição e só é aplicada
+  // depois do upload. A primeira é a padrão, espelhando o que o backend faz sozinho.
+  protected readonly indicePrincipalPendente = signal(0);
 
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
@@ -242,42 +257,58 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
           }),
         ),
       ),
-    ).subscribe(() => {
+    ).subscribe((fotos) => {
       if (falhas.length) {
         this.snackBar.open(`Imóvel salvo, mas estas fotos não subiram: ${falhas.join(', ')}.`, 'Fechar', {
           duration: 8000,
         });
       }
+
+      // forkJoin preserva a ordem dos pedidos, então o índice escolhido na tela aponta para a
+      // foto certa aqui (as que falharam vêm como null). O backend já marca a primeira como capa,
+      // então só há chamada quando o usuário escolheu outra.
+      const escolhida = fotos[this.indicePrincipalPendente()];
+      if (escolhida && !escolhida.principal) {
+        this.service.definirFotoPrincipal(imovelId, escolhida.id).subscribe({
+          next: () => this.finalizar(imovelId, falhas.length === 0),
+          error: () => this.finalizar(imovelId, falhas.length === 0),
+        });
+        return;
+      }
+
       this.finalizar(imovelId, falhas.length === 0);
     });
   }
 
-  // Compra parcelada: o contrato é o que define o valor do lote, então ele é aberto na sequência, já
-  // preenchido, em vez de virar uma segunda seção dentro deste formulário (ADR-037).
+  /**
+   * Compra parcelada: o contrato é o que define o valor do lote, então ele é cadastrado na
+   * sequência, já preenchido, em vez de virar uma segunda seção deste formulário (ADR-037).
+   *
+   * Este diálogo não abre o do contrato: ele devolve o pedido e quem abre é a tela de imóveis,
+   * no `afterClosed()`. Abrindo daqui, o overlay deste formulário ainda estava no DOM animando a
+   * saída quando o segundo entrava, e os dois backdrops se empilhavam — era a sobreposição
+   * que deixava o modal ilegível.
+   */
   private finalizar(imovelId: number, avisar: boolean): void {
     const parcelada = !!this.form.controls.compraParcelada.value;
 
     if (avisar) {
       this.snackBar.open('Imóvel salvo com sucesso.', 'Fechar', { duration: 4000 });
     }
-    this.dialogRef.close(true);
 
     if (this.imovel || !parcelada) {
+      this.dialogRef.close(true);
       return;
     }
 
-    this.dialog.open(ContratoFormDialog, {
-      data: {
-        contrato: null,
+    this.dialogRef.close({
+      salvo: true,
+      contratoCompra: {
         imovelId,
-        tipo: 'PARCELAMENTO_COMPRA' as const,
         contraparteId: this.form.controls.compraVendedorId.value,
         dataCompra: paraIso(this.form.controls.compraData.value),
       },
-      autoFocus: false,
-      width: '680px',
-      maxWidth: '95vw',
-    });
+    } satisfies ImovelFormResultado);
   }
 
   protected fechar(): void {
@@ -334,10 +365,27 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     });
   }
 
+  protected ehPrincipalPendente(indice: number): boolean {
+    return this.indicePrincipalPendente() === indice;
+  }
+
+  protected marcarPendenteComoPrincipal(indice: number): void {
+    this.indicePrincipalPendente.set(indice);
+  }
+
   protected removerFotoPendente(indice: number): void {
     const pendente = this.fotosPendentes()[indice];
     URL.revokeObjectURL(pendente.previa);
     this.fotosPendentes.update((atuais) => atuais.filter((_, i) => i !== indice));
+
+    // A escolha é por posição: removida uma foto antes da capa, o índice dela anda para trás;
+    // removida a própria capa, a escolha volta para a primeira.
+    const principal = this.indicePrincipalPendente();
+    if (indice < principal) {
+      this.indicePrincipalPendente.set(principal - 1);
+    } else if (indice === principal) {
+      this.indicePrincipalPendente.set(0);
+    }
   }
 
   protected removerFoto(foto: ImovelFotoResponseDTO): void {

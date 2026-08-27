@@ -121,3 +121,16 @@
 .dialogo-contrato__alerta {
   color: #ff9b9b;
 }
+
+.dialogo-contrato__aviso {
+  display: flex;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 20px;
+  color: #c8cadb;
+  background: rgba(126, 106, 245, 0.12);
+  border-left: 3px solid var(--mat-sys-primary);
+  border-radius: var(--mat-sys-corner-small, 4px);
+  padding: 10px 12px;
+  margin: 0 0 16px;
+}

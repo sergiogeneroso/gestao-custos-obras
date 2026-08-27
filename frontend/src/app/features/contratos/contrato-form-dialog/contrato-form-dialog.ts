@@ -40,6 +40,8 @@ export interface ContratoFormDialogData {
   tipo?: TipoContratoFinanceiro | null;
   contraparteId?: number | null;
   dataCompra?: string | null;
+  // Texto de contexto exibido no topo, quando o diálogo abre por conta de outra ação.
+  aviso?: string | null;
 }
 
 @Component({
@@ -68,6 +70,7 @@ export class ContratoFormDialog implements OnInit {
   protected readonly data = inject<ContratoFormDialogData>(MAT_DIALOG_DATA, { optional: true });
 
   protected readonly contrato = this.data?.contrato ?? null;
+  protected readonly aviso = this.data?.aviso ?? null;
 
   protected readonly tipos: TipoContratoFinanceiro[] = [
     'PARCELAMENTO_COMPRA',

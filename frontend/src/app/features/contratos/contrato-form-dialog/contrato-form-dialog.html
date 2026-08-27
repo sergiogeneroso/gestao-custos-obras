@@ -8,6 +8,10 @@
 
   <form [formGroup]="form" (ngSubmit)="salvar()">
     <mat-dialog-content>
+      @if (aviso) {
+        <p class="dialogo-contrato__aviso">{{ aviso }}</p>
+      }
+
       <div class="dialogo-contrato__grade">
         <mat-form-field appearance="outline" class="dialogo-contrato__campo-largo">
           <mat-label>Imóvel</mat-label>

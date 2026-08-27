@@ -8,7 +8,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ImovelDetalheDialog } from './imovel-detalhe-dialog/imovel-detalhe-dialog';
-import { ImovelFormDialog } from './imovel-form-dialog/imovel-form-dialog';
+import { ContratoFormDialog } from '../contratos/contrato-form-dialog/contrato-form-dialog';
+import { ImovelFormDialog, ImovelFormResultado } from './imovel-form-dialog/imovel-form-dialog';
 import {
   FASE_IMOVEL_LABEL,
   FaseImovel,
@@ -94,6 +95,36 @@ export class Imoveis implements OnInit {
   private abrirFormulario(imovel: ImovelResponseDTO | null): void {
     this.dialog
       .open(ImovelFormDialog, { data: { imovel }, autoFocus: false, width: '640px', maxWidth: '95vw' })
+      .afterClosed()
+      .subscribe((resultado?: ImovelFormResultado) => {
+        this.carregar();
+        if (resultado?.contratoCompra) {
+          this.abrirContratoDaCompra(resultado.contratoCompra);
+        }
+      });
+  }
+
+  /**
+   * Compra parcelada: o contrato é o que define o preço do lote (ADR-037), então ele é pedido
+   * logo depois do cadastro. Abrir daqui, e não de dentro do formulário do imóvel, é o que
+   * garante que o overlay anterior já saiu — os dois juntos empilhavam backdrop e deixavam o
+   * modal ilegível.
+   */
+  private abrirContratoDaCompra(contratoCompra: ImovelFormResultado['contratoCompra']): void {
+    this.dialog
+      .open(ContratoFormDialog, {
+        data: {
+          contrato: null,
+          tipo: 'PARCELAMENTO_COMPRA' as const,
+          ...contratoCompra,
+          aviso:
+            'Imóvel salvo. Como a compra é parcelada, cadastre agora o parcelamento — é ele que ' +
+            'define o preço do lote.',
+        },
+        autoFocus: false,
+        width: '680px',
+        maxWidth: '95vw',
+      })
       .afterClosed()
       .subscribe(() => this.carregar());
   }
