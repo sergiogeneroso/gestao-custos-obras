@@ -53,7 +53,7 @@ public class ImovelModel {
     @Column(length = 9)
     private String cep;
 
-    @Column(name = "observacao_endereco")
+    @Column(name = "observacao_endereco", columnDefinition = "TEXT")
     private String observacaoEndereco;
 
     // Um @Embedded por fase (ADR-031): as propriedades de lote, construção e casa vivem agrupadas

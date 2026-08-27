@@ -5,21 +5,32 @@ import com.seegeneroso.gestao_custos_obras.shared.validacao.Documentos;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record PessoaRequestDTO(
         @NotBlank(message = "Nome é obrigatório")
+        @Size(max = 150, message = "Nome deve ter no máximo 150 caracteres")
         String nome,
 
         @NotNull(message = "Tipo de pessoa é obrigatório")
         TipoPessoa tipoPessoa,
 
         @NotBlank(message = "Documento é obrigatório")
+        @Size(max = 20, message = "Documento deve ter no máximo 20 caracteres")
         String documento,
 
+        @Size(max = 255, message = "E-mail deve ter no máximo 255 caracteres")
         String email,
+
+        @Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres")
         String telefone,
+
         Boolean fornecedor,
+
+        @Size(max = 255, message = "Área de atuação deve ter no máximo 255 caracteres")
         String areaAtuacao,
+
+        // observacoes é TEXT no banco: texto livre, sem teto.
         String observacoes
 ) {
 

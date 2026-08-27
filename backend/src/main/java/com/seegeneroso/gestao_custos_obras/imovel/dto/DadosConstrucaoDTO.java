@@ -1,5 +1,7 @@
 package com.seegeneroso.gestao_custos_obras.imovel.dto;
 
+import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -10,11 +12,19 @@ public record DadosConstrucaoDTO(
         LocalDate dataInicio,
         LocalDate previsaoConclusao,
         BigDecimal custoEstimado,
+
+        @Size(max = 50, message = "Número do alvará deve ter no máximo 50 caracteres")
         String alvaraNumero,
+
         LocalDate alvaraEmissao,
         LocalDate alvaraValidade,
+
+        @Size(max = 50, message = "Número da ART deve ter no máximo 50 caracteres")
         String artNumero,
+
         Long responsavelTecnicoId,
         String responsavelTecnicoNome,
+
+        @Size(max = 50, message = "CNO deve ter no máximo 50 caracteres")
         String cno
 ) {}

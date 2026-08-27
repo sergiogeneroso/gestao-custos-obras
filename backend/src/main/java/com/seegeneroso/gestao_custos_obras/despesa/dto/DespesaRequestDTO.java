@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,5 +30,6 @@ public record DespesaRequestDTO(
         @NotNull(message = "Data de pagamento é obrigatória")
         LocalDate dataPagamento,
 
+        @Size(max = 255, message = "Descrição deve ter no máximo 255 caracteres")
         String descricao
 ) {}
