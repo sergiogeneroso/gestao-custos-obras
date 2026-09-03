@@ -1,0 +1,168 @@
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnDestroy, effect, inject, input, output, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { mensagemErro } from '../../../shared/erro/erro.util';
+import { FASE_IMOVEL_LABEL } from '../../imoveis/imovel.model';
+import {
+  DespesaAnexoResponseDTO,
+  DespesaResponseDTO,
+  ETAPA_CONSTRUCAO_LABEL,
+  TIPO_ANEXO_DESPESA_LABEL,
+  TipoAnexoDespesa,
+  tipoArquivoAnexo,
+} from '../despesa.model';
+import { DespesasService } from '../despesas.service';
+
+/** Quantos anexos a despesa passou a ter. O id vem junto porque a despesa exibida pode ter mudado
+ * enquanto a requisição estava em voo, e quem recebe precisa atualizar a linha certa. */
+export interface ContagemAnexosAlterada {
+  despesaId: number;
+  quantidade: number;
+}
+
+// Exibe uma despesa e cuida dos anexos dela — nada mais. Não conhece a coleção em que a despesa
+// está: navegar entre despesas e oferecer o botão de editar é decisão de quem hospeda o painel,
+// porque a aba do imóvel percorre uma lista agrupada por fase e a tela de despesas percorre uma
+// página vinda do servidor.
+@Component({
+  selector: 'app-despesa-painel-detalhe',
+  imports: [CurrencyPipe, DatePipe, MatButtonModule, MatFormFieldModule, MatSelectModule],
+  templateUrl: './despesa-painel-detalhe.html',
+  styleUrl: './despesa-painel-detalhe.scss',
+})
+export class DespesaPainelDetalhe implements OnDestroy {
+  private readonly service = inject(DespesasService);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly snackBar = inject(MatSnackBar);
+
+  readonly despesa = input.required<DespesaResponseDTO>();
+  /** A aba do imóvel já está escopada a um imóvel, e repetir o identificador ali seria ruído; a
+   * tela de despesas mistura imóveis e gastos gerais, então lá o campo é indispensável. */
+  readonly mostrarImovel = input(false);
+  readonly anexosAlterados = output<ContagemAnexosAlterada>();
+
+  protected readonly faseLabel = FASE_IMOVEL_LABEL;
+  protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
+  protected readonly tipoAnexoLabel = TIPO_ANEXO_DESPESA_LABEL;
+  protected readonly tiposAnexo: TipoAnexoDespesa[] = [
+    'COMPROVANTE',
+    'NOTA_FISCAL',
+    'RECIBO',
+    'CONTRATO',
+    'OUTRO',
+  ];
+  protected readonly formato = tipoArquivoAnexo;
+
+  protected readonly anexos = signal<DespesaAnexoResponseDTO[]>([]);
+  protected readonly previewImagens = signal<Record<number, string>>({});
+  protected readonly previewPdfs = signal<Record<number, SafeResourceUrl>>({});
+  protected readonly tipoAnexoSelecionado = signal<TipoAnexoDespesa>('COMPROVANTE');
+  protected readonly enviando = signal(false);
+
+  private objectUrls: string[] = [];
+
+  constructor() {
+    effect(() => this.carregarAnexos(this.despesa().id));
+  }
+
+  ngOnDestroy(): void {
+    this.objectUrls.forEach((url) => URL.revokeObjectURL(url));
+  }
+
+  protected enviarAnexo(event: Event): void {
+    const elementoInput = event.target as HTMLInputElement;
+    const arquivo = elementoInput.files?.[0];
+    if (!arquivo) {
+      return;
+    }
+    const despesaId = this.despesa().id;
+    const quantidadeAntes = this.anexos().length;
+
+    this.enviando.set(true);
+    this.service.adicionarAnexo(despesaId, arquivo, this.tipoAnexoSelecionado()).subscribe({
+      next: (anexo) => {
+        // A despesa exibida pode ter mudado enquanto o upload estava em voo: o anexo já foi
+        // gravado na despesa certa no backend, mas só mexe na lista local se ainda for a exibida.
+        if (despesaId === this.despesa().id) {
+          this.anexos.update((atuais) => [...atuais, anexo]);
+          this.carregarPreview(anexo);
+        }
+        this.anexosAlterados.emit({ despesaId, quantidade: quantidadeAntes + 1 });
+        this.enviando.set(false);
+        elementoInput.value = '';
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.enviando.set(false);
+        elementoInput.value = '';
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível enviar o anexo.'), 'Fechar', {
+          duration: 6000,
+        });
+      },
+    });
+  }
+
+  protected removerAnexo(anexo: DespesaAnexoResponseDTO): void {
+    if (!confirm(`Remover este anexo (${this.tipoAnexoLabel[anexo.tipoAnexo]})?`)) {
+      return;
+    }
+    const despesaId = this.despesa().id;
+    const quantidadeAntes = this.anexos().length;
+
+    this.service.deletarAnexo(despesaId, anexo.id).subscribe(() => {
+      if (despesaId === this.despesa().id) {
+        this.anexos.update((atuais) => atuais.filter((a) => a.id !== anexo.id));
+      }
+      this.anexosAlterados.emit({ despesaId, quantidade: Math.max(0, quantidadeAntes - 1) });
+    });
+  }
+
+  protected baixarAnexo(anexo: DespesaAnexoResponseDTO): void {
+    this.service.baixarAnexo(anexo.url).subscribe((blob) => {
+      window.open(URL.createObjectURL(blob), '_blank');
+    });
+  }
+
+  private carregarAnexos(despesaId: number): void {
+    this.service.listarAnexos(despesaId).subscribe((anexos) => {
+      // Trocar de despesa rápido deixa mais de uma listagem em voo; a resposta atrasada de uma
+      // despesa que não está mais na tela substituiria os anexos da despesa exibida.
+      if (despesaId !== this.despesa().id) {
+        return;
+      }
+      this.anexos.set(anexos);
+      this.anexosAlterados.emit({ despesaId, quantidade: anexos.length });
+      anexos
+        .filter(
+          (a) =>
+            this.formato(a.url) !== 'outro' &&
+            !(a.id in this.previewImagens()) &&
+            !(a.id in this.previewPdfs()),
+        )
+        .forEach((a) => this.carregarPreview(a));
+    });
+  }
+
+  private carregarPreview(anexo: DespesaAnexoResponseDTO): void {
+    const formato = this.formato(anexo.url);
+    if (formato === 'outro') {
+      return;
+    }
+    this.service.baixarAnexo(anexo.url).subscribe((blob) => {
+      const objectUrl = URL.createObjectURL(blob);
+      this.objectUrls.push(objectUrl);
+      if (formato === 'imagem') {
+        this.previewImagens.update((atuais) => ({ ...atuais, [anexo.id]: objectUrl }));
+      } else {
+        this.previewPdfs.update((atuais) => ({
+          ...atuais,
+          [anexo.id]: this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl),
+        }));
+      }
+    });
+  }
+}

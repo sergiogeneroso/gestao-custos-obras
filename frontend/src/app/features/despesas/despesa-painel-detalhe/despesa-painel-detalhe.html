@@ -1,0 +1,128 @@
+<dl class="painel-despesa__grade">
+  <div>
+    <dt>Valor</dt>
+    <dd class="painel-despesa__valor">{{ despesa().valor | currency: 'BRL' }}</dd>
+  </div>
+  <div>
+    <dt>Data de pagamento</dt>
+    <dd>{{ despesa().dataPagamento | date: 'dd/MM/yyyy' }}</dd>
+  </div>
+  <div>
+    <dt>Categoria</dt>
+    <dd>{{ despesa().categoriaDespesaNome }}</dd>
+  </div>
+  @if (mostrarImovel()) {
+    <div>
+      <dt>Imóvel</dt>
+      <dd>{{ despesa().imovelIdentificador ?? 'Gasto geral (sem imóvel)' }}</dd>
+    </div>
+  }
+  <div>
+    <dt>Fase</dt>
+    <dd>{{ despesa().faseImovel ? faseLabel[despesa().faseImovel!] : '—' }}</dd>
+  </div>
+  @if (despesa().etapaConstrucao) {
+    <div>
+      <dt>Etapa da construção</dt>
+      <dd>{{ etapaLabel[despesa().etapaConstrucao!] }}</dd>
+    </div>
+  }
+  <div>
+    <dt>Pagador</dt>
+    <dd>{{ despesa().pagadorNome }}</dd>
+  </div>
+  <div>
+    <dt>Beneficiário</dt>
+    <dd>{{ despesa().beneficiarioNome ?? '—' }}</dd>
+  </div>
+  @if (despesa().descricao) {
+    <div class="painel-despesa__largo">
+      <dt>Descrição</dt>
+      <dd>{{ despesa().descricao }}</dd>
+    </div>
+  }
+  @if (despesa().observacao) {
+    <div class="painel-despesa__largo">
+      <dt>Observação</dt>
+      <dd>{{ despesa().observacao }}</dd>
+    </div>
+  }
+</dl>
+
+<section class="painel-despesa__anexos">
+  <h3>Anexos</h3>
+
+  @if (anexos().length === 0) {
+    <p class="painel-despesa__vazio">Nenhum anexo enviado.</p>
+  } @else {
+    <ul class="painel-despesa__lista">
+      @for (anexo of anexos(); track anexo.id) {
+        <li>
+          <div class="painel-despesa__anexo-topo">
+            <span>
+              <i class="ph ph-paperclip"></i>
+              {{ tipoAnexoLabel[anexo.tipoAnexo] }}
+              <span class="painel-despesa__anexo-data">{{
+                anexo.dataUpload | date: 'dd/MM/yyyy'
+              }}</span>
+            </span>
+            <div>
+              @if (formato(anexo.url) === 'outro') {
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="baixarAnexo(anexo)"
+                  aria-label="Baixar anexo"
+                >
+                  <i class="ph ph-download-simple"></i>
+                </button>
+              }
+              <button
+                mat-icon-button
+                type="button"
+                (click)="removerAnexo(anexo)"
+                aria-label="Remover anexo"
+              >
+                <i class="ph ph-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          @if (formato(anexo.url) === 'imagem' && previewImagens()[anexo.id]) {
+            <img
+              class="painel-despesa__preview-imagem"
+              [src]="previewImagens()[anexo.id]"
+              [alt]="tipoAnexoLabel[anexo.tipoAnexo]"
+            />
+          } @else if (formato(anexo.url) === 'pdf' && previewPdfs()[anexo.id]) {
+            <iframe
+              class="painel-despesa__preview-pdf"
+              [src]="previewPdfs()[anexo.id]"
+              title="Pré-visualização do anexo"
+            ></iframe>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  <div class="painel-despesa__upload">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo do anexo</mat-label>
+      <mat-select
+        [value]="tipoAnexoSelecionado()"
+        (selectionChange)="tipoAnexoSelecionado.set($event.value)"
+      >
+        @for (tipo of tiposAnexo; track tipo) {
+          <mat-option [value]="tipo">{{ tipoAnexoLabel[tipo] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <label class="painel-despesa__upload-botao">
+      <i class="ph ph-upload-simple"></i>
+      {{ enviando() ? 'Enviando...' : 'Anexar comprovante' }}
+      <input type="file" hidden [disabled]="enviando()" (change)="enviarAnexo($event)" />
+    </label>
+  </div>
+</section>
