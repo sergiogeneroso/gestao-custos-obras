@@ -83,7 +83,7 @@ export class Imoveis {
 
   protected verDetalhe(imovel: ImovelResponseDTO): void {
     this.dialog
-      .open(ImovelDetalheDialog, { data: { imovel }, autoFocus: false, width: '720px', maxWidth: '95vw' })
+      .open(ImovelDetalheDialog, { data: { imovel }, autoFocus: false, width: '1100px', maxWidth: '95vw' })
       .afterClosed()
       .subscribe(() => this.lista.carregar());
   }
