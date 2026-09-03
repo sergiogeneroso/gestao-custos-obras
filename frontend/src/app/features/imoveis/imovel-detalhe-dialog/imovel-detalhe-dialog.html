@@ -470,41 +470,8 @@
             }
           </mat-tab>
 
-          <mat-tab label="Últimas despesas">
-            <div class="detalhe-imovel__despesas-topo">
-              <button mat-stroked-button type="button" color="primary" (click)="lancarDespesa()">
-                <i class="ph ph-plus"></i>
-                Lançar despesa
-              </button>
-            </div>
-
-            @if (despesasRecentes().length === 0) {
-              <p class="detalhe-imovel__vazio">Nenhuma despesa lançada para este imóvel.</p>
-            } @else {
-              <table class="detalhe-imovel__tabela">
-                <tbody>
-                  @for (despesa of despesasRecentes(); track despesa.id) {
-                    <tr>
-                      <td>
-                        {{ despesa.categoriaDespesaNome }}
-                        <span class="detalhe-imovel__complemento">
-                          {{ despesa.dataPagamento | date: 'dd/MM/yyyy' }}
-                          @if (despesa.faseImovel) {
-                            · {{ faseLabel[despesa.faseImovel] }}
-                          }
-                        </span>
-                      </td>
-                      <td class="detalhe-imovel__num">{{ despesa.valor | currency: 'BRL' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-              @if (despesas().length > despesasRecentes().length) {
-                <p class="detalhe-imovel__nota">
-                  Mostrando as {{ despesasRecentes().length }} mais recentes de {{ despesas().length }}.
-                </p>
-              }
-            }
+          <mat-tab label="Despesas">
+            <app-imovel-despesas-aba [imovelId]="imovel().id" (despesaAlterada)="carregarFinanceiro()" />
           </mat-tab>
         </mat-tab-group>
       </mat-tab>

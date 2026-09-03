@@ -4,9 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { SITUACAO_CONTRATO_LABEL, TIPO_CONTRATO_LABEL } from '../../contratos/contrato.model';
-import { DespesaResponseDTO } from '../../despesas/despesa.model';
-import { DespesaFormDialog } from '../../despesas/despesa-form-dialog/despesa-form-dialog';
-import { DespesasService } from '../../despesas/despesas.service';
+import { ImovelDespesasAba } from './imovel-despesas-aba/imovel-despesas-aba';
 import { PosicaoContratoDTO, ResultadoImovelDTO } from '../../relatorios/relatorio.model';
 import { RelatoriosService } from '../../relatorios/relatorios.service';
 import {
@@ -32,13 +30,12 @@ export interface ImovelDetalheDialogData {
 
 @Component({
   selector: 'app-imovel-detalhe-dialog',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, MatButtonModule, MatDialogModule, MatTabsModule],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, ImovelDespesasAba, MatButtonModule, MatDialogModule, MatTabsModule],
   templateUrl: './imovel-detalhe-dialog.html',
   styleUrl: './imovel-detalhe-dialog.scss',
 })
 export class ImovelDetalheDialog implements OnInit, OnDestroy {
   private readonly service = inject(ImoveisService);
-  private readonly despesasService = inject(DespesasService);
   private readonly relatoriosService = inject(RelatoriosService);
   private readonly dialog = inject(MatDialog);
   protected readonly data = inject<ImovelDetalheDialogData>(MAT_DIALOG_DATA);
@@ -56,7 +53,6 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
   protected readonly indiceAtual = signal(0);
 
   protected readonly resultado = signal<ResultadoImovelDTO | null>(null);
-  protected readonly despesas = signal<DespesaResponseDTO[]>([]);
 
   protected readonly documentos = signal<ImovelDocumentoResponseDTO[]>([]);
   protected readonly tipoDocumentoLabel = TIPO_DOCUMENTO_IMOVEL_LABEL;
@@ -72,11 +68,6 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
   });
 
   protected readonly fotoAtual = computed(() => this.fotos()[this.indiceAtual()] ?? null);
-
-  // As mais recentes primeiro; a lista completa continua na tela de despesas.
-  protected readonly despesasRecentes = computed(() =>
-    [...this.despesas()].sort((a, b) => b.dataPagamento.localeCompare(a.dataPagamento)).slice(0, 5),
-  );
 
   ngOnInit(): void {
     this.service.listarFotos(this.imovel().id).subscribe((fotos) => {
@@ -143,21 +134,8 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
 
   // Custo e contratos vêm prontos de resultado-imovel — a mesma fonte da tela de resultado, para
   // não existir uma segunda conta de custo no frontend.
-  private carregarFinanceiro(): void {
+  protected carregarFinanceiro(): void {
     this.relatoriosService.resultado(this.imovel().id).subscribe((resultado) => this.resultado.set(resultado));
-    this.despesasService.listar(this.imovel().id).subscribe((despesas) => this.despesas.set(despesas));
-  }
-
-  protected lancarDespesa(): void {
-    this.dialog
-      .open(DespesaFormDialog, {
-        data: { despesa: null, imovelId: this.imovel().id },
-        autoFocus: false,
-        width: '680px',
-        maxWidth: '95vw',
-      })
-      .afterClosed()
-      .subscribe(() => this.carregarFinanceiro());
   }
 
   protected rotuloSaldo(contrato: PosicaoContratoDTO): string {
