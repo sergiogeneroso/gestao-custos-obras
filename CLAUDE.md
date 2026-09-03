@@ -26,3 +26,15 @@
   subagente (Task tool), que devolve só o resumo em vez de encher o contexto
   principal, ou sugerir `/clear`/uma sessão nova quando a tarefa atual já
   terminou e a próxima é um domínio não relacionado
+
+## Agent skills
+
+### Issue tracker
+
+Issues e specs vivem como markdown em `.scratch/`. Veja
+`docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Layout single-context, mas usando a documentação já existente do projeto em
+vez de `CONTEXT.md`/`docs/adr/` novos. Veja `docs/agents/domain.md`.
