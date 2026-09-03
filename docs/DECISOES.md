@@ -455,7 +455,13 @@ nem listá-los separadamente.
 `ImovelFotoModel` já estabeleceu e reusando o `StorageService`:
 
 - `DespesaAnexoModel`, com `tipoAnexo` (COMPROVANTE / NOTA_FISCAL / RECIBO /
-  CONTRATO / OUTRO). `RECIBO` existe porque mão de obra raramente vem com nota.
+  CONTRATO / OUTRO). O eixo que separa os dois principais é justificativa contra
+  prova: `RECIBO` é o que comprova a **necessidade** do pagamento — orçamento,
+  boleto, nota de balcão ("notinha"), pedido —, enquanto `COMPROVANTE` é a prova
+  de que o dinheiro **saiu**, o Pix ou a transferência. `NOTA_FISCAL` fica para
+  o documento fiscal propriamente dito. A redação anterior justificava `RECIBO`
+  só por "mão de obra raramente vem com nota", o que é um caso do conceito e não
+  a definição: um boleto de ART também é `RECIBO`, porque justifica o gasto.
 - `ImovelDocumentoModel`, com `tipoDocumento` (MATRICULA / ESCRITURA / CONTRATO /
   IPTU / ALVARA / PROJETO / ART / HABITE_SE / OUTRO) e a fase a que pertence —
   matrícula e IPTU na fase lote, alvará e ART na construção, habite-se na casa.
