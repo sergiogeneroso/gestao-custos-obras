@@ -153,9 +153,13 @@ export class ImovelDespesasAba implements OnInit, OnDestroy {
     this.enviando.set(true);
     this.service.adicionarAnexo(despesaId, arquivo, this.tipoAnexoSelecionado()).subscribe({
       next: (anexo) => {
-        this.anexos.update((atuais) => [...atuais, anexo]);
+        // A seleção pode ter mudado enquanto o upload estava em voo: o anexo já foi gravado na
+        // despesa certa no backend, mas só mexe na lista local se ainda for a despesa exibida.
+        if (despesaId === this.selecionadaId()) {
+          this.anexos.update((atuais) => [...atuais, anexo]);
+          this.carregarPreview(anexo);
+        }
         this.contagemAnexos.update((atual) => ({ ...atual, [despesaId]: (atual[despesaId] ?? 0) + 1 }));
-        this.carregarPreview(anexo);
         this.enviando.set(false);
         elementoInput.value = '';
       },
@@ -203,7 +207,14 @@ export class ImovelDespesasAba implements OnInit, OnDestroy {
     }
     forkJoin(
       despesas.map((d) => this.service.listarAnexos(d.id).pipe(map((anexos) => [d.id, anexos.length] as const))),
-    ).subscribe((pares) => this.contagemAnexos.set(Object.fromEntries(pares)));
+    ).subscribe({
+      next: (pares) => this.contagemAnexos.set(Object.fromEntries(pares)),
+      error: (erro: HttpErrorResponse) => {
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível carregar a contagem de anexos.'), 'Fechar', {
+          duration: 6000,
+        });
+      },
+    });
   }
 
   private carregarAnexosSelecionada(despesaId: number): void {
