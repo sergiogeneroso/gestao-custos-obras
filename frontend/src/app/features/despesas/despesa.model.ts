@@ -87,6 +87,12 @@ export interface DespesaResponseDTO {
   descricao: string | null;
   observacao: string | null;
   ativo: boolean;
+  /**
+   * Quantos anexos a despesa tem. Só a busca paginada preenche; nos outros endpoints vem nulo,
+   * que significa "não calculado" e nunca "sem anexo" — a tela não pode desenhar alerta de
+   * comprovante faltando a partir de nulo.
+   */
+  quantidadeAnexos: number | null;
 }
 
 export interface DespesaAnexoResponseDTO {

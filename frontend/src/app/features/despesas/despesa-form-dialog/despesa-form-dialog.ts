@@ -143,7 +143,7 @@ export class DespesaFormDialog implements OnInit {
     const requisicao = this.despesa ? this.service.atualizar(this.despesa.id, dto) : this.service.criar(dto);
 
     requisicao.subscribe({
-      next: (salva) => this.enviarAnexosPendentes(salva.id),
+      next: (salva) => this.enviarAnexosPendentes(salva),
       error: (erro: HttpErrorResponse) => {
         this.salvando.set(false);
         const mensagem = mensagemErro(erro, 'Não foi possível salvar a despesa.');
@@ -153,18 +153,20 @@ export class DespesaFormDialog implements OnInit {
   }
 
   // A despesa já está salva aqui: falha de upload vira aviso do que ficou de fora, não erro do save.
-  private enviarAnexosPendentes(despesaId: number): void {
+  // Fecha devolvendo a despesa gravada: quem abre o formulário de dentro de uma tela de consulta
+  // precisa reexibir os campos novos sem ir buscá-los outra vez no servidor.
+  private enviarAnexosPendentes(salva: DespesaResponseDTO): void {
     const pendentes = this.anexosPendentes();
     if (pendentes.length === 0) {
       this.snackBar.open('Despesa salva com sucesso.', 'Fechar', { duration: 4000 });
-      this.dialogRef.close(true);
+      this.dialogRef.close(salva);
       return;
     }
 
     const falhas: string[] = [];
     forkJoin(
       pendentes.map((pendente) =>
-        this.service.adicionarAnexo(despesaId, pendente.arquivo, pendente.tipoAnexo).pipe(
+        this.service.adicionarAnexo(salva.id, pendente.arquivo, pendente.tipoAnexo).pipe(
           catchError(() => {
             falhas.push(pendente.arquivo.name);
             return of(null);
@@ -176,7 +178,7 @@ export class DespesaFormDialog implements OnInit {
         ? `Despesa salva, mas estes anexos não subiram: ${falhas.join(', ')}.`
         : 'Despesa salva com sucesso.';
       this.snackBar.open(mensagem, 'Fechar', { duration: falhas.length ? 8000 : 4000 });
-      this.dialogRef.close(true);
+      this.dialogRef.close(salva);
     });
   }
 

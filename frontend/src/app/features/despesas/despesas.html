@@ -11,8 +11,16 @@
   </header>
 
   <div class="despesas__toolbar">
-    <app-busca-toolbar [(valor)]="busca" rotulo="Buscar despesa" placeholder="Categoria, pessoa ou imóvel" />
-    <mat-button-toggle-group [value]="filtro()" (change)="filtro.set($event.value)" aria-label="Filtrar por vínculo">
+    <app-busca-toolbar
+      [(valor)]="busca"
+      rotulo="Buscar despesa"
+      placeholder="Categoria, pessoa ou imóvel"
+    />
+    <mat-button-toggle-group
+      [value]="filtro()"
+      (change)="filtro.set($event.value)"
+      aria-label="Filtrar por vínculo"
+    >
       <mat-button-toggle value="todas">Todas</mat-button-toggle>
       <mat-button-toggle value="imovel">Do imóvel</mat-button-toggle>
       <mat-button-toggle value="geral">Gastos gerais</mat-button-toggle>
@@ -39,6 +47,7 @@
           <th>Pagador</th>
           <th>Beneficiário</th>
           <th class="table__num">Valor</th>
+          <th class="table__num">Anexos</th>
           <th class="table__acoes"></th>
         </tr>
       </thead>
@@ -51,10 +60,25 @@
             <td data-rotulo="Pagador">{{ despesa.pagadorNome }}</td>
             <td data-rotulo="Beneficiário">{{ despesa.beneficiarioNome || '—' }}</td>
             <td class="table__num" data-rotulo="Valor">{{ despesa.valor | currency: 'BRL' }}</td>
+            <td class="table__num" data-rotulo="Anexos">
+              @if (despesa.quantidadeAnexos === 0) {
+                <span class="despesas__sem-anexo">
+                  <i class="ph ph-warning"></i>
+                  sem anexo
+                </span>
+              } @else {
+                {{ despesa.quantidadeAnexos }}
+              }
+            </td>
             <td class="table__acoes" (click)="$event.stopPropagation()">
               <div class="table__acoes-grupo">
                 <button mat-stroked-button type="button" (click)="editar(despesa)">Editar</button>
-                <button mat-icon-button type="button" (click)="inativar(despesa)" aria-label="Inativar despesa">
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="inativar(despesa)"
+                  aria-label="Inativar despesa"
+                >
                   <i class="ph ph-trash icone-secundario"></i>
                 </button>
               </div>

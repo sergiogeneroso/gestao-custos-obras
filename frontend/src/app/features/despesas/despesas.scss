@@ -97,7 +97,7 @@
   }
 }
 
-// Lançamento no canteiro (RNF03): a tabela de 7 colunas não cabe num celular, então cada linha
+// Lançamento no canteiro (RNF03): a tabela de 8 colunas não cabe num celular, então cada linha
 // vira um cartão e o rótulo da coluna passa a vir do data-rotulo de cada célula — sem segundo
 // template para manter em sincronia.
 @media (max-width: 600px) {
@@ -161,4 +161,18 @@
       margin-top: 4px;
     }
   }
+}
+
+// Comprovante faltando é o que a tela precisa deixar saltar: o número em si só interessa quando é
+// zero, então só esse caso ganha cor.
+.despesas__sem-anexo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 107, 107, 0.18);
+  color: #ff9d9d;
+  font-size: 11.5px;
+  white-space: nowrap;
 }

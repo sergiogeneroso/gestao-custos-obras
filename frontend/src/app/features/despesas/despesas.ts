@@ -13,7 +13,14 @@ import { DespesasService } from './despesas.service';
 
 @Component({
   selector: 'app-despesas',
-  imports: [CurrencyPipe, DatePipe, MatButtonModule, MatButtonToggleModule, MatPaginatorModule, BuscaToolbar],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatPaginatorModule,
+    BuscaToolbar,
+  ],
   templateUrl: './despesas.html',
   styleUrl: './despesas.scss',
 })
@@ -28,7 +35,8 @@ export class Despesas {
   // carregada esconderia lançamentos que casam com o termo mas estão em outra página.
   protected readonly lista = new ListagemPaginada<DespesaResponseDTO>(
     inject(DestroyRef),
-    (pagina, tamanho) => this.service.listarPagina(this.busca().trim(), this.escopo(), pagina, tamanho),
+    (pagina, tamanho) =>
+      this.service.listarPagina(this.busca().trim(), this.escopo(), pagina, tamanho),
   );
 
   constructor() {
@@ -58,13 +66,17 @@ export class Despesas {
   // Clique na linha abre a consulta; a edição sai de dentro dela ou do botão da coluna de ações.
   protected abrirDetalhe(despesa: DespesaResponseDTO): void {
     this.dialog
-      .open(DespesaDetalheDialog, { data: { despesa }, autoFocus: false, width: '640px', maxWidth: '95vw' })
+      .open(DespesaDetalheDialog, {
+        data: {
+          despesas: this.lista.itens(),
+          indice: Math.max(0, this.lista.itens().indexOf(despesa)),
+        },
+        autoFocus: false,
+        width: '900px',
+        maxWidth: '95vw',
+      })
       .afterClosed()
-      .subscribe((acao) => {
-        if (acao === 'editar') {
-          this.abrirFormulario(despesa);
-        }
-      });
+      .subscribe(() => this.lista.carregar());
   }
 
   protected inativar(despesa: DespesaResponseDTO): void {
@@ -76,9 +88,13 @@ export class Despesas {
 
   private abrirFormulario(despesa: DespesaResponseDTO | null): void {
     this.dialog
-      .open(DespesaFormDialog, { data: { despesa }, autoFocus: false, width: '640px', maxWidth: '95vw' })
+      .open(DespesaFormDialog, {
+        data: { despesa },
+        autoFocus: false,
+        width: '640px',
+        maxWidth: '95vw',
+      })
       .afterClosed()
       .subscribe(() => this.lista.carregar());
   }
-
 }

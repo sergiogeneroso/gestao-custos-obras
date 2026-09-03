@@ -10,7 +10,7 @@ import { mensagemErro } from '../../../../shared/erro/erro.util';
 import { FASE_IMOVEL_LABEL, FaseImovel } from '../../imovel.model';
 import { DespesaFormDialog } from '../../../despesas/despesa-form-dialog/despesa-form-dialog';
 import {
-  ContagemAnexosAlterada,
+  ContagemAnexos,
   DespesaPainelDetalhe,
 } from '../../../despesas/despesa-painel-detalhe/despesa-painel-detalhe';
 import { DespesaResponseDTO } from '../../../despesas/despesa.model';
@@ -92,7 +92,7 @@ export class ImovelDespesasAba implements OnInit {
     }
   }
 
-  protected registrarContagem(contagem: ContagemAnexosAlterada): void {
+  protected registrarContagem(contagem: ContagemAnexos): void {
     this.contagemAnexos.update((atual) => ({
       ...atual,
       [contagem.despesaId]: contagem.quantidade,

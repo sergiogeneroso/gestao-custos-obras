@@ -18,9 +18,10 @@ import {
 } from '../despesa.model';
 import { DespesasService } from '../despesas.service';
 
-/** Quantos anexos a despesa passou a ter. O id vem junto porque a despesa exibida pode ter mudado
- * enquanto a requisição estava em voo, e quem recebe precisa atualizar a linha certa. */
-export interface ContagemAnexosAlterada {
+/** Quantos anexos a despesa tem, emitido ao carregar e a cada anexo enviado ou removido. O id vem
+ * junto porque a despesa exibida pode ter mudado enquanto a requisição estava em voo, e quem
+ * recebe precisa atualizar a linha certa. */
+export interface ContagemAnexos {
   despesaId: number;
   quantidade: number;
 }
@@ -44,7 +45,7 @@ export class DespesaPainelDetalhe implements OnDestroy {
   /** A aba do imóvel já está escopada a um imóvel, e repetir o identificador ali seria ruído; a
    * tela de despesas mistura imóveis e gastos gerais, então lá o campo é indispensável. */
   readonly mostrarImovel = input(false);
-  readonly anexosAlterados = output<ContagemAnexosAlterada>();
+  readonly contagemAnexos = output<ContagemAnexos>();
 
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
   protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
@@ -92,7 +93,7 @@ export class DespesaPainelDetalhe implements OnDestroy {
           this.anexos.update((atuais) => [...atuais, anexo]);
           this.carregarPreview(anexo);
         }
-        this.anexosAlterados.emit({ despesaId, quantidade: quantidadeAntes + 1 });
+        this.contagemAnexos.emit({ despesaId, quantidade: quantidadeAntes + 1 });
         this.enviando.set(false);
         elementoInput.value = '';
       },
@@ -117,7 +118,7 @@ export class DespesaPainelDetalhe implements OnDestroy {
       if (despesaId === this.despesa().id) {
         this.anexos.update((atuais) => atuais.filter((a) => a.id !== anexo.id));
       }
-      this.anexosAlterados.emit({ despesaId, quantidade: Math.max(0, quantidadeAntes - 1) });
+      this.contagemAnexos.emit({ despesaId, quantidade: Math.max(0, quantidadeAntes - 1) });
     });
   }
 
@@ -135,7 +136,7 @@ export class DespesaPainelDetalhe implements OnDestroy {
         return;
       }
       this.anexos.set(anexos);
-      this.anexosAlterados.emit({ despesaId, quantidade: anexos.length });
+      this.contagemAnexos.emit({ despesaId, quantidade: anexos.length });
       anexos
         .filter(
           (a) =>

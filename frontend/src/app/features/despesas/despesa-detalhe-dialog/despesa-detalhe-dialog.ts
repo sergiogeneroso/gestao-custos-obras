@@ -1,52 +1,65 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { FASE_IMOVEL_LABEL } from '../../imoveis/imovel.model';
 import {
-  DespesaAnexoResponseDTO,
-  DespesaResponseDTO,
-  ETAPA_CONSTRUCAO_LABEL,
-  TIPO_ANEXO_DESPESA_LABEL,
-} from '../despesa.model';
-import { DespesasService } from '../despesas.service';
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
+import { DespesaFormDialog } from '../despesa-form-dialog/despesa-form-dialog';
+import { DespesaPainelDetalhe } from '../despesa-painel-detalhe/despesa-painel-detalhe';
+import { DespesaResponseDTO } from '../despesa.model';
 
 export interface DespesaDetalheDialogData {
-  despesa: DespesaResponseDTO;
+  /** A página carregada da tabela, para o diálogo percorrê-la sem voltar ao servidor. */
+  despesas: DespesaResponseDTO[];
+  indice: number;
 }
 
 // Abrir uma despesa é consulta, não edição: a lista abre este diálogo e a edição fica atrás de um
-// botão explícito, para não expor os campos a alteração acidental num clique de linha.
+// botão explícito, para não expor os campos a alteração acidental num clique de linha. O
+// formulário abre por cima em vez de fechar o diálogo, para não perder o lugar na lista de quem
+// está percorrendo os lançamentos com as setas.
 @Component({
   selector: 'app-despesa-detalhe-dialog',
-  imports: [CurrencyPipe, DatePipe, MatButtonModule, MatDialogModule],
+  imports: [MatButtonModule, MatDialogModule, DespesaPainelDetalhe],
   templateUrl: './despesa-detalhe-dialog.html',
   styleUrl: './despesa-detalhe-dialog.scss',
 })
-export class DespesaDetalheDialog implements OnInit {
-  private readonly service = inject(DespesasService);
+export class DespesaDetalheDialog {
+  private readonly dialog = inject(MatDialog);
   private readonly dialogRef = inject(MatDialogRef<DespesaDetalheDialog>);
-  protected readonly data = inject<DespesaDetalheDialogData>(MAT_DIALOG_DATA);
+  private readonly data = inject<DespesaDetalheDialogData>(MAT_DIALOG_DATA);
 
-  protected readonly despesa = this.data.despesa;
-  protected readonly faseLabel = FASE_IMOVEL_LABEL;
-  protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
-  protected readonly tipoAnexoLabel = TIPO_ANEXO_DESPESA_LABEL;
+  protected readonly despesas = signal<DespesaResponseDTO[]>(this.data.despesas);
+  protected readonly indice = signal(this.data.indice);
+  protected readonly despesa = computed(() => this.despesas()[this.indice()]);
 
-  protected readonly anexos = signal<DespesaAnexoResponseDTO[]>([]);
-
-  ngOnInit(): void {
-    this.service.listarAnexos(this.despesa.id).subscribe((anexos) => this.anexos.set(anexos));
+  protected anterior(): void {
+    this.indice.update((atual) => Math.max(0, atual - 1));
   }
 
-  protected abrirAnexo(anexo: DespesaAnexoResponseDTO): void {
-    this.service.baixarAnexo(anexo.url).subscribe((blob) => {
-      window.open(URL.createObjectURL(blob), '_blank');
-    });
+  protected proxima(): void {
+    this.indice.update((atual) => Math.min(this.despesas().length - 1, atual + 1));
   }
 
   protected editar(): void {
-    this.dialogRef.close('editar');
+    this.dialog
+      .open(DespesaFormDialog, {
+        data: { despesa: this.despesa() },
+        autoFocus: false,
+        width: '640px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((salva?: DespesaResponseDTO) => {
+        if (!salva) {
+          return;
+        }
+        // Troca só a despesa editada na lista local: o painel reage à nova referência e reexibe os
+        // campos, sem perder a posição de quem estava percorrendo a página.
+        this.despesas.update((atuais) => atuais.map((d) => (d.id === salva.id ? salva : d)));
+      });
   }
 
   protected fechar(): void {
