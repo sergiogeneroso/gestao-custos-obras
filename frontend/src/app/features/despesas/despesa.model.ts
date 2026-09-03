@@ -96,3 +96,14 @@ export interface DespesaAnexoResponseDTO {
   url: string;
   dataUpload: string;
 }
+
+const EXTENSOES_IMAGEM = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
+
+/** Deduz o formato do anexo pela extensão da URL, pra decidir como fazer a pré-visualização. */
+export function tipoArquivoAnexo(url: string): 'imagem' | 'pdf' | 'outro' {
+  const extensao = url.split('.').pop()?.toLowerCase() ?? '';
+  if (extensao === 'pdf') {
+    return 'pdf';
+  }
+  return EXTENSOES_IMAGEM.has(extensao) ? 'imagem' : 'outro';
+}
