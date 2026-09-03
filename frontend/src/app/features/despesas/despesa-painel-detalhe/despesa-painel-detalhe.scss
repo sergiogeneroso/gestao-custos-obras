@@ -59,9 +59,17 @@
   font-size: 12px;
 }
 
+.painel-despesa__ampliar {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
 .painel-despesa__preview-imagem {
   max-width: 100%;
-  max-height: 320px;
+  max-height: 420px;
   border-radius: var(--mat-sys-corner-medium, 8px);
   margin-top: 6px;
   object-fit: contain;
@@ -90,4 +98,27 @@
   padding: 9px 14px;
   font-size: 13.5px;
   cursor: pointer;
+}
+
+// O ::backdrop e o top layer são do próprio <dialog>: nada de overlay do Material aqui, senão a
+// imagem ampliada apareceria por baixo do diálogo que hospeda o painel.
+.painel-despesa__lupa {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: 96vw;
+  max-height: 96vh;
+  overflow: hidden;
+
+  &::backdrop {
+    background: rgba(10, 11, 18, 0.86);
+  }
+
+  img {
+    display: block;
+    max-width: 96vw;
+    max-height: 96vh;
+    object-fit: contain;
+    cursor: zoom-out;
+  }
 }

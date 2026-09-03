@@ -89,11 +89,18 @@
           </div>
 
           @if (formato(anexo.url) === 'imagem' && previewImagens()[anexo.id]) {
-            <img
-              class="painel-despesa__preview-imagem"
-              [src]="previewImagens()[anexo.id]"
-              [alt]="tipoAnexoLabel[anexo.tipoAnexo]"
-            />
+            <button
+              type="button"
+              class="painel-despesa__ampliar"
+              (click)="ampliar(previewImagens()[anexo.id])"
+              [attr.aria-label]="'Ampliar ' + tipoAnexoLabel[anexo.tipoAnexo]"
+            >
+              <img
+                class="painel-despesa__preview-imagem"
+                [src]="previewImagens()[anexo.id]"
+                [alt]="tipoAnexoLabel[anexo.tipoAnexo]"
+              />
+            </button>
           } @else if (formato(anexo.url) === 'pdf' && previewPdfs()[anexo.id]) {
             <iframe
               class="painel-despesa__preview-pdf"
@@ -125,4 +132,17 @@
       <input type="file" hidden [disabled]="enviando()" (change)="enviarAnexo($event)" />
     </label>
   </div>
+
+  <!-- <dialog> nativo em vez de MatDialog: o painel roda dentro de um diálogo do Material nos dois
+  lugares em que é usado, e só o top layer do navegador aparece por cima daquele backdrop. -->
+  <dialog
+    #lupa
+    class="painel-despesa__lupa"
+    (click)="lupa.close()"
+    (keydown.escape)="fecharAmpliada($event)"
+  >
+    @if (ampliada(); as url) {
+      <img [src]="url" alt="Anexo ampliado" />
+    }
+  </dialog>
 </section>

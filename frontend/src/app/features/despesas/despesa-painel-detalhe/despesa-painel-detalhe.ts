@@ -1,6 +1,16 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, effect, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -64,6 +74,9 @@ export class DespesaPainelDetalhe implements OnDestroy {
   protected readonly previewPdfs = signal<Record<number, SafeResourceUrl>>({});
   protected readonly tipoAnexoSelecionado = signal<TipoAnexoDespesa>('COMPROVANTE');
   protected readonly enviando = signal(false);
+  protected readonly ampliada = signal<string | null>(null);
+
+  private readonly lupa = viewChild.required<ElementRef<HTMLDialogElement>>('lupa');
 
   private objectUrls: string[] = [];
 
@@ -120,6 +133,21 @@ export class DespesaPainelDetalhe implements OnDestroy {
       }
       this.contagemAnexos.emit({ despesaId, quantidade: Math.max(0, quantidadeAntes - 1) });
     });
+  }
+
+  // A miniatura na lista existe para reconhecer o comprovante; ler o valor de uma nota fotografada
+  // exige a imagem inteira, e é isso que o clique abre.
+  protected ampliar(url: string): void {
+    this.ampliada.set(url);
+    this.lupa().nativeElement.showModal();
+  }
+
+  // O overlay do Material cancela a ação padrão do Esc, então o <dialog> nativo não fecha sozinho
+  // enquanto está dentro dele. Fecha na mão e segura o evento, para o diálogo que hospeda o painel
+  // não fechar junto no mesmo Esc.
+  protected fecharAmpliada(evento: Event): void {
+    evento.stopPropagation();
+    this.lupa().nativeElement.close();
   }
 
   protected baixarAnexo(anexo: DespesaAnexoResponseDTO): void {
