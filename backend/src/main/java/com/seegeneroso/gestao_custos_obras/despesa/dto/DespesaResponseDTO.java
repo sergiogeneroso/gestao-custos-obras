@@ -23,5 +23,12 @@ public record DespesaResponseDTO(
         LocalDate dataPagamento,
         String descricao,
         String observacao,
-        Boolean ativo
+        Boolean ativo,
+        /**
+         * Quantos anexos a despesa tem. Só a busca paginada preenche este campo — nos demais
+         * caminhos vem nulo, que significa "não calculado", nunca "sem anexo". Quem consome
+         * precisa distinguir os dois: desenhar alerta de comprovante faltando a partir de nulo
+         * marcaria como pendente uma despesa que ninguém contou.
+         */
+        Integer quantidadeAnexos
 ) {}

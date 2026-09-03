@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaMode
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaRepository;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
@@ -21,9 +22,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -135,6 +138,30 @@ class DespesaServiceTest {
         DespesaModel salva = capturarSalva();
         assertThat(salva.getImovel()).isNull();
         assertThat(salva.getFaseImovel()).isNull();
+    }
+
+    @Test
+    void buscaContaAnexosDaPaginaESomaZeroParaDespesaSemAnexo() {
+        DespesaModel comAnexos = DespesaModel.builder().id(10L).ativo(true).build();
+        DespesaModel semAnexo = DespesaModel.builder().id(11L).ativo(true).build();
+        when(despesaRepository.buscar(any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(comAnexos, semAnexo)));
+        // Um id por anexo: a despesa 10 tem dois, a 11 não aparece porque não tem nenhum.
+        when(despesaAnexoRepository.listarDespesaIdPorAnexo(List.of(10L, 11L)))
+                .thenReturn(List.of(10L, 10L));
+
+        List<DespesaResponseDTO> conteudo = despesaService.buscar("", "TODAS", 0, 20).conteudo();
+
+        assertThat(conteudo).extracting(DespesaResponseDTO::quantidadeAnexos).containsExactly(2, 0);
+    }
+
+    @Test
+    void buscarPorIdNaoInformaQuantidadeDeAnexos() {
+        when(despesaRepository.findByIdAndAtivoTrue(10L))
+                .thenReturn(Optional.of(DespesaModel.builder().id(10L).ativo(true).build()));
+
+        // Nulo é "não calculado": a tela não pode ler isso como despesa sem comprovante.
+        assertThat(despesaService.buscarPorId(10L).quantidadeAnexos()).isNull();
     }
 
     private DespesaModel capturarSalva() {

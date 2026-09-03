@@ -21,6 +21,7 @@ import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioExcept
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,6 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -135,8 +139,24 @@ public class DespesaService {
         // repetir nem pular linha entre páginas.
         Pageable pageable = PageRequest.of(pagina, tamanho,
                 Sort.by(Sort.Direction.DESC, "dataPagamento", "id"));
-        return PaginaDTO.de(despesaRepository.buscar(Buscas.normalizar(busca), escopoValido, pageable),
-                despesaMapper::toResponseDTO);
+        Page<DespesaModel> paginaDespesas = despesaRepository.buscar(Buscas.normalizar(busca), escopoValido, pageable);
+        Map<Long, Integer> contagens = contarAnexos(paginaDespesas.getContent());
+        return PaginaDTO.de(paginaDespesas,
+                despesa -> despesaMapper.toResponseDTO(despesa, contagens.getOrDefault(despesa.getId(), 0)));
+    }
+
+    /**
+     * Quantos anexos cada despesa da página tem. Uma consulta só para a página inteira — contar
+     * despesa a despesa transformaria a listagem em N+1, e a tela precisa do número em toda linha
+     * para apontar os lançamentos sem comprovante.
+     */
+    private Map<Long, Integer> contarAnexos(List<DespesaModel> despesas) {
+        if (despesas.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> ids = despesas.stream().map(DespesaModel::getId).toList();
+        return despesaAnexoRepository.listarDespesaIdPorAnexo(ids).stream()
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.summingInt(id -> 1)));
     }
 
     @Transactional(readOnly = true)
