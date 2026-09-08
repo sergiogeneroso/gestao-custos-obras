@@ -94,12 +94,10 @@
                 <p class="detalhe-imovel__label">CEP</p>
                 <p class="detalhe-imovel__valor">{{ imovel().cep || '—' }}</p>
               </div>
-              @if (imovel().observacaoEndereco) {
-                <div class="detalhe-imovel__campo-largo">
-                  <p class="detalhe-imovel__label">Observação do endereço</p>
-                  <p class="detalhe-imovel__valor">{{ imovel().observacaoEndereco }}</p>
-                </div>
-              }
+              <div class="detalhe-imovel__campo-largo">
+                <p class="detalhe-imovel__label">Observação do endereço</p>
+                <p class="detalhe-imovel__valor">{{ imovel().observacaoEndereco || '—' }}</p>
+              </div>
 
               <div>
                 <p class="detalhe-imovel__label">Data da compra</p>
@@ -129,10 +127,16 @@
                   <p class="detalhe-imovel__label">Comprador</p>
                   <p class="detalhe-imovel__valor">{{ imovel().vendaCompradorNome || '—' }}</p>
                 </div>
-              } @else if (imovel().vendaValorPretendido !== null) {
+              } @else {
                 <div>
                   <p class="detalhe-imovel__label">Valor de venda pretendido</p>
-                  <p class="detalhe-imovel__valor">{{ imovel().vendaValorPretendido | currency: 'BRL' }}</p>
+                  <p class="detalhe-imovel__valor">
+                    @if (imovel().vendaValorPretendido !== null) {
+                      {{ imovel().vendaValorPretendido | currency: 'BRL' }}
+                    } @else {
+                      —
+                    }
+                  </p>
                 </div>
               }
 
