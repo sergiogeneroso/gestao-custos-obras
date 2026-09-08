@@ -35,18 +35,14 @@
     <dt>Beneficiário</dt>
     <dd>{{ despesa().beneficiarioNome ?? '—' }}</dd>
   </div>
-  @if (despesa().descricao) {
-    <div class="painel-despesa__largo">
-      <dt>Descrição</dt>
-      <dd>{{ despesa().descricao }}</dd>
-    </div>
-  }
-  @if (despesa().observacao) {
-    <div class="painel-despesa__largo">
-      <dt>Observação</dt>
-      <dd>{{ despesa().observacao }}</dd>
-    </div>
-  }
+  <div class="painel-despesa__largo">
+    <dt>Descrição</dt>
+    <dd>{{ despesa().descricao ?? '—' }}</dd>
+  </div>
+  <div class="painel-despesa__largo">
+    <dt>Observação</dt>
+    <dd>{{ despesa().observacao ?? '—' }}</dd>
+  </div>
 </dl>
 
 <section class="painel-despesa__anexos">
