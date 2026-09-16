@@ -454,3 +454,42 @@ Escopo restrito a `PARCELAMENTO_COMPRA`.
 **Pendência conhecida, fora do escopo por decisão:** a mesma matemática do ajuste
 de quitação valeria para `FINANCIAMENTO_CONSTRUCAO`, onde a parte de juros
 embutida no valor negociado da quitação se perde hoje.
+
+## Exclusão lógica generalizada (Set 2026) ✅ — ADR-040
+
+O usuário pediu que excluir um lote leve tudo que está ligado a ele, que dê
+para excluir um contrato cadastrado errado, e que exclusão no sistema seja
+sempre lógica daqui em diante — não só uma exceção para o fluxo do imóvel.
+
+- [x] `@Embeddable` compartilhado `shared/exclusao/ExclusaoLogica.java`
+      (`ativo`, `motivoExclusao`, `excluidoEm`, `excluidoPor`), reaproveitado
+      em `Imovel`/`Pessoa`/`Despesa` (migrados) e `ContratoFinanceiro`/
+      `ParcelaContrato`/`OrcamentoCategoria` (soft delete novo)
+- [x] `ImovelExclusaoService`: cascata da exclusão do imóvel (despesas,
+      contratos com parcelas/documentos, orçamento por categoria — lógica;
+      fotos e documentos do imóvel — físico) e endpoint de prévia de impacto
+      (`GET /api/imoveis/{id}/impacto-exclusao`)
+- [x] `ContratoFinanceiroService.excluir`: exclusão avulsa do contrato
+      (`DELETE /api/contratos-financeiros/{id}`, novo), com trava de
+      `QUITADO`/parcela paga, desvínculo de despesa de custo acessório e
+      limpeza condicional de `imovel.compra.valor`
+- [x] Motivo obrigatório e retroativo (`Imovel`/`Pessoa`/`Despesa` também
+      passaram a exigir), `excluidoPor` resolvido do usuário autenticado
+      (`shared/auth/UsuarioAutenticadoService`, novo)
+- [x] Frontend: `ConfirmExclusaoDialog` compartilhado (primeiro diálogo
+      genérico de `shared/`) substitui o `confirm()` nativo nos 4 pontos de
+      exclusão; botão "Excluir contrato" no detalhe do contrato
+- [x] Skill `gerar-crud-dominio` atualizada: todo domínio novo nasce com
+      `ExclusaoLogica` por padrão
+
+**Fora de escopo, registrado para depois:**
+- [ ] **Venda cancelável** — reverter `situacao = VENDIDO` quando um acordo de
+      venda é desfeito. O usuário sinalizou que isso precisa existir, mas é
+      mudança de regra de negócio em `ImovelService.alterarSituacao`
+      (`.agents/rules/ciclo-vida-imovel.md`), não mecânica de exclusão — pede
+      plan mode dedicado
+- [ ] Endpoint de restauração de exclusão lógica (nenhuma das entidades com
+      soft delete tem isso hoje, nem as três anteriores à ADR-040)
+- [ ] Rotina de auditoria geral do sistema (sinalizada pelo usuário como
+      próxima etapa; pode tornar `excluidoPor`/`excluidoEm` redundante com um
+      log mais amplo — decidir quando a etapa chegar)

@@ -100,6 +100,30 @@ não pode ser perdido: a coleção `parcelas` usa `orphanRemoval = true`, então
 `clear()` seguido de re-add **apaga do banco** as parcelas pagas antes de
 reinseri-las. Remover apenas as não pagas e nunca recriar as pagas.
 
+## Exclusão do contrato (ADR-040)
+
+`ContratoFinanceiroService.excluir` existe para corrigir cadastro errado —
+não para desfazer um contrato que já rodou de verdade. A trava espelha a de
+edição:
+
+- **Recusa contrato `QUITADO`** ou **com qualquer parcela paga**
+  (`dataPagamento != null`) — igual à edição, porque esse histórico já pode
+  ter entrado em `jurosPagos`/`custoTotal` de um relatório apurado
+- Passando na trava, cascateia: parcelas ficam `ativo = false`, documentos do
+  contrato são removidos de verdade (registro + arquivo)
+- **Despesa de custo acessório do financiamento é desvinculada, nunca
+  excluída** (`contratoFinanceiro = null`) — é gasto real, independente do
+  contrato estar certo ou errado
+- **`PARCELAMENTO_COMPRA` único**: se `aplicarValorDoLote` gravou
+  `imovel.compra.valor` a partir deste contrato e não sobra nenhum outro
+  `PARCELAMENTO_COMPRA` (ativo ou quitado) no imóvel, o valor é limpo de
+  volta para vazio — evita conservar um preço que veio do contrato que
+  acabou de ser excluído
+- **A cascata de exclusão do imóvel inteiro não passa por essa trava** —
+  `ImovelExclusaoService` chama `ContratoFinanceiroService.cascatearExclusao`
+  diretamente, sem checar `QUITADO`/parcela paga, porque excluir o imóvel é
+  sempre permitido (ver `regras-negocio-financeiras.md`)
+
 ## Compra parcelada do lote (ADR-037) — só `PARCELAMENTO_COMPRA`
 
 **O parcelamento do lote é normalmente SEM juros.** O padrão do negócio é entrada

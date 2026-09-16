@@ -40,13 +40,34 @@ Havendo contrato, valem também (detalhe em `contratos-financeiros.md`):
   (rentabilidade anualizada usa `Math.pow`). Nunca para valor monetário, e
   sempre com comentário no ponto de uso
 
-## Soft delete: nunca DELETE físico em entidade financeira
+## Exclusão lógica: nunca DELETE físico em entidade com valor histórico (ADR-040)
 
-- `ativo BOOLEAN` em `Imovel`, `Pessoa` e `Despesa` (ADR-028).
-  Usar `findByAtivoTrue()` / `findByIdAndAtivoTrue()`
-- `Imovel` com `ativo = false` não aparece em listagens nem aceita novas despesas
-- `Pessoa` com `ativo = false` não pode ser vinculada a novas despesas como
-  pagadora ou beneficiária
+Convenção geral do projeto, não só destas seis: `Imovel`, `Pessoa`, `Despesa`,
+`ContratoFinanceiro`, `ParcelaContrato` e `OrcamentoCategoria` usam o
+`@Embeddable` compartilhado `shared/exclusao/ExclusaoLogica.java` (`ativo`,
+`motivoExclusao` obrigatório, `excluidoEm`, `excluidoPor`) em vez de um
+`Boolean ativo` solto. Todo domínio novo nasce assim por padrão (ver skill
+`gerar-crud-dominio`) — exceção só para catálogo global sem histórico (ex.
+`CategoriaDespesa`, que continua delete físico).
+
+- Usar `findByAtivoTrue()` / `findByIdAndAtivoTrue()` — o nome do método é o
+  mesmo em toda entidade, ainda que por baixo seja `@Query` contra
+  `x.exclusao.ativo = true` em vez de query-method derivado
+- `Imovel` com `exclusao.ativo = false` não aparece em listagens nem aceita
+  novas despesas
+- `Pessoa` com `exclusao.ativo = false` não pode ser vinculada a novas
+  despesas como pagadora ou beneficiária
+- **Excluir o imóvel cascateia**: despesas, contratos financeiros (e suas
+  parcelas/documentos), orçamento por categoria ficam `ativo = false`; fotos,
+  documentos do imóvel e documentos de contrato são removidos de verdade
+  (arquivo físico incluso) — eles não carregam resultado financeiro a
+  proteger. Sempre permitido, em qualquer fase/situação, mesmo com contrato
+  quitado ou parcela já paga: a cascata do imóvel não tem a trava que a
+  exclusão avulsa de contrato tem (ver `contratos-financeiros.md`)
+- **Motivo é obrigatório em toda exclusão lógica**, inclusive as retroativas
+  (Imóvel, Pessoa, Despesa) — o service recusa gravar sem ele
+- Fora de escopo por enquanto: reverter `situacao` de um imóvel vendido e
+  endpoint de restauração de exclusão lógica (ver `docs/PROXIMOS-PASSOS.md`)
 
 ## Despesa (ADR-023)
 

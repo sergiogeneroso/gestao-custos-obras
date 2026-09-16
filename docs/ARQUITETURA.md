@@ -59,13 +59,13 @@ Alvo do reescopo de Ago 2026 (ADR-019 a ADR-029):
 
 | Domínio            | Base URL                    | Escopo                                        |
 |--------------------|-----------------------------|-----------------------------------------------|
-| Imóvel             | `/api/imoveis`              | CRUD + fotos + documentos + `PATCH` fase/situação |
-| Pessoa             | `/api/pessoas`              | CRUD + marca de fornecedor (ADR-021/034)       |
+| Imóvel             | `/api/imoveis`              | CRUD + fotos + documentos + `PATCH` fase/situação + exclusão em cascata (`DELETE` com `{motivo}`) + `GET /{id}/impacto-exclusao` (ADR-040) |
+| Pessoa             | `/api/pessoas`              | CRUD + marca de fornecedor (ADR-021/034); exclusão exige `{motivo}` (ADR-040) |
 | CategoriaDespesa   | `/api/categorias-despesa`   | CRUD (substitui EtapaProjeto)                  |
-| Despesa            | `/api/despesas`             | CRUD + anexos tipados, sem rateio              |
-| ContratoFinanceiro | `/api/contratos-financeiros`| CRUD + parcelas + quitação + documentos        |
+| Despesa            | `/api/despesas`             | CRUD + anexos tipados, sem rateio; exclusão exige `{motivo}` (ADR-040) |
+| ContratoFinanceiro | `/api/contratos-financeiros`| CRUD + parcelas + quitação + documentos + exclusão avulsa com trava de QUITADO/parcela paga (`DELETE` com `{motivo}`, ADR-040) |
 | Relatório          | `/api/relatorios`           | Resultado, fornecedor, extrato, carteira + CSV |
-| OrcamentoCategoria | `/api/orcamentos-categoria` | Existe no código, **fora do MVP** (ADR-029)    |
+| OrcamentoCategoria | `/api/orcamentos-categoria` | Existe no código, **fora do MVP** (ADR-029); exclusão exige `{motivo}` (ADR-040) |
 | Auth               | `/api/auth`                 | POST /login emite JWT (RNF01)                  |
 
 As invariantes financeiras e as do ciclo de vida do imóvel não vivem aqui: estão

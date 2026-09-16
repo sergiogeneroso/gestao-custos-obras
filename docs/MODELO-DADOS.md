@@ -26,7 +26,10 @@ erDiagram
         BOOLEAN fornecedor "marca o papel (ADR-034)"
         VARCHAR area_atuacao "só quando fornecedor"
         TEXT observacoes "só quando fornecedor"
-        BOOLEAN ativo
+        BOOLEAN ativo "ExclusaoLogica (ADR-040)"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
     }
     IMOVEL {
         BIGSERIAL id PK
@@ -71,7 +74,10 @@ erDiagram
         DATE venda_data
         BIGINT venda_comprador_id FK
         NUMERIC venda_valor_pretendido "14,2"
-        BOOLEAN ativo
+        BOOLEAN ativo "ExclusaoLogica (ADR-040)"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
     }
     CATEGORIA_DESPESA {
         BIGSERIAL id PK
@@ -86,6 +92,10 @@ erDiagram
         VARCHAR situacao "ATIVO, QUITADO"
         DATE data_quitacao
         NUMERIC valor_quitacao "14,2"
+        BOOLEAN ativo "ExclusaoLogica (ADR-040)"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
     }
     PARCELA_CONTRATO {
         BIGSERIAL id PK
@@ -96,6 +106,22 @@ erDiagram
         NUMERIC valor_juros "14,2"
         DATE data_pagamento "nula = em aberto"
         NUMERIC valor_pago "14,2 — pode diferir do valor contratado da parcela"
+        BOOLEAN ativo "ExclusaoLogica (ADR-040) — só cascateia com o contrato"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
+    }
+    ORCAMENTO_CATEGORIA {
+        BIGSERIAL id PK
+        BIGINT imovel_id FK
+        BIGINT categoria_despesa_id FK
+        NUMERIC valor_orcado "14,2"
+        DATE data_inicio_prevista
+        DATE data_fim_prevista
+        BOOLEAN ativo "ExclusaoLogica (ADR-040)"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
     }
     DESPESA {
         BIGSERIAL id PK
@@ -108,7 +134,10 @@ erDiagram
         VARCHAR etapa_construcao "só na fase CONSTRUCAO (ADR-035)"
         NUMERIC valor "14,2"
         DATE data_pagamento
-        BOOLEAN ativo
+        BOOLEAN ativo "ExclusaoLogica (ADR-040)"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
     }
     CONTRATO_DOCUMENTO {
         BIGSERIAL id PK
@@ -144,11 +173,19 @@ erDiagram
     IMOVEL ||--o{ IMOVEL_FOTO : "galeria"
     IMOVEL ||--o{ IMOVEL_DOCUMENTO : "documentos"
     IMOVEL ||--o{ CONTRATO_FINANCEIRO : "encadeia"
+    IMOVEL ||--o{ ORCAMENTO_CATEGORIA : "orça por categoria"
     CONTRATO_FINANCEIRO ||--o{ PARCELA_CONTRATO : "cronograma"
     CONTRATO_FINANCEIRO ||--o{ CONTRATO_DOCUMENTO : "documentos"
     CONTRATO_FINANCEIRO ||--o{ DESPESA : "custos acessórios"
     CATEGORIA_DESPESA ||--o{ DESPESA : "classifica"
+    CATEGORIA_DESPESA ||--o{ ORCAMENTO_CATEGORIA : "classifica"
     DESPESA ||--o{ DESPESA_ANEXO : "comprovantes e notas"
+    USUARIO ||--o{ PESSOA : "excluiu (ExclusaoLogica)"
+    USUARIO ||--o{ IMOVEL : "excluiu (ExclusaoLogica)"
+    USUARIO ||--o{ DESPESA : "excluiu (ExclusaoLogica)"
+    USUARIO ||--o{ CONTRATO_FINANCEIRO : "excluiu (ExclusaoLogica)"
+    USUARIO ||--o{ PARCELA_CONTRATO : "excluiu (ExclusaoLogica)"
+    USUARIO ||--o{ ORCAMENTO_CATEGORIA : "excluiu (ExclusaoLogica)"
 ```
 
 ## Regras que não estão óbvias só olhando o schema
@@ -187,7 +224,12 @@ erDiagram
   os valores originais das parcelas (ADR-025)
 - A soma das parcelas **pode exceder** `valor_contratado` legitimamente (juros);
   não existe validação disso
-- FKs para `pessoa` em relações financeiras: `ON DELETE RESTRICT`, e soft delete
-  (`ativo`) em `imovel`, `pessoa` e `despesa` (ADR-028)
+- FKs para `pessoa` em relações financeiras: `ON DELETE RESTRICT`
+- **Exclusão lógica é a convenção geral do projeto** (ADR-040), via o
+  `@Embeddable` compartilhado `ExclusaoLogica` (`ativo`, `motivo_exclusao`,
+  `excluido_em`, `excluido_por_id`): `imovel`, `pessoa`, `despesa`,
+  `contrato_financeiro`, `parcela_contrato` e `orcamento_categoria`. Fotos,
+  documentos do imóvel, anexos de despesa e documentos de contrato continuam
+  com DELETE físico — são arquivo, sem resultado financeiro a proteger
 - Regras de negócio que não são constraint de banco (regra de custo, transições
   de fase) estão em `.agents/rules/`, que carregam sozinhas no escopo delas

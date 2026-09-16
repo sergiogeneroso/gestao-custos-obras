@@ -853,3 +853,75 @@ Registrado em `.agents/rules/regras-negocio-financeiras.md`, no Javadoc de
 `RelatorioService.custoSemCompra` e nos testes
 `custoSemCompraSomaDespesasDeTodasAsFasesMaisJurosPagosSemTocarNoCustoTotal` e
 `custoSemCompraIgnoraOAjusteDeQuitacaoQueEPrecoDoLote`.
+
+## ADR-040 — Exclusão lógica generalizada, com cascata do imóvel (Set 2026)
+
+O usuário pediu que excluir um lote leve junto tudo que está ligado a ele, que
+seja possível excluir um contrato cadastrado errado, e que exclusão no sistema
+passe a ser sempre lógica — não só para `Imovel`/`Pessoa`/`Despesa`, que já
+tinham isso pela ADR-028, mas como convenção geral do projeto daqui em diante.
+
+**Um `@Embeddable` compartilhado, não um campo por entidade.** Em vez de
+repetir `Boolean ativo` (e agora também motivo/quem/quando) em cada entidade,
+`shared/exclusao/ExclusaoLogica.java` reúne `ativo`, `motivoExclusao`
+(obrigatório), `excluidoEm` e `excluidoPor` (referência a `Usuario`, resolvido
+via `SecurityContextHolder` — não havia nenhum código no projeto lendo o
+usuário autenticado de volta até aqui). Seis entidades passam a usá-lo:
+`Imovel`, `Pessoa`, `Despesa` (migradas do campo solto) e `ContratoFinanceiro`,
+`ParcelaContrato`, `OrcamentoCategoria` (ganham soft delete pela primeira
+vez). Fotos, documentos do imóvel, anexos de despesa e documentos de contrato
+continuam com DELETE físico — são arquivo, sem resultado financeiro a
+proteger, e cascateiam normalmente junto com o pai.
+
+**Os nomes de método do repository não mudam.** `findByAtivoTrue()` e
+`findByIdAndAtivoTrue()` continuam se chamando assim em `Imovel`, `Pessoa` e
+`Despesa` — só a implementação interna virou `@Query` JPQL contra
+`x.exclusao.ativo = true` em vez de query-method derivado. Isso foi
+deliberado: essas entidades já eram consumidas em ~12 arquivos, incluindo
+`RelatorioService` (o cálculo de resultado financeiro), e trocar o nome do
+método teria obrigado a editar o ponto mais sensível do projeto por uma
+mudança que é só de armazenamento, não de regra. `RelatorioServiceTest`
+passou sem nenhuma alteração de expectativa depois da migração — é o sinal de
+que nenhum resultado calculado mudou.
+
+**Cascata do imóvel não tem trava; exclusão avulsa de contrato tem.** São
+operações diferentes. Excluir o imóvel inteiro (`ImovelExclusaoService`)
+cascateia despesas, contratos (com suas parcelas e documentos), orçamento por
+categoria, fotos e documentos — sempre, em qualquer fase/situação, mesmo com
+contrato quitado ou parcela paga, porque o usuário decidiu apagar o imóvel
+inteiro de propósito. Já excluir um contrato avulso
+(`ContratoFinanceiroService.excluir`) é pensado para corrigir cadastro
+errado, então recusa contrato `QUITADO` ou com parcela paga — a mesma trava
+que já existia para editar (ADR-036), porque esse histórico pode já ter
+entrado em `jurosPagos`/`custoTotal` de um relatório apurado. As duas vias
+convergem no mesmo método de cascata "pura"
+(`ContratoFinanceiroService.cascatearExclusao`), sem duplicar a mecânica —
+só a exclusão avulsa passa pela trava antes de chamá-lo.
+
+**Dois efeitos colaterais da exclusão de contrato, decididos explicitamente:**
+custos acessórios do financiamento (`Despesa.contratoFinanceiro`) são
+desvinculados, nunca excluídos — é gasto real, independente do contrato estar
+certo ou errado; e `imovel.compra.valor`, quando foi gravado por um
+`PARCELAMENTO_COMPRA` que está sendo excluído (`aplicarValorDoLote`,
+ADR-037), volta a vazio se não sobrar nenhum outro `PARCELAMENTO_COMPRA` no
+imóvel — nunca se houver ambiguidade sobre qual valor é o certo.
+
+**Motivo obrigatório e retroativo.** Toda exclusão lógica exige um motivo —
+inclusive as três que já existiam (`Imovel`, `Pessoa`, `Despesa`), cujos
+métodos `inativar` foram renomeados para `excluir(id, motivo)`. `excluidoPor`
+é resolvido do usuário autenticado no momento da exclusão.
+
+**Fora de escopo, deliberadamente:** reverter `situacao = VENDIDO` de um
+imóvel ("venda cancelada") — o usuário sinalizou que isso também precisa ser
+possível, mas é uma mudança na regra de negócio de `ImovelService.
+alterarSituacao` (ver `ciclo-vida-imovel.md`), não uma mecânica de exclusão;
+fica para uma tarefa própria, com plan mode dedicado. Endpoint de restauração
+de exclusão lógica também não entrou — nenhuma das três entidades que já
+tinham soft delete tinha isso, e "restaurar com cascata" é problema novo por
+si só.
+
+Registrado em `.agents/rules/regras-negocio-financeiras.md`,
+`.agents/rules/contratos-financeiros.md`, na skill `gerar-crud-dominio` (todo
+domínio novo nasce com `ExclusaoLogica`) e nos testes
+`ImovelExclusaoServiceTest` e `ContratoFinanceiroServiceTest` (casos de
+`excluir`/`cascatearExclusao`).

@@ -13,11 +13,17 @@ preferir um ponto de partida menor.
 
 ## Passo a passo
 
-1. **Pergunte ao usuário, se não estiver claro**: o domínio precisa de soft
-   delete (`ativo BOOLEAN`, como `Imovel`/`Pessoa`/`Despesa`) ou
-   delete físico (como `CategoriaDespesa`)? Precisa de alguma constraint de
-   unicidade (ex: nome único, como `CategoriaDespesa.nome`, ou documento
-   único, como `Pessoa.documento`)?
+1. **Exclusão lógica é o padrão** (ADR-040): todo domínio novo nasce com o
+   `@Embeddable` compartilhado `shared/exclusao/ExclusaoLogica.java`
+   (`ativo`, `motivoExclusao`, `excluidoEm`, `excluidoPor`) em vez de um
+   `Boolean ativo` solto. Delete físico só para catálogo global sem valor
+   histórico (como `CategoriaDespesa`) — **pergunte ao usuário se não estiver
+   claro** que o domínio é desse tipo. Também pergunte: precisa de alguma
+   constraint de unicidade (ex: nome único, como `CategoriaDespesa.nome`, ou
+   documento único, como `Pessoa.documento`)? O domínio novo cascateia a
+   exclusão de algum pai (ex: uma parcela cascateia com o contrato) — nesse
+   caso o filho só ganha `ativo=false` pela cascata, sem endpoint `DELETE`
+   próprio (ver `ParcelaContratoModel`/`OrcamentoCategoriaModel`)?
 
 2. **Migration** — Flyway está pausado (ADR-013): **não** criar arquivo de
    migration agora, o `{Dominio}Model.java` do passo 3 já basta (Hibernate
@@ -28,17 +34,37 @@ preferir um ponto de partida menor.
 3. **Criar o pacote** `backend/src/main/java/com/seegeneroso/gestao_custos_obras/{dominio}/`
    com, nesta ordem:
    - `{Dominio}Model.java` — entity JPA, seguir `ImovelModel.java` como modelo
-     (Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`)
-   - `{Dominio}Repository.java` — `JpaRepository`, incluir
-     `findByAtivoTrue()`/`findByIdAndAtivoTrue()` se tiver soft delete
+     (Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`).
+     Com soft delete: `@Embedded private ExclusaoLogica exclusao = new
+     ExclusaoLogica();` + getter manual que nunca devolve `null` (ver
+     `ImovelModel.getExclusao()`) — obrigatório porque o `@ManyToOne`
+     (`excluidoPor`) dentro do embeddable faz o Hibernate devolver `null` em
+     vez do objeto vazio. Se a entidade já não tinha soft delete antes
+     (tabela existente), sobrescrever a coluna `ativo` com
+     `columnDefinition = "BOOLEAN DEFAULT TRUE"` via `@AttributeOverride`
+     (`ddl-auto=update` não aplica `ADD COLUMN NOT NULL` sem default numa
+     tabela com linhas — ver `ContratoFinanceiroModel` como exemplo)
+   - `{Dominio}Repository.java` — `JpaRepository`. Com soft delete, os
+     métodos de busca (`findByAtivoTrue()`, `findByIdAndAtivoTrue()`, etc.)
+     viram `@Query` JPQL contra `x.exclusao.ativo = true` em vez de
+     query-method derivado, mas **mantendo o mesmo nome de método** — é o
+     que evita qualquer consumidor (inclusive `RelatorioService`) precisar
+     mudar quando a entidade ganha o embeddable (ver `ImovelRepository`)
    - `dto/{Dominio}RequestDTO.java` e `dto/{Dominio}ResponseDTO.java` — records,
      validação Bean Validation nos campos obrigatórios
    - `{Dominio}Mapper.java` — `toEntity`, `updateEntityFromDto`, `toResponseDTO`
+     (com soft delete, `entity.getExclusao().getAtivo()` no `ResponseDTO`)
    - `{Dominio}Service.java` — `@Transactional`, exceptions de
      `shared/exception/` (`RecursoNaoEncontradoException`,
-     `RegraDeNegocioException` para violação de regra de negócio)
+     `RegraDeNegocioException` para violação de regra de negócio). Método de
+     exclusão chama-se `excluir(Long id, String motivo)`, nunca `inativar`
+     nem `deletar` — grava via `entity.getExclusao().excluir(motivo,
+     usuarioAutenticadoService.usuarioAtual())` (injetar
+     `shared/auth/UsuarioAutenticadoService`)
    - `{Dominio}Controller.java` — `/api/{dominio-plural-em-portugues}`,
-     `@Valid`, `ResponseEntity.created()` no POST
+     `@Valid`, `ResponseEntity.created()` no POST. `DELETE /{id}` recebe
+     `@Valid @RequestBody ExclusaoRequestDTO dto` (`shared/exclusao/`) e
+     chama `service.excluir(id, dto.motivo())`
 
 4. **Atualizar a documentação** na mesma tarefa:
    - `docs/MODELO-DADOS.md` — adicionar a tabela no diagrama Mermaid e na
