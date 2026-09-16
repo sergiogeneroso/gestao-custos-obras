@@ -6,11 +6,13 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImpactoExclusaoImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoImovel;
 import jakarta.validation.Valid;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,7 @@ import java.util.List;
 public class ImovelController {
 
     private final ImovelService imovelService;
+    private final ImovelExclusaoService imovelExclusaoService;
 
     @PostMapping
     public ResponseEntity<ImovelResponseDTO> criar(@Valid @RequestBody ImovelRequestDTO dto) {
@@ -65,9 +68,14 @@ public class ImovelController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> inativar(@PathVariable Long id) {
-        imovelService.inativar(id);
+    public ResponseEntity<Void> excluir(@PathVariable Long id, @Valid @RequestBody ExclusaoRequestDTO dto) {
+        imovelExclusaoService.excluir(id, dto.motivo());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/impacto-exclusao")
+    public ResponseEntity<ImpactoExclusaoImovelResponseDTO> impactoExclusao(@PathVariable Long id) {
+        return ResponseEntity.ok(imovelExclusaoService.calcularImpacto(id));
     }
 
     @PatchMapping("/{id}/fase")

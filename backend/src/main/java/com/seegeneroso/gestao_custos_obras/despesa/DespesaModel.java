@@ -6,6 +6,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoLogica;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -67,7 +68,16 @@ public class DespesaModel {
     @Column(columnDefinition = "TEXT")
     private String observacao;
 
-    @Column(nullable = false)
+    @Embedded
     @Builder.Default
-    private Boolean ativo = true;
+    private ExclusaoLogica exclusao = new ExclusaoLogica();
+
+    // Getter manual: mesmo motivo do de ImovelModel — @ManyToOne dentro do embeddable
+    // (excluidoPor) faz o Hibernate devolver null em vez do objeto vazio.
+    public ExclusaoLogica getExclusao() {
+        if (exclusao == null) {
+            exclusao = new ExclusaoLogica();
+        }
+        return exclusao;
+    }
 }

@@ -1,13 +1,19 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
+import com.seegeneroso.gestao_custos_obras.auth.UsuarioModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
+import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
+import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
+import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
+import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +29,7 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -45,9 +52,13 @@ class ContratoFinanceiroServiceTest {
     @Mock
     private ContratoDocumentoRepository contratoDocumentoRepository;
     @Mock
+    private DespesaRepository despesaRepository;
+    @Mock
     private StorageService storageService;
     @Mock
     private ContratoFinanceiroMapper contratoFinanceiroMapper;
+    @Mock
+    private UsuarioAutenticadoService usuarioAutenticadoService;
 
     @InjectMocks
     private ContratoFinanceiroService service;
@@ -117,6 +128,78 @@ class ContratoFinanceiroServiceTest {
         verify(imovelRepository, never()).save(any(ImovelModel.class));
     }
 
+    @Test
+    void excluirRecusaContratoQuitado() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.QUITADO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThrows(RegraDeNegocioException.class, () -> service.excluir(1L, "cadastro errado"));
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    @Test
+    void excluirRecusaContratoComParcelaPaga() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        contrato.getParcelas().get(0).setDataPagamento(LocalDate.of(2026, 9, 15));
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThrows(RegraDeNegocioException.class, () -> service.excluir(1L, "cadastro errado"));
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    @Test
+    void excluirContratoAtivoMarcaParcelasInativasEZeraValorDoLoteQuandoUnico() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato));
+        when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of());
+        when(despesaRepository.findByContratoFinanceiroId(1L)).thenReturn(List.of());
+        when(usuarioAutenticadoService.usuarioAtual()).thenReturn(UsuarioModel.builder().id(9L).build());
+
+        service.excluir(1L, "cadastro errado");
+
+        assertThat(contrato.getExclusao().getAtivo()).isFalse();
+        assertThat(contrato.getExclusao().getMotivoExclusao()).isEqualTo("cadastro errado");
+        assertThat(contrato.getParcelas()).allMatch(p -> Boolean.FALSE.equals(p.getExclusao().getAtivo()));
+        assertThat(contrato.getImovel().getCompra().getValor()).isNull();
+        verify(imovelRepository).save(contrato.getImovel());
+    }
+
+    @Test
+    void excluirDesvinculaDespesaDeCustoAcessorioSemExcluiLa() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        DespesaModel vistoria = DespesaModel.builder().id(50L).contratoFinanceiro(contrato).build();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of());
+        when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of());
+        when(despesaRepository.findByContratoFinanceiroId(1L)).thenReturn(List.of(vistoria));
+        when(usuarioAutenticadoService.usuarioAtual()).thenReturn(UsuarioModel.builder().id(9L).build());
+
+        service.excluir(1L, "cadastro errado");
+
+        assertThat(vistoria.getContratoFinanceiro()).isNull();
+        verify(despesaRepository).saveAll(List.of(vistoria));
+    }
+
+    private ContratoFinanceiroModel contratoParaExcluir(SituacaoContrato situacao) {
+        ImovelModel imovel = ImovelModel.builder()
+                .id(1L)
+                .identificador("LOT-001")
+                .compra(DadosCompra.builder().valor(new BigDecimal("50000")).data(LocalDate.of(2026, 8, 15)).build())
+                .build();
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(1L)
+                .imovel(imovel)
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .situacao(situacao)
+                .valorContratado(new BigDecimal("50000"))
+                .build();
+        contrato.setParcelas(new java.util.ArrayList<>(List.of(
+                ParcelaContratoModel.builder().contrato(contrato).numero(1)
+                        .dataVencimento(LocalDate.of(2026, 9, 15)).valor(new BigDecimal("5000")).build())));
+        return contrato;
+    }
+
     private ParcelaContratoModel capturarParcela(int numero) {
         ArgumentCaptor<ContratoFinanceiroModel> captor = ArgumentCaptor.forClass(ContratoFinanceiroModel.class);
         verify(contratoFinanceiroRepository).save(captor.capture());
@@ -142,7 +225,6 @@ class ContratoFinanceiroServiceTest {
                         .data(LocalDate.of(2026, 8, 15))
                         .parcelada(true)
                         .build())
-                .ativo(true)
                 .build();
     }
 

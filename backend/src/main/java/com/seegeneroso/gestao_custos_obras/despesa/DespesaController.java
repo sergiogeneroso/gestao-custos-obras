@@ -6,6 +6,7 @@ import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import jakarta.validation.Valid;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -69,8 +70,8 @@ public class DespesaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> inativar(@PathVariable Long id) {
-        despesaService.inativar(id);
+    public ResponseEntity<Void> excluir(@PathVariable Long id, @Valid @RequestBody ExclusaoRequestDTO dto) {
+        despesaService.excluir(id, dto.motivo());
         return ResponseEntity.noContent().build();
     }
 

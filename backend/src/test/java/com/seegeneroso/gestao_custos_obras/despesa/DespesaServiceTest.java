@@ -142,8 +142,8 @@ class DespesaServiceTest {
 
     @Test
     void buscaContaAnexosDaPaginaESomaZeroParaDespesaSemAnexo() {
-        DespesaModel comAnexos = DespesaModel.builder().id(10L).ativo(true).build();
-        DespesaModel semAnexo = DespesaModel.builder().id(11L).ativo(true).build();
+        DespesaModel comAnexos = DespesaModel.builder().id(10L).build();
+        DespesaModel semAnexo = DespesaModel.builder().id(11L).build();
         when(despesaRepository.buscar(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(comAnexos, semAnexo)));
         // Um id por anexo: a despesa 10 tem dois, a 11 não aparece porque não tem nenhum.
@@ -158,7 +158,7 @@ class DespesaServiceTest {
     @Test
     void buscarPorIdNaoInformaQuantidadeDeAnexos() {
         when(despesaRepository.findByIdAndAtivoTrue(10L))
-                .thenReturn(Optional.of(DespesaModel.builder().id(10L).ativo(true).build()));
+                .thenReturn(Optional.of(DespesaModel.builder().id(10L).build()));
 
         // Nulo é "não calculado": a tela não pode ler isso como despesa sem comprovante.
         assertThat(despesaService.buscarPorId(10L).quantidadeAnexos()).isNull();
@@ -189,7 +189,6 @@ class DespesaServiceTest {
                 .fase(fase)
                 .situacao(SituacaoImovel.ADQUIRIDO)
                 .compra(DadosCompra.builder().data(LocalDate.of(2026, 1, 10)).build())
-                .ativo(true)
                 .build();
     }
 

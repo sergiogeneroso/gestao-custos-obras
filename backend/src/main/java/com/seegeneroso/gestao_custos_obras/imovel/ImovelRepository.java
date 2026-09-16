@@ -15,9 +15,15 @@ import java.util.Optional;
 @Repository
 public interface ImovelRepository extends JpaRepository<ImovelModel, Long> {
 
+    // Nome mantido igual ao de antes da migração para ExclusaoLogica (ADR-040) — só a
+    // implementação virou @Query em vez de query-method derivado, porque "ativo" agora é
+    // i.exclusao.ativo e não uma propriedade de topo. Nenhum consumidor (RelatorioService
+    // incluso) precisou mudar.
+    @Query("select i from ImovelModel i where i.exclusao.ativo = true")
     List<ImovelModel> findByAtivoTrue();
 
-    Optional<ImovelModel> findByIdAndAtivoTrue(Long id);
+    @Query("select i from ImovelModel i where i.id = :id and i.exclusao.ativo = true")
+    Optional<ImovelModel> findByIdAndAtivoTrue(@Param("id") Long id);
 
     boolean existsByIdentificadorIgnoreCase(String identificador);
 
@@ -25,7 +31,7 @@ public interface ImovelRepository extends JpaRepository<ImovelModel, Long> {
     // explicação em PessoaRepository.buscar: bind nulo em JPQL não tem tipo para o Postgres.
     @Query("""
             select i from ImovelModel i
-            where i.ativo = true
+            where i.exclusao.ativo = true
               and i.fase in :fases
               and i.situacao in :situacoes
               and (lower(i.identificador) like lower(concat('%', :busca, '%'))

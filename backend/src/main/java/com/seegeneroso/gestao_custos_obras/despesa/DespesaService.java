@@ -20,6 +20,7 @@ import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontrado
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
+import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +47,7 @@ public class DespesaService {
     private final DespesaAnexoRepository despesaAnexoRepository;
     private final StorageService storageService;
     private final DespesaMapper despesaMapper;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     @Transactional
     public DespesaResponseDTO criar(DespesaRequestDTO dto) {
@@ -175,10 +177,10 @@ public class DespesaService {
     }
 
     @Transactional
-    public void inativar(Long id) {
+    public void excluir(Long id, String motivo) {
         DespesaModel despesa = despesaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
-        despesa.setAtivo(false);
+        despesa.getExclusao().excluir(motivo, usuarioAutenticadoService.usuarioAtual());
         despesaRepository.save(despesa);
     }
 

@@ -178,7 +178,7 @@ public class ImovelMapper {
                 venda.getComprador() != null ? venda.getComprador().getNome() : null,
                 venda.getValorPretendido(),
                 imovel.getDescricao(),
-                imovel.getAtivo(),
+                imovel.getExclusao().getAtivo(),
                 fotoPrincipalUrl,
                 aviso
         );

@@ -13,17 +13,34 @@ import java.util.Optional;
 @Repository
 public interface DespesaRepository extends JpaRepository<DespesaModel, Long> {
 
+    // Nomes mantidos iguais aos de antes da migração para ExclusaoLogica (ADR-040) — ver o mesmo
+    // comentário em ImovelRepository.
+    @Query("select d from DespesaModel d where d.exclusao.ativo = true")
     List<DespesaModel> findByAtivoTrue();
 
-    Optional<DespesaModel> findByIdAndAtivoTrue(Long id);
+    @Query("select d from DespesaModel d where d.id = :id and d.exclusao.ativo = true")
+    Optional<DespesaModel> findByIdAndAtivoTrue(@Param("id") Long id);
 
-    List<DespesaModel> findByImovelIdAndAtivoTrue(Long imovelId);
+    @Query("select d from DespesaModel d where d.imovel.id = :imovelId and d.exclusao.ativo = true")
+    List<DespesaModel> findByImovelIdAndAtivoTrue(@Param("imovelId") Long imovelId);
 
-    List<DespesaModel> findByCategoriaDespesaIdAndAtivoTrue(Long categoriaDespesaId);
+    @Query("select d from DespesaModel d where d.categoriaDespesa.id = :categoriaDespesaId and d.exclusao.ativo = true")
+    List<DespesaModel> findByCategoriaDespesaIdAndAtivoTrue(@Param("categoriaDespesaId") Long categoriaDespesaId);
 
-    List<DespesaModel> findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(Long imovelId, Long categoriaDespesaId);
+    @Query("""
+            select d from DespesaModel d
+            where d.imovel.id = :imovelId and d.categoriaDespesa.id = :categoriaDespesaId
+              and d.exclusao.ativo = true
+            """)
+    List<DespesaModel> findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(
+            @Param("imovelId") Long imovelId, @Param("categoriaDespesaId") Long categoriaDespesaId);
 
+    @Query("select d from DespesaModel d where d.imovel is null and d.exclusao.ativo = true")
     List<DespesaModel> findByImovelIsNullAndAtivoTrue();
+
+    // Usado pela cascata de exclusão de contrato (ContratoFinanceiroService.cascatearExclusao)
+    // para desvincular despesas de custo acessório do contrato excluído.
+    List<DespesaModel> findByContratoFinanceiroId(Long contratoFinanceiroId);
 
     /**
      * Busca paginada da tela de despesas. O termo varre os mesmos campos que a tela filtrava no
@@ -40,7 +57,7 @@ public interface DespesaRepository extends JpaRepository<DespesaModel, Long> {
             join d.categoriaDespesa c
             join d.pagador pg
             left join d.beneficiario bf
-            where d.ativo = true
+            where d.exclusao.ativo = true
               and (:escopo = 'TODAS'
                 or (:escopo = 'IMOVEL' and d.imovel is not null)
                 or (:escopo = 'GERAL' and d.imovel is null))

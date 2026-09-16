@@ -29,7 +29,7 @@ public class DespesaMapper {
                 despesa.getDataPagamento(),
                 despesa.getDescricao(),
                 despesa.getObservacao(),
-                despesa.getAtivo(),
+                despesa.getExclusao().getAtivo(),
                 quantidadeAnexos
         );
     }

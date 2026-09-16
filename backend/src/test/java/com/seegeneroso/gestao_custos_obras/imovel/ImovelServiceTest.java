@@ -179,7 +179,6 @@ class ImovelServiceTest {
                 .casa(new DadosCasa())
                 .compra(DadosCompra.builder().valor(new BigDecimal("100000")).data(COMPRA).build())
                 .venda(new DadosVenda())
-                .ativo(true)
                 .build();
     }
 

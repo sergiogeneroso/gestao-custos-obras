@@ -6,6 +6,9 @@ import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanc
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoQuitacaoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaPagamentoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.auth.UsuarioModel;
+import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
+import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
@@ -15,6 +18,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.Buscas;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
+import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
@@ -42,8 +46,10 @@ public class ContratoFinanceiroService {
     private final ImovelRepository imovelRepository;
     private final PessoaRepository pessoaRepository;
     private final ContratoDocumentoRepository contratoDocumentoRepository;
+    private final DespesaRepository despesaRepository;
     private final StorageService storageService;
     private final ContratoFinanceiroMapper contratoFinanceiroMapper;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     @Transactional
     public ContratoFinanceiroResponseDTO criar(ContratoFinanceiroRequestDTO dto) {
@@ -207,7 +213,9 @@ public class ContratoFinanceiroService {
     public List<ContratoFinanceiroResponseDTO> listar(Long imovelId) {
         List<ContratoFinanceiroModel> contratos = imovelId != null
                 ? contratoFinanceiroRepository.findByImovelId(imovelId)
-                : contratoFinanceiroRepository.findAll();
+                : contratoFinanceiroRepository.findAll().stream()
+                        .filter(c -> Boolean.TRUE.equals(c.getExclusao().getAtivo()))
+                        .toList();
         return contratos.stream().map(contratoFinanceiroMapper::toResponseDTO).toList();
     }
 
@@ -311,7 +319,62 @@ public class ContratoFinanceiroService {
     }
 
     private ContratoFinanceiroModel buscarContrato(Long id) {
-        return contratoFinanceiroRepository.findById(id)
+        return contratoFinanceiroRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Contrato financeiro não encontrado com id: " + id));
+    }
+
+    // Endpoint avulso de exclusão (correção de cadastro errado, ADR-040). Trava espelhando a de
+    // atualizar(): contrato QUITADO ou com parcela já paga já entrou no resultado apurado de
+    // algum relatório — excluir mudaria isso silenciosamente.
+    @Transactional
+    public void excluir(Long id, String motivo) {
+        ContratoFinanceiroModel contrato = buscarContrato(id);
+
+        if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
+            throw new RegraDeNegocioException("Contrato quitado não pode ser excluído.");
+        }
+        boolean temParcelaPaga = contrato.getParcelas().stream().anyMatch(p -> p.getDataPagamento() != null);
+        if (temParcelaPaga) {
+            throw new RegraDeNegocioException("Contrato com parcela já paga não pode ser excluído.");
+        }
+
+        cascatearExclusao(contrato, motivo, usuarioAutenticadoService.usuarioAtual());
+    }
+
+    /**
+     * Cascata "pura", sem a trava de QUITADO/parcela paga acima — usada pelo endpoint avulso
+     * (depois de validar) e por ImovelExclusaoService, onde a exclusão do imóvel inteiro é
+     * sempre permitida (ADR-040), mesmo com contrato quitado ou com parcela já paga.
+     */
+    @Transactional
+    public void cascatearExclusao(ContratoFinanceiroModel contrato, String motivo, UsuarioModel usuario) {
+        contrato.getParcelas().forEach(p -> p.getExclusao().excluir(motivo, usuario));
+
+        for (ContratoDocumentoModel documento : contratoDocumentoRepository.findByContratoId(contrato.getId())) {
+            contratoDocumentoRepository.delete(documento);
+            storageService.deletar(ArquivoUrls.nomeArquivoDe(documento.getUrl()), ArquivoUrls.subpastaDe(documento.getUrl()));
+        }
+
+        // Custo acessório do financiamento é gasto real: desvincula, nunca exclui a despesa.
+        List<DespesaModel> despesasVinculadas = despesaRepository.findByContratoFinanceiroId(contrato.getId());
+        despesasVinculadas.forEach(d -> d.setContratoFinanceiro(null));
+        despesaRepository.saveAll(despesasVinculadas);
+
+        contrato.getExclusao().excluir(motivo, usuario);
+        contratoFinanceiroRepository.save(contrato);
+
+        // PARCELAMENTO_COMPRA grava imovel.compra.valor na criação (aplicarValorDoLote). Se não
+        // sobrar nenhum outro PARCELAMENTO_COMPRA ativo no imóvel, limpar — evita conservar um
+        // preço que veio do contrato que acabou de ser excluído.
+        if (contrato.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA) {
+            boolean restaOutroParcelamentoCompra = contratoFinanceiroRepository.findByImovelId(contrato.getImovel().getId())
+                    .stream()
+                    .anyMatch(c -> !c.getId().equals(contrato.getId()) && c.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA);
+            if (!restaOutroParcelamentoCompra) {
+                ImovelModel imovel = contrato.getImovel();
+                imovel.getCompra().setValor(null);
+                imovelRepository.save(imovel);
+            }
+        }
     }
 }

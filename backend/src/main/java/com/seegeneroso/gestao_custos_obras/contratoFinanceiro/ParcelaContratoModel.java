@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoLogica;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,4 +39,19 @@ public class ParcelaContratoModel {
 
     @Column(name = "valor_pago", precision = 14, scale = 2)
     private BigDecimal valorPago;
+
+    // columnDefinition com DEFAULT TRUE: ver o mesmo comentário em ContratoFinanceiroModel.
+    @Embedded
+    @AttributeOverride(name = "ativo", column = @Column(name = "ativo", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE"))
+    @Builder.Default
+    private ExclusaoLogica exclusao = new ExclusaoLogica();
+
+    // Getter manual: mesmo motivo do de ImovelModel — @ManyToOne dentro do embeddable
+    // (excluidoPor) faz o Hibernate devolver null em vez do objeto vazio.
+    public ExclusaoLogica getExclusao() {
+        if (exclusao == null) {
+            exclusao = new ExclusaoLogica();
+        }
+        return exclusao;
+    }
 }

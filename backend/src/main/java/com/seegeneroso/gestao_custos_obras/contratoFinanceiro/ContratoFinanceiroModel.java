@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoLogica;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -52,4 +53,22 @@ public class ContratoFinanceiroModel {
     @Builder.Default
     @OneToMany(mappedBy = "contrato", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ParcelaContratoModel> parcelas = new ArrayList<>();
+
+    // columnDefinition com DEFAULT TRUE: ddl-auto=update não consegue adicionar uma coluna
+    // NOT NULL a uma tabela que já tem linhas sem um default (mesmo padrão de
+    // PessoaModel.fornecedor/DadosCompra.parcelada) — só necessário aqui porque esta entidade
+    // ainda não tinha soft delete; ImovelModel/PessoaModel/DespesaModel já têm a coluna.
+    @Embedded
+    @AttributeOverride(name = "ativo", column = @Column(name = "ativo", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE"))
+    @Builder.Default
+    private ExclusaoLogica exclusao = new ExclusaoLogica();
+
+    // Getter manual: mesmo motivo do de ImovelModel — @ManyToOne dentro do embeddable
+    // (excluidoPor) faz o Hibernate devolver null em vez do objeto vazio.
+    public ExclusaoLogica getExclusao() {
+        if (exclusao == null) {
+            exclusao = new ExclusaoLogica();
+        }
+        return exclusao;
+    }
 }

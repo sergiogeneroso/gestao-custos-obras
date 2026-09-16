@@ -8,6 +8,7 @@ import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaPagamen
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
 import jakarta.validation.Valid;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +60,12 @@ public class ContratoFinanceiroController {
     public ResponseEntity<ContratoFinanceiroResponseDTO> atualizar(
             @PathVariable Long id, @Valid @RequestBody ContratoFinanceiroRequestDTO dto) {
         return ResponseEntity.ok(contratoFinanceiroService.atualizar(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id, @Valid @RequestBody ExclusaoRequestDTO dto) {
+        contratoFinanceiroService.excluir(id, dto.motivo());
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/quitar")

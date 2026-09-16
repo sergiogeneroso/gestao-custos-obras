@@ -495,7 +495,6 @@ class RelatorioServiceTest {
                 .casa(new DadosCasa())
                 .compra(DadosCompra.builder().valor(valorCompra).data(LocalDate.now().minusDays(100)).build())
                 .venda(new DadosVenda())
-                .ativo(true)
                 .build();
     }
 
@@ -505,7 +504,6 @@ class RelatorioServiceTest {
                 .faseImovel(fase)
                 .valor(valor)
                 .dataPagamento(LocalDate.now())
-                .ativo(true)
                 .build();
     }
 

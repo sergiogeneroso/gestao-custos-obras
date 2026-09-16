@@ -13,9 +13,13 @@ import java.util.Optional;
 @Repository
 public interface PessoaRepository extends JpaRepository<PessoaModel, Long> {
 
+    // Nome mantido igual ao de antes da migração para ExclusaoLogica (ADR-040) — ver o mesmo
+    // comentário em ImovelRepository.
+    @Query("select p from PessoaModel p where p.exclusao.ativo = true")
     List<PessoaModel> findByAtivoTrue();
 
-    Optional<PessoaModel> findByIdAndAtivoTrue(Long id);
+    @Query("select p from PessoaModel p where p.id = :id and p.exclusao.ativo = true")
+    Optional<PessoaModel> findByIdAndAtivoTrue(@Param("id") Long id);
 
     boolean existsByDocumento(String documento);
 
@@ -27,7 +31,7 @@ public interface PessoaRepository extends JpaRepository<PessoaModel, Long> {
      */
     @Query("""
             select p from PessoaModel p
-            where p.ativo = true
+            where p.exclusao.ativo = true
               and p.fornecedor in :fornecedores
               and (lower(p.nome) like lower(concat('%', :busca, '%'))
                 or lower(coalesce(p.documento, '')) like lower(concat('%', :busca, '%'))

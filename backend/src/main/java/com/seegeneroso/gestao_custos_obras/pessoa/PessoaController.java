@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.dto.PessoaResponseDTO;
 import jakarta.validation.Valid;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,8 +57,8 @@ public class PessoaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> inativar(@PathVariable Long id) {
-        pessoaService.inativar(id);
+    public ResponseEntity<Void> excluir(@PathVariable Long id, @Valid @RequestBody ExclusaoRequestDTO dto) {
+        pessoaService.excluir(id, dto.motivo());
         return ResponseEntity.noContent().build();
     }
 }

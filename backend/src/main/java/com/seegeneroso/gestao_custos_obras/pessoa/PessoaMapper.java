@@ -45,7 +45,7 @@ public class PessoaMapper {
                 entity.getFornecedor(),
                 entity.getAreaAtuacao(),
                 entity.getObservacoes(),
-                entity.getAtivo()
+                entity.getExclusao().getAtivo()
         );
     }
 }

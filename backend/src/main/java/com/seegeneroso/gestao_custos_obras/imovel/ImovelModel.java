@@ -5,6 +5,7 @@ import lombok.*;
 
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoLogica;
 
 @Entity
 @Table(name = "imovel")
@@ -81,9 +82,9 @@ public class ImovelModel {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
-    @Column(nullable = false)
+    @Embedded
     @Builder.Default
-    private Boolean ativo = true;
+    private ExclusaoLogica exclusao = new ExclusaoLogica();
 
     // Getters manuais (Lombok não gera os que já existem): o Hibernate devolve null para um
     // @Embedded com todas as colunas nulas no banco (em vez do objeto com campos null que o
@@ -126,5 +127,12 @@ public class ImovelModel {
             venda = new DadosVenda();
         }
         return venda;
+    }
+
+    public ExclusaoLogica getExclusao() {
+        if (exclusao == null) {
+            exclusao = new ExclusaoLogica();
+        }
+        return exclusao;
     }
 }

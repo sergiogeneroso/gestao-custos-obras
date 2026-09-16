@@ -1,6 +1,7 @@
 package com.seegeneroso.gestao_custos_obras.pessoa;
 
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoPessoa;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoLogica;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,7 +43,16 @@ public class PessoaModel {
     @Column(columnDefinition = "TEXT")
     private String observacoes;
 
-    @Column(nullable = false)
+    @Embedded
     @Builder.Default
-    private Boolean ativo = true;
+    private ExclusaoLogica exclusao = new ExclusaoLogica();
+
+    // Getter manual: Hibernate devolve null para um @Embedded com todas as colunas nulas quando
+    // ele tem uma associação @ManyToOne dentro (excluidoPor) — ver o mesmo padrão em ImovelModel.
+    public ExclusaoLogica getExclusao() {
+        if (exclusao == null) {
+            exclusao = new ExclusaoLogica();
+        }
+        return exclusao;
+    }
 }

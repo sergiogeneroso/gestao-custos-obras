@@ -232,14 +232,6 @@ public class ImovelService {
     }
 
     @Transactional
-    public void inativar(Long id) {
-        ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
-        imovel.setAtivo(false);
-        imovelRepository.save(imovel);
-    }
-
-    @Transactional
     public ImovelFotoResponseDTO adicionarFoto(Long imovelId, org.springframework.web.multipart.MultipartFile arquivo, String legenda) {
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(imovelId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + imovelId));

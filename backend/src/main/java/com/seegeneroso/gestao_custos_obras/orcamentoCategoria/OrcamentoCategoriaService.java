@@ -10,6 +10,7 @@ import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCateg
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCategoriaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class OrcamentoCategoriaService {
     private final CategoriaDespesaRepository categoriaDespesaRepository;
     private final DespesaRepository despesaRepository;
     private final OrcamentoCategoriaMapper orcamentoCategoriaMapper;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     @Transactional
     public OrcamentoCategoriaResponseDTO criar(OrcamentoCategoriaRequestDTO dto) {
@@ -56,7 +58,7 @@ public class OrcamentoCategoriaService {
 
     @Transactional
     public OrcamentoCategoriaResponseDTO atualizar(Long id, OrcamentoCategoriaRequestDTO dto) {
-        OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findById(id)
+        OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Orçamento de categoria não encontrado com id: " + id));
 
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(dto.imovelId())
@@ -88,7 +90,9 @@ public class OrcamentoCategoriaService {
     public List<OrcamentoCategoriaResponseDTO> listar(Long imovelId) {
         List<OrcamentoCategoriaModel> lista = imovelId != null
                 ? orcamentoCategoriaRepository.findByImovelId(imovelId)
-                : orcamentoCategoriaRepository.findAll();
+                : orcamentoCategoriaRepository.findAll().stream()
+                        .filter(o -> Boolean.TRUE.equals(o.getExclusao().getAtivo()))
+                        .toList();
 
         return lista.stream()
                 .map(orcamento -> {
@@ -103,7 +107,7 @@ public class OrcamentoCategoriaService {
 
     @Transactional(readOnly = true)
     public OrcamentoCategoriaResponseDTO buscarPorId(Long id) {
-        OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findById(id)
+        OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Orçamento de categoria não encontrado com id: " + id));
 
         BigDecimal totalGasto = calcularTotalGasto(
@@ -115,11 +119,11 @@ public class OrcamentoCategoriaService {
     }
 
     @Transactional
-    public void deletar(Long id) {
-        if (!orcamentoCategoriaRepository.existsById(id)) {
-            throw new RecursoNaoEncontradoException("Orçamento de categoria não encontrado com id: " + id);
-        }
-        orcamentoCategoriaRepository.deleteById(id);
+    public void excluir(Long id, String motivo) {
+        OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findByIdAndAtivoTrue(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Orçamento de categoria não encontrado com id: " + id));
+        orcamento.getExclusao().excluir(motivo, usuarioAutenticadoService.usuarioAtual());
+        orcamentoCategoriaRepository.save(orcamento);
     }
 
     private BigDecimal calcularTotalGasto(Long imovelId, Long categoriaDespesaId) {

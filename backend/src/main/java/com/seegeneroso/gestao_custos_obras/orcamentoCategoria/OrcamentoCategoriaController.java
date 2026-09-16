@@ -2,6 +2,7 @@ package com.seegeneroso.gestao_custos_obras.orcamentoCategoria;
 
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCategoriaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCategoriaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -47,8 +48,8 @@ public class OrcamentoCategoriaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        orcamentoCategoriaService.deletar(id);
+    public ResponseEntity<Void> excluir(@PathVariable Long id, @Valid @RequestBody ExclusaoRequestDTO dto) {
+        orcamentoCategoriaService.excluir(id, dto.motivo());
         return ResponseEntity.noContent().build();
     }
 }
