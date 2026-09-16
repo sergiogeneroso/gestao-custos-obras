@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { CategoriaDespesaFormDialog } from './categoria-despesa-form-dialog/categoria-despesa-form-dialog';
 import { CategoriaDespesaResponseDTO } from './categoria-despesa.model';
@@ -47,10 +48,20 @@ export class CategoriasDespesa {
   }
 
   protected excluir(categoria: CategoriaDespesaResponseDTO): void {
-    if (!confirm(`Excluir a categoria "${categoria.nome}"?`)) {
-      return;
-    }
-    this.service.deletar(categoria.id).subscribe(() => this.lista.carregar());
+    this.dialog
+      .open(ConfirmDialog, {
+        data: { titulo: `Excluir a categoria "${categoria.nome}"?` },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) {
+          return;
+        }
+        this.service.deletar(categoria.id).subscribe(() => this.lista.carregar());
+      });
   }
 
   private abrirFormulario(categoria: CategoriaDespesaResponseDTO | null): void {

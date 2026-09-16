@@ -9,11 +9,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { ContratosService } from '../../contratos/contratos.service';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
@@ -67,6 +68,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   private readonly pessoasService = inject(PessoasService);
   private readonly contratosService = inject(ContratosService);
   private readonly dialogRef = inject(MatDialogRef<ImovelFormDialog>);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   protected readonly data = inject<ImovelFormDialogData>(MAT_DIALOG_DATA);
 
@@ -396,19 +398,33 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   }
 
   protected removerFoto(foto: ImovelFotoResponseDTO): void {
-    if (!this.imovel || !confirm(`Remover a foto "${foto.legenda ?? foto.id}"?`)) {
+    if (!this.imovel) {
       return;
     }
+    const imovel = this.imovel;
 
-    this.service.deletarFoto(this.imovel.id, foto.id).subscribe(() => {
-      this.fotos.update((atuais) => atuais.filter((f) => f.id !== foto.id));
-      this.urlsFotos.update(({ [foto.id]: urlRemovida, ...resto }) => {
-        if (urlRemovida) {
-          URL.revokeObjectURL(urlRemovida);
+    this.dialog
+      .open(ConfirmDialog, {
+        data: { titulo: `Remover a foto "${foto.legenda ?? foto.id}"?` },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) {
+          return;
         }
-        return resto;
+        this.service.deletarFoto(imovel.id, foto.id).subscribe(() => {
+          this.fotos.update((atuais) => atuais.filter((f) => f.id !== foto.id));
+          this.urlsFotos.update(({ [foto.id]: urlRemovida, ...resto }) => {
+            if (urlRemovida) {
+              URL.revokeObjectURL(urlRemovida);
+            }
+            return resto;
+          });
+        });
       });
-    });
   }
 
   private carregarUrlFoto(foto: ImovelFotoResponseDTO): void {

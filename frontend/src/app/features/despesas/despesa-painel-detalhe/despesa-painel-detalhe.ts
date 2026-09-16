@@ -12,10 +12,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FASE_IMOVEL_LABEL } from '../../imoveis/imovel.model';
 import {
@@ -50,6 +52,7 @@ export class DespesaPainelDetalhe implements OnDestroy {
   private readonly service = inject(DespesasService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   readonly despesa = input.required<DespesaResponseDTO>();
   /** A aba do imóvel já está escopada a um imóvel, e repetir o identificador ali seria ruído; a
@@ -121,9 +124,23 @@ export class DespesaPainelDetalhe implements OnDestroy {
   }
 
   protected removerAnexo(anexo: DespesaAnexoResponseDTO): void {
-    if (!confirm(`Remover este anexo (${this.tipoAnexoLabel[anexo.tipoAnexo]})?`)) {
-      return;
-    }
+    this.dialog
+      .open(ConfirmDialog, {
+        data: { titulo: `Remover este anexo (${this.tipoAnexoLabel[anexo.tipoAnexo]})?` },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) {
+          return;
+        }
+        this.confirmarRemocaoAnexo(anexo);
+      });
+  }
+
+  private confirmarRemocaoAnexo(anexo: DespesaAnexoResponseDTO): void {
     const despesaId = this.despesa().id;
     const quantidadeAntes = this.anexos().length;
 

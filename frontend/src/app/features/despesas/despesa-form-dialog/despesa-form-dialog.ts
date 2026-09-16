@@ -6,11 +6,12 @@ import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
@@ -64,6 +65,7 @@ export class DespesaFormDialog implements OnInit {
   private readonly pessoasService = inject(PessoasService);
   private readonly contratosService = inject(ContratosService);
   private readonly dialogRef = inject(MatDialogRef<DespesaFormDialog>);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   protected readonly data = inject<DespesaFormDialogData>(MAT_DIALOG_DATA);
 
@@ -228,12 +230,27 @@ export class DespesaFormDialog implements OnInit {
   }
 
   protected removerAnexo(anexo: DespesaAnexoResponseDTO): void {
-    if (!this.despesa || !confirm(`Remover este anexo (${this.tipoAnexoLabel[anexo.tipoAnexo]})?`)) {
+    if (!this.despesa) {
       return;
     }
-    this.service.deletarAnexo(this.despesa.id, anexo.id).subscribe(() => {
-      this.anexos.update((atuais) => atuais.filter((a) => a.id !== anexo.id));
-    });
+    const despesa = this.despesa;
+
+    this.dialog
+      .open(ConfirmDialog, {
+        data: { titulo: `Remover este anexo (${this.tipoAnexoLabel[anexo.tipoAnexo]})?` },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) {
+          return;
+        }
+        this.service.deletarAnexo(despesa.id, anexo.id).subscribe(() => {
+          this.anexos.update((atuais) => atuais.filter((a) => a.id !== anexo.id));
+        });
+      });
   }
 
   /**

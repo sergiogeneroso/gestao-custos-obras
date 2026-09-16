@@ -10,6 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { ConfirmExclusaoDialog } from '../../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import {
   ContratoDocumentoResponseDTO,
@@ -187,12 +188,22 @@ export class ContratoDetalheDialog implements OnInit {
   }
 
   protected removerDocumento(documento: ContratoDocumentoResponseDTO): void {
-    if (!confirm(`Remover o documento "${documento.nomeArquivo ?? documento.id}"?`)) {
-      return;
-    }
-    this.service.deletarDocumento(this.contrato().id, documento.id).subscribe(() => {
-      this.documentos.update((atuais) => atuais.filter((d) => d.id !== documento.id));
-    });
+    this.dialog
+      .open(ConfirmDialog, {
+        data: { titulo: `Remover o documento "${documento.nomeArquivo ?? documento.id}"?` },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) {
+          return;
+        }
+        this.service.deletarDocumento(this.contrato().id, documento.id).subscribe(() => {
+          this.documentos.update((atuais) => atuais.filter((d) => d.id !== documento.id));
+        });
+      });
   }
 
   protected editar(): void {

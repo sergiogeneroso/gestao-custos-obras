@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
+import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { exibirCno } from '../../../shared/mascara/cno';
@@ -211,12 +212,22 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
   }
 
   protected removerDocumento(documento: ImovelDocumentoResponseDTO): void {
-    if (!confirm(`Remover o documento "${documento.nomeArquivo ?? documento.id}"?`)) {
-      return;
-    }
-    this.service.deletarDocumento(this.imovel().id, documento.id).subscribe(() => {
-      this.documentos.update((atuais) => atuais.filter((d) => d.id !== documento.id));
-    });
+    this.dialog
+      .open(ConfirmDialog, {
+        data: { titulo: `Remover o documento "${documento.nomeArquivo ?? documento.id}"?` },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) {
+          return;
+        }
+        this.service.deletarDocumento(this.imovel().id, documento.id).subscribe(() => {
+          this.documentos.update((atuais) => atuais.filter((d) => d.id !== documento.id));
+        });
+      });
   }
 
   protected vencido(documento: ImovelDocumentoResponseDTO): boolean {

@@ -1,0 +1,19 @@
+<div class="confirmar">
+  <div class="confirmar__topo">
+    <h2 mat-dialog-title>{{ data.titulo }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  @if (data.mensagem) {
+    <mat-dialog-content>
+      <p class="confirmar__mensagem">{{ data.mensagem }}</p>
+    </mat-dialog-content>
+  }
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="fechar()">Cancelar</button>
+    <button mat-stroked-button type="button" color="warn" (click)="confirmar()">Confirmar</button>
+  </mat-dialog-actions>
+</div>
