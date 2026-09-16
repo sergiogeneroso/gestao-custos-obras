@@ -17,7 +17,7 @@ Consultar e atualizar ao final de cada sessão de trabalho.
 - `shared/config/JwtService` + `JwtAuthenticationFilter` (stateless, jjwt),
   `BCryptPasswordEncoder`, `JwtAuthenticationEntryPoint` (401 adequado)
 - HTTP Basic removido; substituído por JWT (RNF01)
-- Seed admin inicial via migration V6 (BCrypt) — admin@gestao.local / admin123
+- Seed admin inicial via migration V6 (BCrypt) — sergiofgeneroso@hotmail.com / admin123
 - Flyway restaurado como única fonte de schema (`FlywayConfig` `@Bean`
   manual): o Spring Boot 4.1 removeu a `FlywayAutoConfiguration`, então
   `ddl-auto=validate` e `migrate()` roda por bean antes do EMF (ADR-012).
