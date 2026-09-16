@@ -5,11 +5,12 @@ import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ConfirmExclusaoDialog } from '../../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import {
   ContratoDocumentoResponseDTO,
   ContratoFinanceiroResponseDTO,
@@ -51,6 +52,7 @@ export class ContratoDetalheDialog implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ContratosService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly dialogRef = inject(MatDialogRef<ContratoDetalheDialog>);
   protected readonly data = inject<ContratoDetalheDialogData>(MAT_DIALOG_DATA);
 
@@ -197,4 +199,35 @@ export class ContratoDetalheDialog implements OnInit {
     this.dialogRef.close('editar');
   }
 
+  // Trava de QUITADO/parcela paga fica no backend (ADR-040) — aqui só evita o clique óbvio,
+  // já que o botão só aparece com situacao === 'ATIVO'.
+  protected excluir(): void {
+    this.dialog
+      .open(ConfirmExclusaoDialog, {
+        data: { titulo: 'Excluir este contrato?' },
+        autoFocus: false,
+        width: '480px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((motivo?: string) => {
+        if (!motivo) {
+          return;
+        }
+        this.salvando.set(true);
+        this.service.excluir(this.contrato().id, motivo).subscribe({
+          next: () => {
+            this.salvando.set(false);
+            this.snackBar.open('Contrato excluído com sucesso.', 'Fechar', { duration: 4000 });
+            this.dialogRef.close('excluido');
+          },
+          error: (erro: HttpErrorResponse) => {
+            this.salvando.set(false);
+            this.snackBar.open(mensagemErro(erro, 'Não foi possível excluir o contrato.'), 'Fechar', {
+              duration: 6000,
+            });
+          },
+        });
+      });
+  }
 }

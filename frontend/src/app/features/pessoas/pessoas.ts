@@ -4,6 +4,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import { PessoaFormDialog } from './pessoa-form-dialog/pessoa-form-dialog';
 import { PessoaResponseDTO, TIPO_PESSOA_LABEL } from './pessoa.model';
 import { formatarDocumento } from '../../shared/mascara/documento';
@@ -59,11 +60,21 @@ export class Pessoas {
     this.abrirFormulario(pessoa);
   }
 
-  protected inativar(pessoa: PessoaResponseDTO): void {
-    if (!confirm(`Inativar a pessoa "${pessoa.nome}"?`)) {
-      return;
-    }
-    this.service.inativar(pessoa.id).subscribe(() => this.lista.carregar());
+  protected excluir(pessoa: PessoaResponseDTO): void {
+    this.dialog
+      .open(ConfirmExclusaoDialog, {
+        data: { titulo: `Excluir a pessoa "${pessoa.nome}"?` },
+        autoFocus: false,
+        width: '480px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((motivo?: string) => {
+        if (!motivo) {
+          return;
+        }
+        this.service.excluir(pessoa.id, motivo).subscribe(() => this.lista.carregar());
+      });
   }
 
   private abrirFormulario(pessoa: PessoaResponseDTO | null): void {

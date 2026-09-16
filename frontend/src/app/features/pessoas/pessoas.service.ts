@@ -32,7 +32,7 @@ export class PessoasService {
     return this.http.put<PessoaResponseDTO>(`${this.baseUrl}/${id}`, dto);
   }
 
-  inativar(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  excluir(id: number, motivo: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { body: { motivo } });
   }
 }

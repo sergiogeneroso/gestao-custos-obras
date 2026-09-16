@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import { ImovelDetalheDialog } from './imovel-detalhe-dialog/imovel-detalhe-dialog';
 import { ContratoFormDialog } from '../contratos/contrato-form-dialog/contrato-form-dialog';
 import { ImovelFormDialog, ImovelFormResultado } from './imovel-form-dialog/imovel-form-dialog';
@@ -88,11 +89,34 @@ export class Imoveis {
       .subscribe(() => this.lista.carregar());
   }
 
-  protected inativar(imovel: ImovelResponseDTO): void {
-    if (!confirm(`Inativar o imóvel "${imovel.identificador}"?`)) {
-      return;
-    }
-    this.service.inativar(imovel.id).subscribe(() => this.lista.carregar());
+  protected excluir(imovel: ImovelResponseDTO): void {
+    this.service.impactoExclusao(imovel.id).subscribe((impacto) => {
+      const partes = [
+        impacto.despesas > 0 ? `${impacto.despesas} despesa(s)` : null,
+        impacto.contratosFinanceiros > 0 ? `${impacto.contratosFinanceiros} contrato(s) financeiro(s)` : null,
+        impacto.fotos > 0 ? `${impacto.fotos} foto(s)` : null,
+        impacto.documentos > 0 ? `${impacto.documentos} documento(s)` : null,
+        impacto.orcamentosCategoria > 0 ? `${impacto.orcamentosCategoria} orçamento(s) por categoria` : null,
+      ].filter((parte): parte is string => parte !== null);
+      const mensagem = partes.length
+        ? `Isso também vai excluir: ${partes.join(', ')}.`
+        : 'Nenhum registro vinculado será afetado.';
+
+      this.dialog
+        .open(ConfirmExclusaoDialog, {
+          data: { titulo: `Excluir o imóvel "${imovel.identificador}"?`, mensagem },
+          autoFocus: false,
+          width: '480px',
+          maxWidth: '95vw',
+        })
+        .afterClosed()
+        .subscribe((motivo?: string) => {
+          if (!motivo) {
+            return;
+          }
+          this.service.excluir(imovel.id, motivo).subscribe(() => this.lista.carregar());
+        });
+    });
   }
 
   private abrirFormulario(imovel: ImovelResponseDTO | null): void {

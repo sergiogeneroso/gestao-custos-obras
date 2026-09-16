@@ -5,6 +5,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
+import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { DespesaDetalheDialog } from './despesa-detalhe-dialog/despesa-detalhe-dialog';
 import { DespesaFormDialog } from './despesa-form-dialog/despesa-form-dialog';
@@ -79,11 +80,21 @@ export class Despesas {
       .subscribe(() => this.lista.carregar());
   }
 
-  protected inativar(despesa: DespesaResponseDTO): void {
-    if (!confirm(`Inativar esta despesa de ${despesa.categoriaDespesaNome}?`)) {
-      return;
-    }
-    this.service.inativar(despesa.id).subscribe(() => this.lista.carregar());
+  protected excluir(despesa: DespesaResponseDTO): void {
+    this.dialog
+      .open(ConfirmExclusaoDialog, {
+        data: { titulo: `Excluir esta despesa de ${despesa.categoriaDespesaNome}?` },
+        autoFocus: false,
+        width: '480px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((motivo?: string) => {
+        if (!motivo) {
+          return;
+        }
+        this.service.excluir(despesa.id, motivo).subscribe(() => this.lista.carregar());
+      });
   }
 
   private abrirFormulario(despesa: DespesaResponseDTO | null): void {

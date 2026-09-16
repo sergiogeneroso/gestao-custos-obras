@@ -11,6 +11,7 @@ import {
   ImovelRequestDTO,
   ImovelResponseDTO,
   ImovelSituacaoRequestDTO,
+  ImpactoExclusaoImovelResponseDTO,
   FaseImovel,
   SituacaoImovel,
 } from './imovel.model';
@@ -49,8 +50,12 @@ export class ImoveisService {
     return this.http.put<ImovelResponseDTO>(`${this.baseUrl}/${id}`, dto);
   }
 
-  inativar(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  excluir(id: number, motivo: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { body: { motivo } });
+  }
+
+  impactoExclusao(id: number): Observable<ImpactoExclusaoImovelResponseDTO> {
+    return this.http.get<ImpactoExclusaoImovelResponseDTO>(`${this.baseUrl}/${id}/impacto-exclusao`);
   }
 
   avancarFase(id: number, dto: ImovelFaseRequestDTO): Observable<ImovelResponseDTO> {

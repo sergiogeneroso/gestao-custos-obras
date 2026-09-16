@@ -1,0 +1,22 @@
+.confirmar-exclusao {
+  width: 100%;
+}
+
+.confirmar-exclusao__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 0 24px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.confirmar-exclusao__mensagem {
+  margin: 0 0 16px;
+}
+
+.confirmar-exclusao__campo {
+  width: 100%;
+}

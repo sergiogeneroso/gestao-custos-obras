@@ -41,8 +41,8 @@ export class DespesasService {
     return this.http.put<DespesaResponseDTO>(`${this.baseUrl}/${id}`, dto);
   }
 
-  inativar(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  excluir(id: number, motivo: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { body: { motivo } });
   }
 
   listarAnexos(despesaId: number): Observable<DespesaAnexoResponseDTO[]> {

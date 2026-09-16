@@ -44,7 +44,7 @@ export class ListagemPaginada<T> {
       });
   }
 
-  /** Recarrega a página atual — depois de salvar, editar ou inativar um registro. */
+  /** Recarrega a página atual — depois de salvar, editar ou excluir um registro. */
   carregar(): void {
     this.carregando.set(true);
     this.pedidos.next();

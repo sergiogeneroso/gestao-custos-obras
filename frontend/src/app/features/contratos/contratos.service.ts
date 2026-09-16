@@ -42,6 +42,10 @@ export class ContratosService {
     return this.http.put<ContratoFinanceiroResponseDTO>(`${this.baseUrl}/${id}`, dto);
   }
 
+  excluir(id: number, motivo: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { body: { motivo } });
+  }
+
   quitar(id: number, dto: ContratoQuitacaoRequestDTO): Observable<ContratoFinanceiroResponseDTO> {
     return this.http.patch<ContratoFinanceiroResponseDTO>(`${this.baseUrl}/${id}/quitar`, dto);
   }

@@ -105,6 +105,15 @@ export interface ImovelResponseDTO {
   aviso: string | null;
 }
 
+// Prévia mostrada antes de confirmar a exclusão em cascata do imóvel (ADR-040).
+export interface ImpactoExclusaoImovelResponseDTO {
+  despesas: number;
+  contratosFinanceiros: number;
+  fotos: number;
+  documentos: number;
+  orcamentosCategoria: number;
+}
+
 export interface ImovelFaseRequestDTO {
   novaFase: FaseImovel;
   data: string;

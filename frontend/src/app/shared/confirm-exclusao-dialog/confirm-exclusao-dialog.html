@@ -1,0 +1,26 @@
+<div class="confirmar-exclusao">
+  <div class="confirmar-exclusao__topo">
+    <h2 mat-dialog-title>{{ data.titulo }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="confirmar()">
+    <mat-dialog-content>
+      @if (data.mensagem) {
+        <p class="confirmar-exclusao__mensagem">{{ data.mensagem }}</p>
+      }
+
+      <mat-form-field appearance="outline" class="confirmar-exclusao__campo">
+        <mat-label>Motivo da exclusão</mat-label>
+        <textarea matInput formControlName="motivo" rows="2"></textarea>
+      </mat-form-field>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="button" (click)="fechar()">Cancelar</button>
+      <button mat-stroked-button type="submit" color="warn" [disabled]="form.invalid">Excluir</button>
+    </mat-dialog-actions>
+  </form>
+</div>

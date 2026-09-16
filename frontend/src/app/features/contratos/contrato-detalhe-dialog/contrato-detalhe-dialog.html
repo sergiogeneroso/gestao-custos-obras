@@ -172,6 +172,10 @@
 
   <mat-dialog-actions align="end">
     @if (contrato().situacao === 'ATIVO') {
+      <button mat-stroked-button type="button" color="warn" (click)="excluir()">
+        <i class="ph ph-trash"></i>
+        Excluir contrato
+      </button>
       <button mat-stroked-button type="button" color="primary" (click)="editar()">
         <i class="ph ph-pencil-simple"></i>
         Editar contrato
