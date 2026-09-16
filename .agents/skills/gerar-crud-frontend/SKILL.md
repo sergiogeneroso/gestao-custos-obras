@@ -19,9 +19,7 @@ domínio novo precisar de algo fora do CRUD simples.
 1. **Pergunte ao usuário, se não estiver claro**: o domínio tem soft delete
    (ação "Inativar", como `Imovel`/`Pessoa`/`Despesa`) ou delete
    físico (como `CategoriaDespesa`)? Algum campo é enum (precisa de
-   `Record<Enum, string>` de labels, como `SITUACAO_IMOVEL_LABEL`)? Algum
-   campo é monetário (precisa
-   do padrão `matTextPrefix`/formatarMoeda abaixo)? Confirme os campos do
+   `Record<Enum, string>` de labels, como `SITUACAO_IMOVEL_LABEL`)? Confirme os campos do
    `{Dominio}ResponseDTO`/`{Dominio}RequestDTO` do backend antes de criar o
    `.model.ts` — não invente campo que não existe na API.
 
@@ -44,11 +42,13 @@ domínio novo precisar de algo fora do CRUD simples.
      obrigatórios, `salvar()` chamando `criar()` ou `atualizar()` conforme o
      dado recebido via `MAT_DIALOG_DATA` seja `null` ou não
 
-3. **Aplicar as 3 convenções de formulário confirmadas para qualquer
+3. **Aplicar as convenções de formulário confirmadas para qualquer
    domínio** (ver `imovel-form-dialog.ts` como referência de código):
-   - Campo numérico: `<input matInput type="number" step="0.01" min="0">`
-     com `matTextPrefix`/`matTextSuffix` nativo pra moeda/unidade — nunca
-     lib de máscara
+   - Cada campo do DTO recebe a máscara da tabela "Campo de formulário nasce
+     com máscara" em `.agents/rules/convencoes-frontend.md` — dinheiro, data,
+     telefone, CEP, CNO, CPF/CNPJ e UF. Passe campo a campo pela tabela antes
+     de dar o formulário por pronto; área e contadores usam
+     `<input matInput type="number" min="0">` com `matTextSuffix` para a unidade
    - `MatSnackBar` no sucesso ("{Dominio} salvo com sucesso.") e no erro
      usando a mensagem real do backend (`erro.error?.mensagem`), nunca texto
      genérico fixo

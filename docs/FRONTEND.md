@@ -36,7 +36,8 @@ frontend/src/app/
     relatorios/       # resultado por imóvel, com exportação CSV e impressão
   shared/             # componentes, diretivas e providers reaproveitados por
                        # 2+ features: auth-img, busca-toolbar, data (locale
-                       # pt-BR do MatDatepicker), moeda (diretiva appMoeda)
+                       # pt-BR do MatDatepicker + appMascaraData), moeda
+                       # (appMoeda), mascara (appMascara + catálogo), uf
 ```
 
 Cada `features/<dominio>/` concentra os componentes (listagem, formulário,
