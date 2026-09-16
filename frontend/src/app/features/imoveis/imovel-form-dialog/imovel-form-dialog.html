@@ -36,7 +36,11 @@
 
         <mat-form-field appearance="outline">
           <mat-label>UF</mat-label>
-          <input matInput maxlength="2" formControlName="uf" />
+          <mat-select formControlName="uf">
+            @for (uf of ufs; track uf) {
+              <mat-option [value]="uf">{{ uf }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
 
         <mat-form-field appearance="outline">

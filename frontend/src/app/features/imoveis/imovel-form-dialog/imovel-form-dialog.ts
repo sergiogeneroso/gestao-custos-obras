@@ -19,6 +19,7 @@ import { paraData, paraIso } from '../../../shared/data/data.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
+import { UF_PADRAO, UFS } from '../../../shared/uf';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { ImovelFotoResponseDTO, ImovelRequestDTO, ImovelResponseDTO } from '../imovel.model';
@@ -92,13 +93,15 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   // depois do upload. A primeira é a padrão, espelhando o que o backend faz sozinho.
   protected readonly indicePrincipalPendente = signal(0);
 
+  protected readonly ufs = UFS;
+
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
     endereco: [this.imovel?.endereco ?? ''],
     numero: [this.imovel?.numero ?? ''],
     bairro: [this.imovel?.bairro ?? ''],
     cidade: [this.imovel?.cidade ?? ''],
-    uf: [this.imovel?.uf ?? ''],
+    uf: [this.imovel ? (this.imovel.uf?.toUpperCase() ?? '') : UF_PADRAO, Validators.required],
     cep: [this.imovel?.cep ?? ''],
     observacaoEndereco: [this.imovel?.observacaoEndereco ?? ''],
 
