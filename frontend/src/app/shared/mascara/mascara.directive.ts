@@ -1,13 +1,18 @@
-import { Directive, ElementRef, forwardRef, inject, input } from '@angular/core';
+import { Directive, ElementRef, computed, forwardRef, inject, input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { reformatarInput } from './caret';
+import { MASCARAS, NomeMascara } from './catalogo';
 
 /**
- * Campo com máscara de exibição: o controle guarda o valor **limpo** (o que a API
- * espera e o banco grava) e o input mostra o valor pontuado.
+ * Campo com máscara: o controle guarda o valor **limpo** (o que a API espera e o
+ * banco grava) e o input mostra o valor pontuado — inclusive enquanto se digita.
  *
- * Segue o mesmo desenho do `MoedaDirective`: enquanto o campo está focado o valor
- * aparece cru, e a máscara só entra no blur. É o que evita a briga de posição do
- * cursor a cada tecla, sem código de caret nenhum.
+ * Até setembro de 2026 a máscara só entrava no blur, para não ter de reposicionar
+ * o cursor. O dono do produto pediu a máscara visível durante a digitação; o
+ * cursor agora é tratado em `caret.ts`.
+ *
+ * Uso: `appMascara="cep"` para máscara fixa do catálogo; `[appMascara]="objeto"`
+ * quando ela muda com o formulário (CPF/CNPJ conforme o tipo da pessoa).
  */
 export interface Mascara {
   /** Tira a pontuação, deixando só o que é gravado. */
@@ -16,6 +21,8 @@ export interface Mascara {
   formatar(limpo: string): string;
   /** Tamanho máximo do valor limpo — o que passar disso é descartado na digitação. */
   maxLimpo: number;
+  /** O valor cresce da direita (moeda em caixa registradora): o cursor se ancora no fim. */
+  ancorarNoFim?: boolean;
 }
 
 @Directive({
@@ -25,23 +32,28 @@ export interface Mascara {
   ],
   host: {
     type: 'text',
-    '(input)': 'aoDigitar($any($event.target).value)',
-    '(blur)': 'aoSair()',
-    '(focus)': 'aoFocar()',
+    '(input)': 'aoDigitar($event)',
+    '(blur)': 'aoTocar()',
   },
 })
 export class MascaraDirective implements ControlValueAccessor {
-  readonly appMascara = input.required<Mascara>();
+  readonly appMascara = input.required<Mascara | NomeMascara>();
 
+  private readonly mascara = computed(() => {
+    const m = this.appMascara();
+    return typeof m === 'string' ? MASCARAS[m] : m;
+  });
   private readonly elemento = inject<ElementRef<HTMLInputElement>>(ElementRef);
 
   private aoMudar: (valor: string | null) => void = () => {};
-  private aoTocar: () => void = () => {};
-  private valor = '';
+  protected aoTocar: () => void = () => {};
+  /** Texto exibido antes da tecla — é como se descobre que o Backspace apagou só pontuação. */
+  private anterior = '';
 
   writeValue(valor: string | null): void {
-    this.valor = this.appMascara().limpar(valor ?? '');
-    this.elemento.nativeElement.value = this.appMascara().formatar(this.valor);
+    const mascara = this.mascara();
+    this.anterior = mascara.formatar(mascara.limpar(valor ?? ''));
+    this.elemento.nativeElement.value = this.anterior;
   }
 
   registerOnChange(fn: (valor: string | null) => void): void {
@@ -56,21 +68,9 @@ export class MascaraDirective implements ControlValueAccessor {
     this.elemento.nativeElement.disabled = desabilitado;
   }
 
-  protected aoDigitar(texto: string): void {
-    const mascara = this.appMascara();
-    this.valor = mascara.limpar(texto).slice(0, mascara.maxLimpo);
-    // Reescreve o input porque o `slice` pode ter descartado o excesso: sem isso o
-    // caractere a mais fica visível na tela e ausente no controle.
-    this.elemento.nativeElement.value = this.valor;
-    this.aoMudar(this.valor || null);
-  }
-
-  protected aoFocar(): void {
-    this.elemento.nativeElement.value = this.valor;
-  }
-
-  protected aoSair(): void {
-    this.elemento.nativeElement.value = this.appMascara().formatar(this.valor);
-    this.aoTocar();
+  protected aoDigitar(evento: Event): void {
+    const { limpo, exibido } = reformatarInput(this.elemento.nativeElement, evento, this.anterior, this.mascara());
+    this.anterior = exibido;
+    this.aoMudar(limpo || null);
   }
 }

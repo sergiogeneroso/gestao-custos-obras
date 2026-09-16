@@ -11,7 +11,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { documentoValidator, mascaraDocumento } from '../../../shared/mascara/documento';
 import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
-import { MASCARA_TELEFONE } from '../../../shared/mascara/telefone';
 import { PessoaRequestDTO, PessoaResponseDTO, TIPO_PESSOA_LABEL, TipoPessoa } from '../pessoa.model';
 import { PessoasService } from '../pessoas.service';
 
@@ -51,7 +50,6 @@ export class PessoaFormDialog {
   protected readonly tipoSelecionado = signal<TipoPessoa>(this.pessoa?.tipoPessoa ?? 'FISICA');
   protected readonly ehFisica = computed(() => this.tipoSelecionado() === 'FISICA');
   protected readonly mascaraDoc = computed(() => mascaraDocumento(this.tipoSelecionado()));
-  protected readonly mascaraTelefone = MASCARA_TELEFONE;
 
   protected readonly form = this.fb.group({
     nome: [this.pessoa?.nome ?? '', Validators.required],
