@@ -18,7 +18,7 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Data da venda</mat-label>
-        <input matInput [matDatepicker]="dataVendaPicker" formControlName="dataVenda" />
+        <input matInput [matDatepicker]="dataVendaPicker" appMascaraData formControlName="dataVenda" />
         <mat-datepicker-toggle matIconSuffix [for]="dataVendaPicker" />
         <mat-datepicker #dataVendaPicker />
       </mat-form-field>

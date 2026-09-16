@@ -92,7 +92,7 @@
               </div>
               <div>
                 <p class="detalhe-imovel__label">CEP</p>
-                <p class="detalhe-imovel__valor">{{ imovel().cep || '—' }}</p>
+                <p class="detalhe-imovel__valor">{{ formatarCep(imovel().cep) || '—' }}</p>
               </div>
               <div class="detalhe-imovel__campo-largo">
                 <p class="detalhe-imovel__label">Observação do endereço</p>
@@ -248,7 +248,7 @@
                 </div>
                 <div>
                   <p class="detalhe-imovel__label">CNO</p>
-                  <p class="detalhe-imovel__valor">{{ imovel().construcao.cno || '—' }}</p>
+                  <p class="detalhe-imovel__valor">{{ exibirCno(imovel().construcao.cno) || '—' }}</p>
                 </div>
               </section>
             </mat-tab>
@@ -321,12 +321,20 @@
 
                 <label>
                   <span class="detalhe-imovel__label">Emissão</span>
-                  <input type="date" [value]="novoDocumento().dataEmissao ?? ''" (change)="atualizarEnvio('dataEmissao', $any($event.target).value)" />
+                  <span class="detalhe-imovel__data">
+                    <input [matDatepicker]="emissaoPicker" appMascaraData placeholder="dd/mm/aaaa" [value]="dataEmissaoEnvio()" (dateChange)="atualizarEnvio('dataEmissao', paraIso($event.value))" />
+                    <mat-datepicker-toggle [for]="emissaoPicker" />
+                    <mat-datepicker #emissaoPicker />
+                  </span>
                 </label>
 
                 <label>
                   <span class="detalhe-imovel__label">Validade</span>
-                  <input type="date" [value]="novoDocumento().dataValidade ?? ''" (change)="atualizarEnvio('dataValidade', $any($event.target).value)" />
+                  <span class="detalhe-imovel__data">
+                    <input [matDatepicker]="validadePicker" appMascaraData placeholder="dd/mm/aaaa" [value]="dataValidadeEnvio()" (dateChange)="atualizarEnvio('dataValidade', paraIso($event.value))" />
+                    <mat-datepicker-toggle [for]="validadePicker" />
+                    <mat-datepicker #validadePicker />
+                  </span>
                 </label>
 
                 <label class="detalhe-imovel__campo-largo">

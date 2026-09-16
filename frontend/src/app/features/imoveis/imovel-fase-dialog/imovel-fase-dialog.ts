@@ -10,6 +10,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { paraIso } from '../../../shared/data/data.util';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
+import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
@@ -30,6 +32,8 @@ export interface ImovelFaseDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MascaraDataDirective,
+    MascaraDirective,
     MoedaDirective,
   ],
   templateUrl: './imovel-fase-dialog.html',

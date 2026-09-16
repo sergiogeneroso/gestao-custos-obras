@@ -1,8 +1,13 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
+import { paraData, paraIso } from '../../../shared/data/data.util';
+import { exibirCno } from '../../../shared/mascara/cno';
+import { formatarCep } from '../../../shared/mascara/cep';
 import { SITUACAO_CONTRATO_LABEL, TIPO_CONTRATO_LABEL } from '../../contratos/contrato.model';
 import { ImovelDespesasAba } from './imovel-despesas-aba/imovel-despesas-aba';
 import { PosicaoContratoDTO, ResultadoImovelDTO } from '../../relatorios/relatorio.model';
@@ -30,7 +35,17 @@ export interface ImovelDetalheDialogData {
 
 @Component({
   selector: 'app-imovel-detalhe-dialog',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, ImovelDespesasAba, MatButtonModule, MatDialogModule, MatTabsModule],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    DecimalPipe,
+    ImovelDespesasAba,
+    MascaraDataDirective,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatDialogModule,
+    MatTabsModule,
+  ],
   templateUrl: './imovel-detalhe-dialog.html',
   styleUrl: './imovel-detalhe-dialog.scss',
 })
@@ -41,6 +56,12 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
   protected readonly data = inject<ImovelDetalheDialogData>(MAT_DIALOG_DATA);
 
   protected readonly imovel = signal(this.data.imovel);
+  // computed, não paraData() no template: um Date novo a cada ciclo faria o datepicker reescrever o texto no meio da digitação.
+  protected readonly dataEmissaoEnvio = computed(() => paraData(this.novoDocumento().dataEmissao));
+  protected readonly dataValidadeEnvio = computed(() => paraData(this.novoDocumento().dataValidade));
+  protected readonly paraIso = paraIso;
+  protected readonly formatarCep = formatarCep;
+  protected readonly exibirCno = exibirCno;
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
   protected readonly situacaoLabel = SITUACAO_IMOVEL_LABEL;
   protected readonly tipoContratoLabel = TIPO_CONTRATO_LABEL;
@@ -157,7 +178,7 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
     };
   }
 
-  protected atualizarEnvio(campo: keyof EnvioDocumento, valor: string): void {
+  protected atualizarEnvio(campo: keyof EnvioDocumento, valor: string | null): void {
     this.novoDocumento.update((atual) => ({ ...atual, [campo]: valor || null }));
   }
 

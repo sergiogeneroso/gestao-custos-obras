@@ -254,6 +254,16 @@
     padding: 7px 9px;
   }
 
+  .detalhe-imovel__data {
+    display: flex;
+    align-items: center;
+
+    input {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
   option {
     background: #1b1c26;
   }

@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { paraData, paraIso } from '../../../shared/data/data.util';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { ImovelResponseDTO } from '../../imoveis/imovel.model';
 import { ImoveisService } from '../../imoveis/imoveis.service';
@@ -55,6 +56,7 @@ export interface ContratoFormDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MascaraDataDirective,
     MoedaDirective,
   ],
   templateUrl: './contrato-form-dialog.html',

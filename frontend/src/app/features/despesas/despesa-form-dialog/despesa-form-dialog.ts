@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { paraData, paraIso } from '../../../shared/data/data.util';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { CategoriaDespesaResponseDTO } from '../../categorias-despesa/categoria-despesa.model';
 import { CategoriasDespesaService } from '../../categorias-despesa/categorias-despesa.service';
@@ -49,6 +50,7 @@ export interface DespesaFormDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MascaraDataDirective,
     MoedaDirective,
   ],
   templateUrl: './despesa-form-dialog.html',

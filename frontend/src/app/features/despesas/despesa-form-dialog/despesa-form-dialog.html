@@ -89,7 +89,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Data de pagamento</mat-label>
-          <input matInput [matDatepicker]="dataPagamentoPicker" formControlName="dataPagamento" />
+          <input matInput [matDatepicker]="dataPagamentoPicker" appMascaraData formControlName="dataPagamento" />
           <mat-datepicker-toggle matIconSuffix [for]="dataPagamentoPicker" />
           <mat-datepicker #dataPagamentoPicker />
         </mat-form-field>

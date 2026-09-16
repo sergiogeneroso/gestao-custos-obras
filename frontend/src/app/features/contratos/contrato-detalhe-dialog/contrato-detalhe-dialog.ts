@@ -21,6 +21,7 @@ import {
   TipoDocumentoContrato,
 } from '../contrato.model';
 import { paraIso } from '../../../shared/data/data.util';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { ContratosService } from '../contratos.service';
 
@@ -40,6 +41,7 @@ export interface ContratoDetalheDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MascaraDataDirective,
     MoedaDirective,
   ],
   templateUrl: './contrato-detalhe-dialog.html',

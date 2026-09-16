@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { paraIso } from '../../../shared/data/data.util';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
@@ -30,6 +31,7 @@ export interface ImovelVendaDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MascaraDataDirective,
     MoedaDirective,
   ],
   templateUrl: './imovel-venda-dialog.html',

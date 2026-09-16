@@ -16,6 +16,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ContratosService } from '../../contratos/contratos.service';
 import { paraData, paraIso } from '../../../shared/data/data.util';
+import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
+import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
@@ -51,6 +53,8 @@ export interface ImovelFormResultado {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MascaraDataDirective,
+    MascaraDirective,
     MoedaDirective,
   ],
   templateUrl: './imovel-form-dialog.html',

@@ -41,7 +41,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>CEP</mat-label>
-          <input matInput maxlength="9" formControlName="cep" />
+          <input matInput appMascara="cep" formControlName="cep" />
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="dialogo-imovel__campo-largo">
@@ -78,7 +78,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Data da compra</mat-label>
-          <input matInput [matDatepicker]="compraDataPicker" formControlName="compraData" />
+          <input matInput [matDatepicker]="compraDataPicker" appMascaraData formControlName="compraData" />
             <mat-datepicker-toggle matIconSuffix [for]="compraDataPicker" />
             <mat-datepicker #compraDataPicker />
         </mat-form-field>
@@ -122,7 +122,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Data do registro</mat-label>
-          <input matInput [matDatepicker]="dataRegistroPicker" formControlName="dataRegistro" />
+          <input matInput [matDatepicker]="dataRegistroPicker" appMascaraData formControlName="dataRegistro" />
             <mat-datepicker-toggle matIconSuffix [for]="dataRegistroPicker" />
             <mat-datepicker #dataRegistroPicker />
         </mat-form-field>
@@ -150,7 +150,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Data de início da construção</mat-label>
-            <input matInput [matDatepicker]="inicioObraPicker" formControlName="dataInicioConstrucao" />
+            <input matInput [matDatepicker]="inicioObraPicker" appMascaraData formControlName="dataInicioConstrucao" />
             <mat-datepicker-toggle matIconSuffix [for]="inicioObraPicker" />
             <mat-datepicker #inicioObraPicker />
           </mat-form-field>
@@ -163,7 +163,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Previsão de conclusão da obra</mat-label>
-            <input matInput [matDatepicker]="previsaoPicker" formControlName="previsaoConclusao" />
+            <input matInput [matDatepicker]="previsaoPicker" appMascaraData formControlName="previsaoConclusao" />
             <mat-datepicker-toggle matIconSuffix [for]="previsaoPicker" />
             <mat-datepicker #previsaoPicker />
           </mat-form-field>
@@ -175,14 +175,14 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Emissão do alvará</mat-label>
-            <input matInput [matDatepicker]="alvaraEmissaoPicker" formControlName="alvaraEmissao" />
+            <input matInput [matDatepicker]="alvaraEmissaoPicker" appMascaraData formControlName="alvaraEmissao" />
             <mat-datepicker-toggle matIconSuffix [for]="alvaraEmissaoPicker" />
             <mat-datepicker #alvaraEmissaoPicker />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Validade do alvará</mat-label>
-            <input matInput [matDatepicker]="alvaraValidadePicker" formControlName="alvaraValidade" />
+            <input matInput [matDatepicker]="alvaraValidadePicker" appMascaraData formControlName="alvaraValidade" />
             <mat-datepicker-toggle matIconSuffix [for]="alvaraValidadePicker" />
             <mat-datepicker #alvaraValidadePicker />
           </mat-form-field>
@@ -204,7 +204,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>CNO (matrícula da obra)</mat-label>
-            <input matInput maxlength="50" formControlName="cno" />
+            <input matInput appMascara="cno" formControlName="cno" />
           </mat-form-field>
         </div>
       }
@@ -214,7 +214,7 @@
         <div class="dialogo-imovel__grade">
           <mat-form-field appearance="outline">
             <mat-label>Data de conclusão da obra</mat-label>
-            <input matInput [matDatepicker]="conclusaoObraPicker" formControlName="dataConclusaoObra" />
+            <input matInput [matDatepicker]="conclusaoObraPicker" appMascaraData formControlName="dataConclusaoObra" />
             <mat-datepicker-toggle matIconSuffix [for]="conclusaoObraPicker" />
             <mat-datepicker #conclusaoObraPicker />
           </mat-form-field>
@@ -226,14 +226,14 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Data do habite-se</mat-label>
-            <input matInput [matDatepicker]="habiteSePicker" formControlName="habiteSeData" />
+            <input matInput [matDatepicker]="habiteSePicker" appMascaraData formControlName="habiteSeData" />
             <mat-datepicker-toggle matIconSuffix [for]="habiteSePicker" />
             <mat-datepicker #habiteSePicker />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Averbação na matrícula</mat-label>
-            <input matInput [matDatepicker]="averbacaoPicker" formControlName="dataAverbacao" />
+            <input matInput [matDatepicker]="averbacaoPicker" appMascaraData formControlName="dataAverbacao" />
             <mat-datepicker-toggle matIconSuffix [for]="averbacaoPicker" />
             <mat-datepicker #averbacaoPicker />
           </mat-form-field>

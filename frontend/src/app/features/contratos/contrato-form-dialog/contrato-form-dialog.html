@@ -60,7 +60,7 @@
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Data da entrada</mat-label>
-              <input matInput [matDatepicker]="entradaPicker" formControlName="entradaData" />
+              <input matInput [matDatepicker]="entradaPicker" appMascaraData formControlName="entradaData" />
               <mat-datepicker-toggle matIconSuffix [for]="entradaPicker" />
               <mat-datepicker #entradaPicker />
             </mat-form-field>
@@ -116,7 +116,7 @@
 
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>1º vencimento</mat-label>
-            <input matInput [matDatepicker]="geradorPicker" formControlName="primeiroVencimento" />
+            <input matInput [matDatepicker]="geradorPicker" appMascaraData formControlName="primeiroVencimento" />
             <mat-datepicker-toggle matIconSuffix [for]="geradorPicker" />
             <mat-datepicker #geradorPicker />
           </mat-form-field>
@@ -146,7 +146,7 @@
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Vencimento</mat-label>
-              <input matInput [matDatepicker]="vencimentoPicker" formControlName="dataVencimento" />
+              <input matInput [matDatepicker]="vencimentoPicker" appMascaraData formControlName="dataVencimento" />
               <mat-datepicker-toggle matIconSuffix [for]="vencimentoPicker" />
               <mat-datepicker #vencimentoPicker />
             </mat-form-field>
