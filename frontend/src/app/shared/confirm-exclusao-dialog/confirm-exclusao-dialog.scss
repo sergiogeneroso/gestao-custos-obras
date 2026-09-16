@@ -4,12 +4,22 @@
 
 .confirmar-exclusao__topo {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 8px 0 24px;
 
+  // Mesmo cuidado do ConfirmDialog: o Material aplica flex-shrink: 0 no título por padrão — sem
+  // sobrescrever para 1 (com min-width: 0 junto), um título longo (interpola identificador do
+  // imóvel) força scroll horizontal em vez de quebrar linha.
   h2 {
     margin: 0;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  button {
+    flex-shrink: 0;
   }
 }
 
