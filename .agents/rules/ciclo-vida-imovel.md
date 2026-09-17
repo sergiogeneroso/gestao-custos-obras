@@ -55,6 +55,18 @@ banheiros/vagas).
 - **Todos continuam editáveis pelo `PUT`**, que expõe as fases já alcançadas —
   corrigir dado lançado errado não pode depender de refazer a transição
 
+## Endereço e compra do lote (cadastro), Set 2026
+
+- `endereco`, `bairro`, `cidade` são **obrigatórios** no cadastro; `numero` e
+  `cep` continuam opcionais
+- `lote.matricula`, `cartorio`, `dataRegistro`, `inscricaoMunicipal`, `area`
+  continuam **opcionais** — podem não existir ainda no ato do cadastro
+- `compra.vendedor` é **obrigatório**
+- `compra.valor` é **obrigatório, exceto quando `compra.parcelada = true`**
+  (`ImovelRequestDTO.isCompraValorValido`) — na compra parcelada esse valor
+  vem depois, gravado por `ContratoFinanceiroService.aplicarValorDoLote`
+  (ADR-037); pedir no cadastro produziria juros falsos
+
 ## Datas de transição
 
 `compra.data`, `dataInicioConstrucao` e `dataConclusaoObra` marcam **quando o

@@ -82,6 +82,12 @@ Convenção geral do projeto, não só destas seis: `Imovel`, `Pessoa`, `Despesa
   inativando o lançamento original, nunca com valor negativo
 - Não existe rateio entre pessoas nem entre imóveis: um custo dividido são dois
   lançamentos
+- **Despesa sem anexo do tipo `COMPROVANTE` é destacada na listagem** (aviso
+  visual, nunca bloqueio — o comprovante às vezes chega depois do lançamento).
+  `RECIBO`/`NOTA_FISCAL`/outros tipos não contam: só `COMPROVANTE` é a prova de
+  pagamento (Set 2026). Calculado em `DespesaService.buscar`, campo
+  `temComprovante` no `DespesaResponseDTO` — nulo fora da busca paginada
+  significa "não calculado", nunca "sem comprovante"
 
 ## Indicadores de apresentação (ADR-039)
 

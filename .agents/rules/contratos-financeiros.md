@@ -61,6 +61,10 @@ um prejuízo inexistente de 133k.
 
 ## Regras do contrato
 
+- **O contrato precisa de ao menos uma parcela ou uma entrada** — validação de
+  classe em `ContratoFinanceiroRequestDTO.isCronogramaValido` (Set 2026). Um
+  contrato quitado inteiro na entrada, sem nenhuma parcela futura, é válido
+  (a entrada vira a parcela nº 0, à parte da lista `parcelas`).
 - **A quitação antecipada tem valor próprio, negociado**, independente da soma
   das parcelas em aberto (normalmente menor, com desconto). Registrar
   `dataQuitacao` e `valorQuitacao` no contrato e encerrar as parcelas em aberto
