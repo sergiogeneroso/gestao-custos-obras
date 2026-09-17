@@ -30,8 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -143,8 +145,10 @@ public class DespesaService {
                 Sort.by(Sort.Direction.DESC, "dataPagamento", "id"));
         Page<DespesaModel> paginaDespesas = despesaRepository.buscar(Buscas.normalizar(busca), escopoValido, pageable);
         Map<Long, Integer> contagens = contarAnexos(paginaDespesas.getContent());
+        Set<Long> comComprovante = despesasComComprovante(paginaDespesas.getContent());
         return PaginaDTO.de(paginaDespesas,
-                despesa -> despesaMapper.toResponseDTO(despesa, contagens.getOrDefault(despesa.getId(), 0)));
+                despesa -> despesaMapper.toResponseDTO(despesa, contagens.getOrDefault(despesa.getId(), 0),
+                        comComprovante.contains(despesa.getId())));
     }
 
     /**
@@ -159,6 +163,15 @@ public class DespesaService {
         List<Long> ids = despesas.stream().map(DespesaModel::getId).toList();
         return despesaAnexoRepository.listarDespesaIdPorAnexo(ids).stream()
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.summingInt(id -> 1)));
+    }
+
+    /** Ids de despesa da página que têm ao menos um anexo do tipo COMPROVANTE. */
+    private Set<Long> despesasComComprovante(List<DespesaModel> despesas) {
+        if (despesas.isEmpty()) {
+            return Set.of();
+        }
+        List<Long> ids = despesas.stream().map(DespesaModel::getId).toList();
+        return new HashSet<>(despesaAnexoRepository.listarDespesaIdPorAnexoDoTipo(ids, TipoAnexoDespesa.COMPROVANTE));
     }
 
     @Transactional(readOnly = true)

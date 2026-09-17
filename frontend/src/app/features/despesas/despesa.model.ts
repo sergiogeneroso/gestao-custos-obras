@@ -88,11 +88,16 @@ export interface DespesaResponseDTO {
   observacao: string | null;
   ativo: boolean;
   /**
-   * Quantos anexos a despesa tem. Só a busca paginada preenche; nos outros endpoints vem nulo,
-   * que significa "não calculado" e nunca "sem anexo" — a tela não pode desenhar alerta de
-   * comprovante faltando a partir de nulo.
+   * Quantos anexos a despesa tem, de qualquer tipo. Só a busca paginada preenche; nos outros
+   * endpoints vem nulo ("não calculado").
    */
   quantidadeAnexos: number | null;
+  /**
+   * Se a despesa tem ao menos um anexo do tipo COMPROVANTE (a prova de pagamento — RECIBO,
+   * NOTA_FISCAL etc. não contam). Só a busca paginada preenche; nulo é "não calculado", nunca
+   * "sem comprovante".
+   */
+  temComprovante: boolean | null;
 }
 
 export interface DespesaAnexoResponseDTO {

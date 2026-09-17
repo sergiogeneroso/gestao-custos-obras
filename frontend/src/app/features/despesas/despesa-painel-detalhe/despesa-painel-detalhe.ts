@@ -19,6 +19,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { mensagemErro } from '../../../shared/erro/erro.util';
+import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
 import { FASE_IMOVEL_LABEL } from '../../imoveis/imovel.model';
 import {
   DespesaAnexoResponseDTO,
@@ -95,6 +96,11 @@ export class DespesaPainelDetalhe implements OnDestroy {
     const elementoInput = event.target as HTMLInputElement;
     const arquivo = elementoInput.files?.[0];
     if (!arquivo) {
+      return;
+    }
+    if (!arquivoDentroDoLimite(arquivo)) {
+      elementoInput.value = '';
+      this.snackBar.open(MENSAGEM_ARQUIVO_GRANDE, 'Fechar', { duration: 6000 });
       return;
     }
     const despesaId = this.despesa().id;

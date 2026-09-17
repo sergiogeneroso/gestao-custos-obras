@@ -22,4 +22,9 @@ public interface DespesaAnexoRepository extends JpaRepository<DespesaAnexoModel,
      */
     @Query("select a.despesa.id from DespesaAnexoModel a where a.despesa.id in :despesaIds")
     List<Long> listarDespesaIdPorAnexo(@Param("despesaIds") List<Long> despesaIds);
+
+    /** Mesmo uso de `listarDespesaIdPorAnexo`, filtrado a um tipo — hoje só para COMPROVANTE. */
+    @Query("select a.despesa.id from DespesaAnexoModel a where a.despesa.id in :despesaIds and a.tipoAnexo = :tipoAnexo")
+    List<Long> listarDespesaIdPorAnexoDoTipo(@Param("despesaIds") List<Long> despesaIds,
+                                              @Param("tipoAnexo") TipoAnexoDespesa tipoAnexo);
 }

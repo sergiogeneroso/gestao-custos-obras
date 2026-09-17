@@ -6,12 +6,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class DespesaMapper {
 
-    /** Sem contagem de anexos: `quantidadeAnexos` fica nulo, ou seja, "não calculado". */
+    /** Sem contagem de anexos: `quantidadeAnexos`/`temComprovante` ficam nulos ("não calculado"). */
     public DespesaResponseDTO toResponseDTO(DespesaModel despesa) {
-        return toResponseDTO(despesa, null);
+        return toResponseDTO(despesa, null, null);
     }
 
-    public DespesaResponseDTO toResponseDTO(DespesaModel despesa, Integer quantidadeAnexos) {
+    public DespesaResponseDTO toResponseDTO(DespesaModel despesa, Integer quantidadeAnexos, Boolean temComprovante) {
         return new DespesaResponseDTO(
                 despesa.getId(),
                 despesa.getImovel() != null ? despesa.getImovel().getId() : null,
@@ -30,7 +30,8 @@ public class DespesaMapper {
                 despesa.getDescricao(),
                 despesa.getObservacao(),
                 despesa.getExclusao().getAtivo(),
-                quantidadeAnexos
+                quantidadeAnexos,
+                temComprovante
         );
     }
 }

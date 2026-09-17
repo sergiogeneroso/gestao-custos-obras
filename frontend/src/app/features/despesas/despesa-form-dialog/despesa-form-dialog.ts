@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { mensagemErro } from '../../../shared/erro/erro.util';
+import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -101,7 +102,7 @@ export class DespesaFormDialog implements OnInit {
     contratoFinanceiroId: [this.despesa?.contratoFinanceiroId ?? (null as number | null)],
     faseImovel: [this.despesa?.faseImovel ?? (null as FaseImovel | null)],
     etapaConstrucao: [this.despesa?.etapaConstrucao ?? (null as EtapaConstrucao | null)],
-    valor: [this.despesa?.valor ?? (null as number | null), Validators.required],
+    valor: [this.despesa?.valor ?? (null as number | null), [Validators.required, Validators.min(0.01)]],
     dataPagamento: [paraData(this.despesa?.dataPagamento) ?? new Date(), Validators.required],
     descricao: [this.despesa?.descricao ?? ''],
     observacao: [this.despesa?.observacao ?? ''],
@@ -195,6 +196,11 @@ export class DespesaFormDialog implements OnInit {
     const input = event.target as HTMLInputElement;
     const arquivo = input.files?.[0];
     if (!arquivo) {
+      return;
+    }
+    if (!arquivoDentroDoLimite(arquivo)) {
+      input.value = '';
+      this.snackBar.open(MENSAGEM_ARQUIVO_GRANDE, 'Fechar', { duration: 6000 });
       return;
     }
 

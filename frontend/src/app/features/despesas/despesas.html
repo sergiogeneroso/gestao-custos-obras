@@ -61,10 +61,10 @@
             <td data-rotulo="Beneficiário">{{ despesa.beneficiarioNome || '—' }}</td>
             <td class="table__num" data-rotulo="Valor">{{ despesa.valor | currency: 'BRL' }}</td>
             <td class="table__num" data-rotulo="Anexos">
-              @if (despesa.quantidadeAnexos === 0) {
-                <span class="despesas__sem-anexo">
+              @if (despesa.temComprovante === false) {
+                <span class="despesas__sem-anexo" title="Sem comprovante de pagamento anexado">
                   <i class="ph ph-warning"></i>
-                  sem anexo
+                  sem comprovante
                 </span>
               } @else {
                 {{ despesa.quantidadeAnexos }}

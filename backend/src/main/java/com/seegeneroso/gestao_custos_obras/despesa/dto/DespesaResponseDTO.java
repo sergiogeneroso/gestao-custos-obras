@@ -25,10 +25,16 @@ public record DespesaResponseDTO(
         String observacao,
         Boolean ativo,
         /**
-         * Quantos anexos a despesa tem. Só a busca paginada preenche este campo — nos demais
-         * caminhos vem nulo, que significa "não calculado", nunca "sem anexo". Quem consome
-         * precisa distinguir os dois: desenhar alerta de comprovante faltando a partir de nulo
-         * marcaria como pendente uma despesa que ninguém contou.
+         * Quantos anexos a despesa tem, de qualquer tipo. Só a busca paginada preenche este campo —
+         * nos demais caminhos vem nulo ("não calculado", nunca "sem anexo").
          */
-        Integer quantidadeAnexos
+        Integer quantidadeAnexos,
+
+        /**
+         * Se a despesa tem ao menos um anexo do tipo COMPROVANTE (a prova de pagamento — RECIBO,
+         * NOTA_FISCAL etc. não contam). Só a busca paginada preenche este campo; nulo é "não
+         * calculado", nunca "sem comprovante" — a tela usa isso para destacar (sem bloquear) o
+         * lançamento que ainda não tem prova de pagamento anexada.
+         */
+        Boolean temComprovante
 ) {}
