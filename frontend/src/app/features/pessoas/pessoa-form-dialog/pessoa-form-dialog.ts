@@ -58,7 +58,7 @@ export class PessoaFormDialog {
       this.pessoa?.documento ?? '',
       [Validators.required, documentoValidator(() => this.tipoSelecionado())],
     ],
-    email: [this.pessoa?.email ?? ''],
+    email: [this.pessoa?.email ?? '', Validators.email],
     telefone: [this.pessoa?.telefone ?? ''],
     fornecedor: [this.pessoa?.fornecedor ?? false],
     areaAtuacao: [this.pessoa?.areaAtuacao ?? ''],

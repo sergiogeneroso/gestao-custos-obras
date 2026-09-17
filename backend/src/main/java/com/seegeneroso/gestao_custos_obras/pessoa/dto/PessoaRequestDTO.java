@@ -3,6 +3,7 @@ package com.seegeneroso.gestao_custos_obras.pessoa.dto;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoPessoa;
 import com.seegeneroso.gestao_custos_obras.shared.validacao.Documentos;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -19,6 +20,7 @@ public record PessoaRequestDTO(
         @Size(max = 20, message = "Documento deve ter no máximo 20 caracteres")
         String documento,
 
+        @Email(message = "E-mail inválido")
         @Size(max = 255, message = "E-mail deve ter no máximo 255 caracteres")
         String email,
 
