@@ -10,6 +10,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -66,6 +67,17 @@ public class ApiErrorHandler {
         String causa = ex.getMostSpecificCause().getMessage();
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(corpoErro("O banco recusou a operação: " + causa));
+    }
+
+    /**
+     * Sem este handler, exceder spring.servlet.multipart.max-file-size cai no catch-all genérico
+     * como 500. O frontend já checa o tamanho antes de enviar, mas essa é a rede de segurança do
+     * lado do servidor.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleArquivoGrande(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(corpoErro("Arquivo maior que o limite permitido de 20MB."));
     }
 
     /** JSON malformado ou valor de enum inexistente — o corpo nem chega a virar DTO. */
