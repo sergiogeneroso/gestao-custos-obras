@@ -147,6 +147,13 @@ export class ContratoFormDialog implements OnInit {
 
   protected readonly precoNaoInformado = computed(() => this.precoInformado() == null);
 
+  // Só a compra do lote, na criação, aceita zero parcelas — quitada inteira na entrada (ADR-037,
+  // ContratoFinanceiroRequestDTO.isCronogramaValido). Nos demais casos o cronograma não tem
+  // entrada como alternativa, então sempre precisa de ao menos uma parcela.
+  protected readonly permiteZeroParcelas = computed(
+    () => this.ehCompraDeLote() && !this.contrato && (this.entradaInformada() ?? 0) > 0,
+  );
+
   protected distribuirJuros(): void {
     const total = this.diferencaJuros();
     const valores = this.valoresParcelas();
