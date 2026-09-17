@@ -1,8 +1,9 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { mensagemErro } from '../../../shared/erro/erro.util';
+import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -99,10 +100,10 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
   protected readonly form = this.fb.group({
     identificador: [this.imovel?.identificador ?? '', Validators.required],
-    endereco: [this.imovel?.endereco ?? ''],
+    endereco: [this.imovel?.endereco ?? '', Validators.required],
     numero: [this.imovel?.numero ?? ''],
-    bairro: [this.imovel?.bairro ?? ''],
-    cidade: [this.imovel?.cidade ?? ''],
+    bairro: [this.imovel?.bairro ?? '', Validators.required],
+    cidade: [this.imovel?.cidade ?? '', Validators.required],
     uf: [this.imovel ? (this.imovel.uf?.toUpperCase() ?? '') : UF_PADRAO, Validators.required],
     cep: [this.imovel?.cep ?? ''],
     observacaoEndereco: [this.imovel?.observacaoEndereco ?? ''],
@@ -135,7 +136,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
     compraValor: [this.imovel?.compraValor ?? null],
     compraData: [paraData(this.imovel?.compraData) ?? new Date(), Validators.required],
-    compraVendedorId: [this.imovel?.compraVendedorId ?? null],
+    compraVendedorId: [this.imovel?.compraVendedorId ?? null, Validators.required],
     compraParcelada: [this.imovel?.compraParcelada ?? false],
     vendaValorPretendido: [this.imovel?.vendaValorPretendido ?? null],
     descricao: [this.imovel?.descricao ?? ''],
@@ -150,6 +151,18 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected readonly mostrarValorCompra = computed(() => !!this.imovel || !this.parceladaSelecionada());
 
   protected readonly totalCronogramaContrato = signal(0);
+
+  // Espelha ImovelRequestDTO.isCompraValorValido: obrigatório só quando não é parcelada, porque
+  // parcelada o valor vem depois, do contrato (ADR-037).
+  private readonly alternarObrigatoriedadeCompraValor = effect(() => {
+    const controle = this.form.controls.compraValor;
+    if (this.parceladaSelecionada()) {
+      controle.clearValidators();
+    } else {
+      controle.setValidators(Validators.required);
+    }
+    controle.updateValueAndValidity({ emitEvent: false });
+  });
 
   ngOnInit(): void {
     this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
@@ -328,6 +341,11 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const arquivo = input.files?.[0];
     if (!arquivo) {
+      return;
+    }
+    if (!arquivoDentroDoLimite(arquivo)) {
+      input.value = '';
+      this.snackBar.open(MENSAGEM_ARQUIVO_GRANDE, 'Fechar', { duration: 6000 });
       return;
     }
 

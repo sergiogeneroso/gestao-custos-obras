@@ -84,7 +84,9 @@ dado que não pode ser reconstruído depois.
 
 ## Validações de transição
 
-- `situacao = VENDIDO` exige valor e data de venda
+- `situacao = VENDIDO` exige valor, data e comprador da venda — validação de
+  classe em `ImovelSituacaoRequestDTO.isVendaValida`, não mais um `throw`
+  dentro do service (Set 2026)
 - Ao iniciar a construção, **avisar** (sem bloquear) se ainda houver contrato de
   `PARCELAMENTO_COMPRA` com situação `ATIVO` — o banco costuma exigir o terreno
   quitado para financiar a obra

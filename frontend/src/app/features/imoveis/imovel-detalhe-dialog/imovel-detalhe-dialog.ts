@@ -3,8 +3,10 @@ import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
+import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { exibirCno } from '../../../shared/mascara/cno';
@@ -54,6 +56,7 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
   private readonly service = inject(ImoveisService);
   private readonly relatoriosService = inject(RelatoriosService);
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
   protected readonly data = inject<ImovelDetalheDialogData>(MAT_DIALOG_DATA);
 
   protected readonly imovel = signal(this.data.imovel);
@@ -187,6 +190,11 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const arquivo = input.files?.[0];
     if (!arquivo) {
+      return;
+    }
+    if (!arquivoDentroDoLimite(arquivo)) {
+      input.value = '';
+      this.snackBar.open(MENSAGEM_ARQUIVO_GRANDE, 'Fechar', { duration: 6000 });
       return;
     }
 

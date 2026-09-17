@@ -1,9 +1,11 @@
 package com.seegeneroso.gestao_custos_obras.imovel.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -17,15 +19,18 @@ public record ImovelRequestDTO(
         @Size(max = 50, message = "Identificador deve ter no máximo 50 caracteres")
         String identificador,
 
+        @NotBlank(message = "Endereço é obrigatório")
         @Size(max = 255, message = "Endereço deve ter no máximo 255 caracteres")
         String endereco,
 
         @Size(max = 20, message = "Número deve ter no máximo 20 caracteres")
         String numero,
 
+        @NotBlank(message = "Bairro é obrigatório")
         @Size(max = 100, message = "Bairro deve ter no máximo 100 caracteres")
         String bairro,
 
+        @NotBlank(message = "Cidade é obrigatória")
         @Size(max = 100, message = "Cidade deve ter no máximo 100 caracteres")
         String cidade,
 
@@ -41,15 +46,28 @@ public record ImovelRequestDTO(
         @Valid DadosConstrucaoDTO construcao,
         @Valid DadosCasaDTO casa,
 
+        @Positive(message = "Valor da compra deve ser positivo")
         BigDecimal compraValor,
 
         @NotNull(message = "Data da compra é obrigatória")
         LocalDate compraData,
 
+        @NotNull(message = "Vendedor é obrigatório")
         Long compraVendedorId,
         Boolean compraParcelada,
 
         BigDecimal vendaValorPretendido,
 
         String descricao
-) {}
+) {
+
+    /**
+     * Compra parcelada não pede o valor do lote no cadastro (ADR-037): ele viria de um cronograma
+     * que ainda não existe nessa tela, e digitar às cegas geraria juros falsos. Quem preenche é
+     * ContratoFinanceiroService.aplicarValorDoLote quando o PARCELAMENTO_COMPRA é criado.
+     */
+    @AssertTrue(message = "Valor da compra é obrigatório quando a compra não é parcelada")
+    public boolean isCompraValorValido() {
+        return Boolean.TRUE.equals(compraParcelada) || compraValor != null;
+    }
+}

@@ -198,9 +198,7 @@ public class ImovelService {
         }
 
         if (dto.novaSituacao() == SituacaoImovel.VENDIDO) {
-            if (dto.valorVenda() == null || dto.dataVenda() == null) {
-                throw new RegraDeNegocioException("Situação VENDIDO exige valor e data de venda.");
-            }
+            // valorVenda/dataVenda/compradorId já vêm garantidos pela validação de classe do DTO.
             PessoaModel comprador = buscarPessoaOpcional(dto.compradorId());
             imovel.getVenda().setValor(dto.valorVenda());
             imovel.getVenda().setData(dto.dataVenda());
