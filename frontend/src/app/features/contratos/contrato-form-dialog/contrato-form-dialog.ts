@@ -274,11 +274,17 @@ export class ContratoFormDialog implements OnInit {
       return;
     }
 
+    const compra = this.compra.getRawValue();
+    const ehLote = this.ehCompraDeLote() && !this.contrato;
+    const temEntrada = ehLote && !!compra.entradaValor && compra.entradaValor > 0;
+    if (this.parcelas.length === 0 && !temEntrada) {
+      this.snackBar.open('O contrato precisa de ao menos uma parcela ou uma entrada.', 'Fechar', { duration: 5000 });
+      return;
+    }
+
     this.salvando.set(true);
 
     const bruto = this.form.getRawValue();
-    const compra = this.compra.getRawValue();
-    const ehLote = this.ehCompraDeLote() && !this.contrato;
 
     const dto: ContratoFinanceiroRequestDTO = {
       imovelId: bruto.imovelId!,

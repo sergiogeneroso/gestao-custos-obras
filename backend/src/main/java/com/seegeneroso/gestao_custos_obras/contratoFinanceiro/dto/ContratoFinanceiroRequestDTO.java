@@ -2,6 +2,7 @@ package com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto;
 
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -36,4 +37,14 @@ public record ContratoFinanceiroRequestDTO(
         // a diferença para o cronograma são juros. Em branco, o preço do lote é o próprio total.
         @Positive(message = "Preço à vista do lote deve ser maior que zero")
         BigDecimal precoAVistaLote
-) {}
+) {
+
+    // A entrada vira a parcela nº 0 à parte de `parcelas` (ver ContratoFinanceiroService.montarEntrada),
+    // então um contrato quitado inteiro na entrada — sem nenhuma parcela futura — é válido.
+    @AssertTrue(message = "O contrato precisa de ao menos uma parcela ou uma entrada")
+    public boolean isCronogramaValido() {
+        boolean temParcelas = parcelas != null && !parcelas.isEmpty();
+        boolean temEntrada = entradaValor != null && entradaValor.compareTo(BigDecimal.ZERO) > 0;
+        return temParcelas || temEntrada;
+    }
+}
