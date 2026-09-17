@@ -16,8 +16,15 @@
 - Use plan mode antes de mexer no cálculo de resultado
   (`relatorio/RelatorioService.java`) ou nas transições de fase/situação do
   imóvel (`imovel/ImovelService.java`) — são os pontos financeiramente mais
-  sensíveis do projeto. A regra de custo e as regras do ciclo de vida estão em
-  `.agents/rules/regras-negocio-financeiras.md`,
+  sensíveis do projeto. Essa exigência já está satisfeita quando uma sessão
+  de grilling (skill `grilling`/`grill-with-docs`) interrogou a mudança exata
+  campo a campo, com cada decisão confirmada explicitamente pelo usuário —
+  nesse caso a implementação decorrente (mecânica, sem regra nova) não
+  precisa de uma segunda rodada de plan mode só repetindo o que já foi
+  decidido; qualquer regra de comportamento/cálculo que apareça no meio do
+  caminho sem ter sido interrogada ainda exige plan mode normalmente. Ver
+  ADR-041 em `docs/DECISOES.md`. A regra de custo e as regras do ciclo de
+  vida estão em `.agents/rules/regras-negocio-financeiras.md`,
   `.agents/rules/ciclo-vida-imovel.md` e `.agents/rules/contratos-financeiros.md`,
   que carregam sozinhas no escopo delas; o porquê de cada uma está nas ADR-020,
   ADR-023 e ADR-025 em `docs/DECISOES.md`

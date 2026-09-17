@@ -925,3 +925,28 @@ Registrado em `.agents/rules/regras-negocio-financeiras.md`,
 domínio novo nasce com `ExclusaoLogica`) e nos testes
 `ImovelExclusaoServiceTest` e `ContratoFinanceiroServiceTest` (casos de
 `excluir`/`cascatearExclusao`).
+
+## ADR-041 — Grilling rigoroso substitui uma segunda rodada de plan mode (Set 2026)
+
+A regra em `CLAUDE.md` que exige plan mode antes de mexer em
+`RelatorioService`/`ImovelService` foi escrita antes de o projeto usar a
+skill `grilling` (grill-with-docs) para levantar requisitos. Numa tarefa de
+levantamento de campos obrigatórios/validações em todos os domínios, o
+usuário pediu para remover essa exigência; a alternativa adotada foi mais
+estreita: não eliminar o gate, só reconhecer que ele já pode estar satisfeito.
+
+**Plan mode e grilling resolvem problemas diferentes, mas se sobrepõem
+quando o grilling é exaustivo o bastante.** Grilling garante que a *decisão*
+certa foi tomada, campo a campo, com o usuário confirmando cada uma
+explicitamente. Plan mode garante que a *implementação* proposta bate com a
+decisão antes de o código ser tocado. Quando uma sessão de grilling já
+interrogou a mudança exata — cada campo, cada regra cruzada, com resposta
+registrada — e a implementação decorrente é mecânica (aplicar a anotação/
+validador que já foi decidido), abrir uma segunda rodada de plan mode só
+repetiria a mesma decisão sem adicionar rede de segurança nova.
+
+**O gate continua de pé nos outros casos.** Uma sessão que não usou
+`grilling` com esse rigor, ou uma mudança de comportamento/cálculo (não só
+de obrigatoriedade de campo) descoberta no meio do caminho, ainda exige plan
+mode — inclusive dentro de uma sessão que começou como grilling, se a
+resposta do usuário abrir uma regra nova não antes interrogada.
