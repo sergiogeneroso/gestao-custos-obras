@@ -19,7 +19,22 @@ public interface OrcamentoCategoriaRepository extends JpaRepository<OrcamentoCat
     @Query("select o from OrcamentoCategoriaModel o where o.id = :id and o.exclusao.ativo = true")
     Optional<OrcamentoCategoriaModel> findByIdAndAtivoTrue(@Param("id") Long id);
 
-    Optional<OrcamentoCategoriaModel> findByImovelIdAndCategoriaDespesaId(Long imovelId, Long categoriaDespesaId);
+    // Bug corrigido (ADR-041, issue 04): sem o filtro de ativo, um orçamento excluído continuava
+    // contando para a checagem de duplicidade e bloqueava indefinidamente um novo lançamento para
+    // a mesma categoria.
+    @Query("""
+            select o from OrcamentoCategoriaModel o
+            where o.imovel.id = :imovelId and o.categoriaDespesa.id = :categoriaDespesaId
+              and o.exclusao.ativo = true
+            """)
+    Optional<OrcamentoCategoriaModel> findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(
+            @Param("imovelId") Long imovelId, @Param("categoriaDespesaId") Long categoriaDespesaId);
 
-    boolean existsByImovelIdAndCategoriaDespesaId(Long imovelId, Long categoriaDespesaId);
+    @Query("""
+            select case when count(o) > 0 then true else false end from OrcamentoCategoriaModel o
+            where o.imovel.id = :imovelId and o.categoriaDespesa.id = :categoriaDespesaId
+              and o.exclusao.ativo = true
+            """)
+    boolean existsByImovelIdAndCategoriaDespesaIdAndAtivoTrue(
+            @Param("imovelId") Long imovelId, @Param("categoriaDespesaId") Long categoriaDespesaId);
 }

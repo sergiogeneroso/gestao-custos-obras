@@ -41,7 +41,7 @@ public class OrcamentoCategoriaService {
         CategoriaDespesaModel categoria = categoriaDespesaRepository.findById(dto.categoriaDespesaId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria de despesa não encontrada com id: " + dto.categoriaDespesaId()));
 
-        if (orcamentoCategoriaRepository.existsByImovelIdAndCategoriaDespesaId(dto.imovelId(), dto.categoriaDespesaId())) {
+        if (orcamentoCategoriaRepository.existsByImovelIdAndCategoriaDespesaIdAndAtivoTrue(dto.imovelId(), dto.categoriaDespesaId())) {
             throw new RegraDeNegocioException("Já existe um orçamento cadastrado para a categoria '" + categoria.getNome() + "' neste imóvel.");
         }
 
@@ -75,7 +75,7 @@ public class OrcamentoCategoriaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria de despesa não encontrada com id: " + dto.categoriaDespesaId()));
 
         Optional<OrcamentoCategoriaModel> existente = orcamentoCategoriaRepository
-                .findByImovelIdAndCategoriaDespesaId(dto.imovelId(), dto.categoriaDespesaId());
+                .findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(dto.imovelId(), dto.categoriaDespesaId());
 
         if (existente.isPresent() && !existente.get().getId().equals(id)) {
             throw new RegraDeNegocioException("Já existe outro orçamento cadastrado para a categoria '" + categoria.getNome() + "' neste imóvel.");

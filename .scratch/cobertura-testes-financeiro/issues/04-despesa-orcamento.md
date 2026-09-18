@@ -1,6 +1,6 @@
 # 04 — Despesa e orçamento
 Type: task
-Status: open
+Status: resolved
 
 Bugs (decisão 7), teste vermelho primeiro:
 - `DespesaService.buscarContratoOpcional`: contrato excluído (inativo) →

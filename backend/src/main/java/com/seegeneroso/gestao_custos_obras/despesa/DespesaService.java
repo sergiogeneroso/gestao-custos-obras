@@ -229,7 +229,7 @@ public class DespesaService {
         if (contratoFinanceiroId == null) {
             return null;
         }
-        return contratoFinanceiroRepository.findById(contratoFinanceiroId)
+        return contratoFinanceiroRepository.findByIdAndAtivoTrue(contratoFinanceiroId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Contrato financeiro não encontrado com id: " + contratoFinanceiroId));
     }
 

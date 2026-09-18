@@ -13,8 +13,12 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
+import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
+import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +37,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,6 +67,8 @@ class DespesaServiceTest {
     private DespesaMapper despesaMapper = new DespesaMapper();
     @Mock
     private AuditoriaService auditoriaService;
+    @Mock
+    private UsuarioAutenticadoService usuarioAutenticadoService;
 
     @InjectMocks
     private DespesaService despesaService;
@@ -159,12 +166,107 @@ class DespesaServiceTest {
     }
 
     @Test
-    void buscarPorIdNaoInformaQuantidadeDeAnexos() {
+    void buscarPorIdNaoInformaQuantidadeNemComprovante() {
         when(despesaRepository.findByIdAndAtivoTrue(10L))
                 .thenReturn(Optional.of(DespesaModel.builder().id(10L).build()));
 
         // Nulo é "não calculado": a tela não pode ler isso como despesa sem comprovante.
-        assertThat(despesaService.buscarPorId(10L).quantidadeAnexos()).isNull();
+        DespesaResponseDTO resultado = despesaService.buscarPorId(10L);
+        assertThat(resultado.quantidadeAnexos()).isNull();
+        assertThat(resultado.temComprovante()).isNull();
+    }
+
+    // ADR-023: só o tipo COMPROVANTE prova o pagamento — RECIBO e os demais tipos não contam.
+    @Test
+    void buscaMarcaTemComprovanteSoParaDespesaComAnexoDoTipoComprovante() {
+        DespesaModel comComprovante = DespesaModel.builder().id(10L).build();
+        DespesaModel semComprovante = DespesaModel.builder().id(11L).build();
+        when(despesaRepository.buscar(any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(comComprovante, semComprovante)));
+        when(despesaAnexoRepository.listarDespesaIdPorAnexo(List.of(10L, 11L))).thenReturn(List.of());
+        when(despesaAnexoRepository.listarDespesaIdPorAnexoDoTipo(List.of(10L, 11L), TipoAnexoDespesa.COMPROVANTE))
+                .thenReturn(List.of(10L));
+
+        List<DespesaResponseDTO> conteudo = despesaService.buscar("", "TODAS", 0, 20).conteudo();
+
+        assertThat(conteudo).extracting(DespesaResponseDTO::temComprovante).containsExactly(true, false);
+    }
+
+    // Bug corrigido (issue 04, decisão 7 da spec): buscarContratoOpcional usava findById sem
+    // filtro de ativo, então um contrato excluído era encontrado normalmente em vez de recusado.
+    @Test
+    void contratoExcluidoEhTratadoComoNaoEncontrado() {
+        mockarPessoaECategoria();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(5L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> despesaService.criar(dto(null, null, null, 5L)))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("Contrato financeiro não encontrado");
+        verify(despesaRepository, never()).save(any());
+    }
+
+    // atualizar aplica a mesma regra de criar: etapa de obra só existe na fase Construção.
+    @Test
+    void atualizarAplicaAMesmaRegraDeEtapaDeConstrucaoQueCriar() {
+        when(despesaRepository.findByIdAndAtivoTrue(10L))
+                .thenReturn(Optional.of(DespesaModel.builder().id(10L).imovel(imovel(FaseImovel.LOTE)).build()));
+        mockarDependencias(imovel(FaseImovel.LOTE));
+
+        assertThatThrownBy(() -> despesaService.atualizar(10L, dto(1L, null, EtapaConstrucao.FUNDACAO)))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("fase Construção");
+        verify(despesaRepository, never()).save(any());
+    }
+
+    @Test
+    void excluirAplicaExclusaoLogicaComMotivo() {
+        DespesaModel despesa = DespesaModel.builder().id(10L).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(despesa));
+        when(despesaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        despesaService.excluir(10L, "Lançamento duplicado");
+
+        assertThat(despesa.getExclusao().getAtivo()).isFalse();
+        assertThat(despesa.getExclusao().getMotivoExclusao()).isEqualTo("Lançamento duplicado");
+        verify(auditoriaService).registrar(eq("Despesa"), eq(10L), eq(OperacaoAuditoria.EXCLUSAO), any(), any());
+    }
+
+    @Test
+    void deletarAnexoRecusaAnexoDeOutraDespesa() {
+        DespesaAnexoModel anexoDeOutraDespesa = DespesaAnexoModel.builder()
+                .id(99L)
+                .despesa(DespesaModel.builder().id(20L).build())
+                .build();
+        when(despesaAnexoRepository.findById(99L)).thenReturn(Optional.of(anexoDeOutraDespesa));
+
+        assertThatThrownBy(() -> despesaService.deletarAnexo(10L, 99L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("não pertence à despesa");
+        verify(despesaAnexoRepository, never()).delete(any());
+    }
+
+    // ADR-040: Pessoa com exclusao.ativo = false não pode ser vinculada a uma nova despesa.
+    @Test
+    void pagadorInativoNaoPodeSerVinculado() {
+        when(categoriaDespesaRepository.findById(2L))
+                .thenReturn(Optional.of(CategoriaDespesaModel.builder().id(2L).nome("Material").build()));
+        when(pessoaRepository.findByIdAndAtivoTrue(3L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> despesaService.criar(dto(null, null, null)))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("Pagador não encontrado");
+        verify(despesaRepository, never()).save(any());
+    }
+
+    // ADR-040: Imovel com exclusao.ativo = false não aceita nova despesa.
+    @Test
+    void imovelInativoNaoAceitaDespesa() {
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> despesaService.criar(dto(1L, null, null)))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("Imóvel não encontrado");
+        verify(despesaRepository, never()).save(any());
     }
 
     private DespesaModel capturarSalva() {
@@ -196,7 +298,11 @@ class DespesaServiceTest {
     }
 
     private DespesaRequestDTO dto(Long imovelId, FaseImovel fase, EtapaConstrucao etapa) {
-        return new DespesaRequestDTO(imovelId, 2L, 3L, null, null, fase, etapa,
+        return dto(imovelId, fase, etapa, null);
+    }
+
+    private DespesaRequestDTO dto(Long imovelId, FaseImovel fase, EtapaConstrucao etapa, Long contratoFinanceiroId) {
+        return new DespesaRequestDTO(imovelId, 2L, 3L, null, contratoFinanceiroId, fase, etapa,
                 new BigDecimal("1500.00"), PAGAMENTO, "Compra de material", null);
     }
 }
