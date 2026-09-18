@@ -21,6 +21,10 @@ está na lista de "estáticas" abaixo. Mudar uma regra atualiza ou cria o
 teste correspondente antes de considerar a mudança pronta — regra nova sem
 teste correspondente é trabalho inacabado, não uma lacuna para depois.
 
+Orçamento por categoria (`orcamentoCategoria/`, `orcadoVsRealizado`) é
+módulo pós-MVP (ver `docs/PROXIMOS-PASSOS.md`): os testes que já existem
+ficam, mas ele fica fora do critério — ausência de teste ali não é lacuna.
+
 ## Cenários cobertos, por arquivo
 
 **`RelatorioServiceTest`** — custo vs. caixa (`jurosDaParcelaEntramNoCustoMasAPrestacaoInteiraNao`,
@@ -119,7 +123,8 @@ inteiros; `contrato.model.spec.ts` cobre `saldoAEstornar`.
 - Ausência de funcionalidade: cronograma de parcelas de estorno, liberação
   do banco por medição lançada como movimento
 - Fora de escopo declarado: login/logout na auditoria, restauração de
-  exclusão lógica, `PessoaService`, `CategoriaDespesaService`
+  exclusão lógica, `PessoaService`, `CategoriaDespesaService`, orçamento
+  por categoria (pós-MVP)
 - Decisão de design sem comportamento a testar: auditoria manual em vez de
   Envers/AOP (ADR-042)
 

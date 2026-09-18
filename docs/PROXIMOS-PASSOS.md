@@ -400,7 +400,11 @@ superado; sobrou o que continua valendo:
 ## Módulos pós-MVP (ADR-029)
 
 - [ ] Orçamento por categoria (`orcamentoCategoria/` já existe no código, mas
-      está fora do MVP)
+      está fora do MVP). Ao ativar o módulo: a `@UniqueConstraint(imovel_id,
+      categoria_despesa_id)` de `OrcamentoCategoriaModel` ignora a exclusão
+      lógica, então recriar orçamento de categoria excluída ainda falha no
+      banco — trocar por índice único parcial (`WHERE ativo = true`) via
+      script em `db/manual/` (a checagem no service já filtra ativos)
 - [ ] Cotações e banco de orçamentos de fornecedor — o **cadastro** de fornecedor
       entrou no núcleo (RF08); só as cotações ficaram para depois
 - [ ] Diário de obra (clima, equipe, ocorrências, fotos com timestamp)
