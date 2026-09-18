@@ -31,6 +31,10 @@ public class ContratoFinanceiroMapper {
                 contrato.getSituacao(),
                 contrato.getDataQuitacao(),
                 contrato.getValorQuitacao(),
+                contrato.getDataCancelamento(),
+                contrato.getMotivoCancelamento(),
+                contrato.getValorEstornado(),
+                contrato.getDataEstorno(),
                 contrato.getParcelas().stream().map(this::toParcelaResponseDTO).toList()
         );
     }

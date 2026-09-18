@@ -12,15 +12,15 @@ class ImovelSituacaoRequestDTOTest {
 
     @Test
     void naoExigeNadaQuandoNaoEVendido() {
-        var dto = new ImovelSituacaoRequestDTO(SituacaoImovel.A_VENDA, null, null, null, null);
+        var dto = new ImovelSituacaoRequestDTO(SituacaoImovel.A_VENDA, null, null, null, null, null);
         assertThat(dto.isVendaValida()).isTrue();
     }
 
     @Test
     void exigeValorDataECompradorQuandoVendido() {
-        var semNada = new ImovelSituacaoRequestDTO(SituacaoImovel.VENDIDO, null, null, null, null);
+        var semNada = new ImovelSituacaoRequestDTO(SituacaoImovel.VENDIDO, null, null, null, null, null);
         var semComprador = new ImovelSituacaoRequestDTO(
-                SituacaoImovel.VENDIDO, new BigDecimal("300000"), LocalDate.now(), null, null);
+                SituacaoImovel.VENDIDO, new BigDecimal("300000"), LocalDate.now(), null, null, null);
         assertThat(semNada.isVendaValida()).isFalse();
         assertThat(semComprador.isVendaValida()).isFalse();
     }
@@ -28,7 +28,7 @@ class ImovelSituacaoRequestDTOTest {
     @Test
     void aceitaVendidoComValorDataEComprador() {
         var dto = new ImovelSituacaoRequestDTO(
-                SituacaoImovel.VENDIDO, new BigDecimal("300000"), LocalDate.now(), 1L, null);
+                SituacaoImovel.VENDIDO, new BigDecimal("300000"), LocalDate.now(), 1L, null, null);
         assertThat(dto.isVendaValida()).isTrue();
     }
 }

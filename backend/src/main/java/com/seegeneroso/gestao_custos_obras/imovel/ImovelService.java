@@ -6,7 +6,9 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFotoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroService;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
@@ -43,6 +45,7 @@ public class ImovelService {
     private final ImovelDocumentoRepository imovelDocumentoRepository;
     private final PessoaRepository pessoaRepository;
     private final ContratoFinanceiroRepository contratoFinanceiroRepository;
+    private final ContratoFinanceiroService contratoFinanceiroService;
     private final com.seegeneroso.gestao_custos_obras.shared.storage.StorageService storageService;
     private final ImovelMapper imovelMapper;
     private final AuditoriaService auditoriaService;
@@ -205,8 +208,19 @@ public class ImovelService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
         ImovelResponseDTO estadoAnterior = imovelMapper.toResponseDTO(imovel, buscarUrlFotoPrincipal(id));
 
-        if (imovel.getSituacao() == SituacaoImovel.VENDIDO && dto.novaSituacao() != SituacaoImovel.VENDIDO) {
-            throw new RegraDeNegocioException("Imóvel já vendido não pode voltar para outra situação.");
+        boolean desfazendoVenda = imovel.getSituacao() == SituacaoImovel.VENDIDO
+                && dto.novaSituacao() != SituacaoImovel.VENDIDO;
+
+        if (desfazendoVenda) {
+            if (dto.motivo() == null || dto.motivo().isBlank()) {
+                throw new RegraDeNegocioException("Motivo é obrigatório para desfazer uma venda.");
+            }
+            // Dado morto: uma venda que não vale mais não pode continuar em vendaValor/vendaData/
+            // vendaComprador, senão uma tela ou relatório futuro que ler esses campos sem checar a
+            // situação primeiro mentiria (ADR-043). valorPretendido não é venda, não muda aqui.
+            imovel.getVenda().setValor(null);
+            imovel.getVenda().setData(null);
+            imovel.getVenda().setComprador(null);
         }
 
         if (dto.novaSituacao() == SituacaoImovel.VENDIDO) {
@@ -224,9 +238,35 @@ public class ImovelService {
 
         imovel.setSituacao(dto.novaSituacao());
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
+
+        // Cascata automática e incondicional no PARCELAMENTO_VENDA vinculado (ADR-043): nunca
+        // bloqueia o PATCH acima, porque o imóvel precisa poder voltar ao mercado imediatamente —
+        // é vendê-lo de novo que costuma gerar o dinheiro do estorno.
+        if (desfazendoVenda) {
+            cascatearContratosDeVenda(id, dto.motivo());
+        }
         ImovelResponseDTO estadoNovo = imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
         auditoriaService.registrar("Imovel", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
         return estadoNovo;
+    }
+
+    // Sem parcela paga, o contrato é excluído (nada a estornar); com parcela paga, vira CANCELADO e
+    // passa a rastrear estorno (ADR-043). ContratoFinanceiroService decide, com evento de auditoria
+    // próprio em qualquer um dos dois casos — nunca a cascata silenciosa da exclusão do imóvel inteiro.
+    private void cascatearContratosDeVenda(Long imovelId, String motivo) {
+        List<ContratoFinanceiroModel> contratosDeVenda = contratoFinanceiroRepository.findByImovelId(imovelId).stream()
+                .filter(c -> c.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_VENDA
+                        && c.getSituacao() == SituacaoContrato.ATIVO)
+                .toList();
+
+        for (ContratoFinanceiroModel contrato : contratosDeVenda) {
+            boolean temParcelaPaga = contrato.getParcelas().stream().anyMatch(p -> p.getDataPagamento() != null);
+            if (temParcelaPaga) {
+                contratoFinanceiroService.cancelarPorVendaDesfeita(contrato.getId(), motivo, LocalDate.now());
+            } else {
+                contratoFinanceiroService.excluir(contrato.getId(), motivo);
+            }
+        }
     }
 
     private PessoaModel buscarPessoaOpcional(Long pessoaId) {

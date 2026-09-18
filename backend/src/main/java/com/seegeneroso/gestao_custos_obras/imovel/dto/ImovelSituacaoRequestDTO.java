@@ -16,7 +16,11 @@ public record ImovelSituacaoRequestDTO(
         Long compradorId,
 
         // Só faz sentido ao colocar à venda; é o momento em que o valor pretendido é decidido.
-        BigDecimal vendaValorPretendido
+        BigDecimal vendaValorPretendido,
+
+        // Obrigatório só ao desfazer uma venda (sair de VENDIDO) — validado em ImovelService,
+        // porque a situação atual não está disponível aqui no DTO (ADR-043).
+        String motivo
 ) {
 
     @AssertTrue(message = "Situação VENDIDO exige valor, data e comprador da venda")

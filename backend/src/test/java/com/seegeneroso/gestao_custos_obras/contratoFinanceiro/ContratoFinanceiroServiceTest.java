@@ -1,6 +1,7 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
 import com.seegeneroso.gestao_custos_obras.auth.UsuarioModel;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoEstornoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
@@ -182,6 +183,73 @@ class ContratoFinanceiroServiceTest {
 
         assertThat(vistoria.getContratoFinanceiro()).isNull();
         verify(despesaRepository).saveAll(List.of(vistoria));
+    }
+
+    // Cobre ADR-043: cascata de venda desfeita e rastreio de estorno.
+    @Test
+    void cancelarPorVendaDesfeitaGravaSituacaoDataMotivoEZeraEstorno() {
+        ContratoFinanceiroModel contrato = contratoDeVenda();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        service.cancelarPorVendaDesfeita(1L, "comprador desistiu", LocalDate.of(2026, 9, 20));
+
+        assertThat(contrato.getSituacao()).isEqualTo(SituacaoContrato.CANCELADO);
+        assertThat(contrato.getDataCancelamento()).isEqualTo(LocalDate.of(2026, 9, 20));
+        assertThat(contrato.getMotivoCancelamento()).isEqualTo("comprador desistiu");
+        assertThat(contrato.getValorEstornado()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void registrarEstornoRecusaContratoNaoCancelado() {
+        ContratoFinanceiroModel contrato = contratoDeVenda();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThrows(RegraDeNegocioException.class, () ->
+                service.registrarEstorno(1L, new ContratoEstornoRequestDTO(LocalDate.now(), new BigDecimal("100"))));
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    @Test
+    void registrarEstornoRecusaValorMaiorQueOSaldoAindaADevolver() {
+        ContratoFinanceiroModel contrato = contratoDeVenda();
+        contrato.setSituacao(SituacaoContrato.CANCELADO);
+        contrato.setValorEstornado(BigDecimal.ZERO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        // Só 5.000 foi pago na parcela (ver contratoDeVenda()); pedir mais que isso é recusado.
+        assertThrows(RegraDeNegocioException.class, () ->
+                service.registrarEstorno(1L, new ContratoEstornoRequestDTO(LocalDate.now(), new BigDecimal("9999"))));
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    @Test
+    void registrarEstornoAcumulaOValorDevolvidoEGravaAData() {
+        ContratoFinanceiroModel contrato = contratoDeVenda();
+        contrato.setSituacao(SituacaoContrato.CANCELADO);
+        contrato.setValorEstornado(new BigDecimal("1000"));
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        service.registrarEstorno(1L, new ContratoEstornoRequestDTO(LocalDate.of(2026, 10, 1), new BigDecimal("2000")));
+
+        assertThat(contrato.getValorEstornado()).isEqualByComparingTo("3000");
+        assertThat(contrato.getDataEstorno()).isEqualTo(LocalDate.of(2026, 10, 1));
+    }
+
+    // Parcela nº 1 paga em 5.000 — o total que precisaria ser devolvido se a venda caísse.
+    private ContratoFinanceiroModel contratoDeVenda() {
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(1L)
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_VENDA)
+                .situacao(SituacaoContrato.ATIVO)
+                .valorContratado(new BigDecimal("50000"))
+                .build();
+        ParcelaContratoModel paga = ParcelaContratoModel.builder().contrato(contrato).numero(1)
+                .dataVencimento(LocalDate.of(2026, 9, 15)).valor(new BigDecimal("5000"))
+                .dataPagamento(LocalDate.of(2026, 9, 15)).valorPago(new BigDecimal("5000")).build();
+        contrato.setParcelas(new java.util.ArrayList<>(List.of(paga)));
+        return contrato;
     }
 
     private ContratoFinanceiroModel contratoParaExcluir(SituacaoContrato situacao) {

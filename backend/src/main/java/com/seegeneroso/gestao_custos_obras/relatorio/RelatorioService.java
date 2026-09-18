@@ -214,6 +214,7 @@ public class RelatorioService {
         BigDecimal lucroRealizado = BigDecimal.ZERO;
         BigDecimal saldoDevedorTotal = BigDecimal.ZERO;
         BigDecimal saldoAReceberTotal = BigDecimal.ZERO;
+        BigDecimal saldoAEstornarTotal = BigDecimal.ZERO;
         long parcelasAVencer = 0;
         long parcelasAReceber = 0;
         Map<FaseImovel, Long> imoveisPorFase = new EnumMap<>(FaseImovel.class);
@@ -239,7 +240,11 @@ public class RelatorioService {
             }
 
             for (ContratoFinanceiroModel contrato : contratos) {
-                if (ehDivida(contrato)) {
+                // Venda desfeita: contrato cancelado não é mais dívida nem a receber, é estorno
+                // pendente — contá-lo nos outros dois mentiria (ADR-043).
+                if (contrato.getSituacao() == SituacaoContrato.CANCELADO) {
+                    saldoAEstornarTotal = saldoAEstornarTotal.add(saldoAEstornar(contrato));
+                } else if (ehDivida(contrato)) {
                     saldoDevedorTotal = saldoDevedorTotal.add(saldoEmAberto(contrato));
                     parcelasAVencer += contarParcelasEmAberto(contrato, hoje, limite30);
                 } else {
@@ -256,7 +261,19 @@ public class RelatorioService {
 
         return new CarteiraDTO(totalInvestido, totalGastoSemCompras, totalVendido, lucroRealizado,
                 imoveisPorFase, imoveisPorSituacao,
-                saldoDevedorTotal, saldoAReceberTotal, parcelasAVencer, parcelasAReceber, gastosGeraisPeriodo);
+                saldoDevedorTotal, saldoAReceberTotal, saldoAEstornarTotal,
+                parcelasAVencer, parcelasAReceber, gastosGeraisPeriodo);
+    }
+
+    // Soma das parcelas efetivamente pagas de um contrato de venda cancelado, menos o que já foi
+    // devolvido — "quanto falta devolver" é sempre calculado, nunca gravado (ADR-043).
+    private BigDecimal saldoAEstornar(ContratoFinanceiroModel contrato) {
+        BigDecimal totalPago = contrato.getParcelas().stream()
+                .filter(p -> p.getDataPagamento() != null)
+                .map(ParcelaContratoModel::getValorPago)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal jaEstornado = contrato.getValorEstornado() != null ? contrato.getValorEstornado() : BigDecimal.ZERO;
+        return totalPago.subtract(jaEstornado);
     }
 
     // O tipo do contrato decide de que lado ele conta: PARCELAMENTO_VENDA é crédito contra o
@@ -362,8 +379,10 @@ public class RelatorioService {
 
     // Soma das parcelas ainda não baixadas — a pagar num contrato de dívida, a receber num
     // PARCELAMENTO_VENDA. Quem chama é que decide de que lado somar (ver ehDivida).
+    // CANCELADO conta zero igual a QUITADO: a venda caiu, ninguém deve mais o resto das parcelas —
+    // o que falta resolver ali é estorno (saldoAEstornar), não saldo em aberto (ADR-043).
     private BigDecimal saldoEmAberto(ContratoFinanceiroModel contrato) {
-        if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
+        if (contrato.getSituacao() == SituacaoContrato.QUITADO || contrato.getSituacao() == SituacaoContrato.CANCELADO) {
             return BigDecimal.ZERO;
         }
         return contrato.getParcelas().stream()

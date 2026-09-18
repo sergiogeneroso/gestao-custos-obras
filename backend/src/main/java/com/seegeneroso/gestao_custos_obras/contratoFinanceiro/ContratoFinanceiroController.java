@@ -1,6 +1,7 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoDocumentoResponseDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoEstornoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoQuitacaoRequestDTO;
@@ -71,6 +72,12 @@ public class ContratoFinanceiroController {
     @PatchMapping("/{id}/quitar")
     public ResponseEntity<ContratoFinanceiroResponseDTO> quitar(@PathVariable Long id, @Valid @RequestBody ContratoQuitacaoRequestDTO dto) {
         return ResponseEntity.ok(contratoFinanceiroService.quitar(id, dto));
+    }
+
+    @PatchMapping("/{id}/estorno")
+    public ResponseEntity<ContratoFinanceiroResponseDTO> registrarEstorno(
+            @PathVariable Long id, @Valid @RequestBody ContratoEstornoRequestDTO dto) {
+        return ResponseEntity.ok(contratoFinanceiroService.registrarEstorno(id, dto));
     }
 
     @PatchMapping("/{id}/parcelas/{parcelaId}/pagamento")

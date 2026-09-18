@@ -1,14 +1,20 @@
 package com.seegeneroso.gestao_custos_obras.imovel;
 
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroService;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ParcelaContratoModel;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosCasaDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosConstrucaoDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFaseRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import org.junit.jupiter.api.Test;
@@ -20,12 +26,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +55,8 @@ class ImovelServiceTest {
     private PessoaRepository pessoaRepository;
     @Mock
     private ContratoFinanceiroRepository contratoFinanceiroRepository;
+    @Mock
+    private ContratoFinanceiroService contratoFinanceiroService;
     @Mock
     private StorageService storageService;
     @Spy
@@ -169,6 +179,81 @@ class ImovelServiceTest {
 
         assertThat(imovel.getFase()).isEqualTo(FaseImovel.CONSTRUCAO);
         assertThat(imovel.getConstrucao().getDataInicio()).isEqualTo(inicioObra);
+    }
+
+    // Cobre ADR-043: desfazer venda nunca é bloqueado pelo estado do contrato, e cascateia nele.
+    @Test
+    void desfazerVendaSemMotivoEhRecusado() {
+        ImovelModel imovel = imovel(FaseImovel.CASA);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+
+        ImovelSituacaoRequestDTO dto = new ImovelSituacaoRequestDTO(SituacaoImovel.A_VENDA, null, null, null, null, null);
+
+        assertThatThrownBy(() -> imovelService.alterarSituacao(1L, dto))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Motivo");
+        verify(imovelRepository, never()).save(any());
+    }
+
+    @Test
+    void desfazerVendaLimpaCamposDeVenda() {
+        ImovelModel imovel = imovel(FaseImovel.CASA);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.getVenda().setValor(new BigDecimal("300000"));
+        imovel.getVenda().setData(LocalDate.of(2026, 6, 1));
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of());
+
+        ImovelSituacaoRequestDTO dto = new ImovelSituacaoRequestDTO(
+                SituacaoImovel.A_VENDA, null, null, null, null, "comprador desistiu");
+        imovelService.alterarSituacao(1L, dto);
+
+        assertThat(imovel.getVenda().getValor()).isNull();
+        assertThat(imovel.getVenda().getData()).isNull();
+        assertThat(imovel.getVenda().getComprador()).isNull();
+    }
+
+    @Test
+    void desfazerVendaExcluiContratoDeVendaSemParcelaPaga() {
+        ImovelModel imovel = imovel(FaseImovel.CASA);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(9L).tipo(TipoContratoFinanceiro.PARCELAMENTO_VENDA).situacao(SituacaoContrato.ATIVO)
+                .parcelas(new java.util.ArrayList<>()).build();
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato));
+
+        imovelService.alterarSituacao(1L, new ImovelSituacaoRequestDTO(
+                SituacaoImovel.A_VENDA, null, null, null, null, "caiu"));
+
+        verify(contratoFinanceiroService).excluir(9L, "caiu");
+        verify(contratoFinanceiroService, never()).cancelarPorVendaDesfeita(any(), any(), any());
+    }
+
+    @Test
+    void desfazerVendaCancelaContratoDeVendaComParcelaPaga() {
+        ImovelModel imovel = imovel(FaseImovel.CASA);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(9L).tipo(TipoContratoFinanceiro.PARCELAMENTO_VENDA).situacao(SituacaoContrato.ATIVO).build();
+        ParcelaContratoModel paga = ParcelaContratoModel.builder().contrato(contrato).numero(1)
+                .dataVencimento(LocalDate.of(2026, 6, 1)).valor(new BigDecimal("5000"))
+                .dataPagamento(LocalDate.of(2026, 6, 1)).valorPago(new BigDecimal("5000")).build();
+        contrato.setParcelas(new java.util.ArrayList<>(List.of(paga)));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato));
+
+        imovelService.alterarSituacao(1L, new ImovelSituacaoRequestDTO(
+                SituacaoImovel.A_VENDA, null, null, null, null, "caiu"));
+
+        verify(contratoFinanceiroService).cancelarPorVendaDesfeita(eq(9L), eq("caiu"), any());
+        verify(contratoFinanceiroService, never()).excluir(any(), any());
     }
 
     private ImovelModel imovel(FaseImovel fase) {

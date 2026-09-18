@@ -18,5 +18,9 @@ public record ContratoFinanceiroResponseDTO(
         SituacaoContrato situacao,
         LocalDate dataQuitacao,
         BigDecimal valorQuitacao,
+        LocalDate dataCancelamento,
+        String motivoCancelamento,
+        BigDecimal valorEstornado,
+        LocalDate dataEstorno,
         List<ParcelaContratoResponseDTO> parcelas
 ) {}

@@ -295,6 +295,28 @@ class RelatorioServiceTest {
         assertThat(carteira.totalInvestido()).isEqualByComparingTo("100000");
     }
 
+    // ADR-043: contrato de venda cancelado não é mais "a receber" (o negócio caiu, ninguém deve o
+    // resto) nem "saldo devedor" — o que falta é estorno do que já foi pago.
+    @Test
+    void vendaDesfeitaComParcelaPagaContaComoSaldoAEstornarNaoComoAReceber() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        ParcelaContratoModel paga = parcela(new BigDecimal("8000"), null, LocalDate.now(), new BigDecimal("8000"));
+        ContratoFinanceiroModel contratoCancelado = contrato(TipoContratoFinanceiro.PARCELAMENTO_VENDA,
+                SituacaoContrato.CANCELADO, new BigDecimal("160000"), null, null, paga);
+        contratoCancelado.setValorEstornado(new BigDecimal("3000"));
+
+        when(imovelRepository.findByAtivoTrue()).thenReturn(List.of(imovel));
+        when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(List.of());
+        when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of(contratoCancelado));
+        when(despesaRepository.findByImovelIsNullAndAtivoTrue()).thenReturn(List.of());
+
+        CarteiraDTO carteira = relatorioService.carteira(null, null);
+
+        assertThat(carteira.saldoAEstornarTotal()).isEqualByComparingTo("5000");
+        assertThat(carteira.saldoAReceberTotal()).isEqualByComparingTo("0");
+        assertThat(carteira.saldoDevedorTotal()).isEqualByComparingTo("0");
+    }
+
     @Test
     void custoObraPorM2UsaAreaConstruidaESoDespesasDaConstrucao() {
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));

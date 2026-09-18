@@ -1,6 +1,7 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoDocumentoResponseDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoEstornoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoQuitacaoRequestDTO;
@@ -251,6 +252,68 @@ public class ContratoFinanceiroService {
         contrato.setSituacao(SituacaoContrato.QUITADO);
         contrato.setDataQuitacao(dto.dataQuitacao());
         contrato.setValorQuitacao(dto.valorQuitacao());
+
+        ContratoFinanceiroModel atualizado = contratoFinanceiroRepository.save(contrato);
+        ContratoFinanceiroResponseDTO estadoNovo = contratoFinanceiroMapper.toResponseDTO(atualizado);
+        auditoriaService.registrar("ContratoFinanceiro", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
+    }
+
+    /**
+     * Cascata acionada por {@code ImovelService} ao desfazer uma venda (ADR-043), só para
+     * PARCELAMENTO_VENDA com ao menos uma parcela paga — sem parcela paga, o contrato é excluído
+     * via {@link #excluir}. Gera evento de auditoria próprio: diferente da cascata de exclusão do
+     * imóvel inteiro (silenciosa, ADR-042), desfazer uma venda é uma operação normal de uso que
+     * muda o estado de um único contrato, não uma exclusão em massa.
+     */
+    @Transactional
+    public void cancelarPorVendaDesfeita(Long id, String motivo, LocalDate data) {
+        ContratoFinanceiroModel contrato = buscarContrato(id);
+        ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
+
+        contrato.setSituacao(SituacaoContrato.CANCELADO);
+        contrato.setDataCancelamento(data);
+        contrato.setMotivoCancelamento(motivo);
+        contrato.setValorEstornado(BigDecimal.ZERO);
+
+        ContratoFinanceiroModel atualizado = contratoFinanceiroRepository.save(contrato);
+        ContratoFinanceiroResponseDTO estadoNovo = contratoFinanceiroMapper.toResponseDTO(atualizado);
+        auditoriaService.registrar("ContratoFinanceiro", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+    }
+
+    // Soma das parcelas efetivamente pagas — o que precisa ser devolvido quando a venda cai.
+    private BigDecimal totalPago(ContratoFinanceiroModel contrato) {
+        return contrato.getParcelas().stream()
+                .filter(p -> p.getDataPagamento() != null)
+                .map(ParcelaContratoModel::getValorPago)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Baixa parcial ou total do estorno de um contrato CANCELADO (ADR-043). {@code valorEstornado}
+     * só cresce a cada chamada; "quanto falta devolver" é sempre calculado
+     * (totalPago − valorEstornado), nunca gravado — mesmo espírito de nunca alterar os valores
+     * originais das parcelas. Não existe cronograma de parcelas de estorno, de propósito: seria
+     * duplicar a máquina de {@code ParcelaContratoModel} para devoluções avulsas sem parcelamento
+     * negociado de verdade.
+     */
+    @Transactional
+    public ContratoFinanceiroResponseDTO registrarEstorno(Long id, ContratoEstornoRequestDTO dto) {
+        ContratoFinanceiroModel contrato = buscarContrato(id);
+        ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
+
+        if (contrato.getSituacao() != SituacaoContrato.CANCELADO) {
+            throw new RegraDeNegocioException("Só é possível registrar estorno em contrato cancelado.");
+        }
+
+        BigDecimal jaEstornado = contrato.getValorEstornado() != null ? contrato.getValorEstornado() : BigDecimal.ZERO;
+        BigDecimal saldoAEstornar = totalPago(contrato).subtract(jaEstornado);
+        if (dto.valor().compareTo(saldoAEstornar) > 0) {
+            throw new RegraDeNegocioException("Valor do estorno maior que o saldo ainda a devolver.");
+        }
+
+        contrato.setValorEstornado(jaEstornado.add(dto.valor()));
+        contrato.setDataEstorno(dto.data());
 
         ContratoFinanceiroModel atualizado = contratoFinanceiroRepository.save(contrato);
         ContratoFinanceiroResponseDTO estadoNovo = contratoFinanceiroMapper.toResponseDTO(atualizado);

@@ -50,6 +50,24 @@ public class ContratoFinanceiroModel {
     @Column(name = "valor_quitacao", precision = 14, scale = 2)
     private BigDecimal valorQuitacao;
 
+    // Cancelamento por venda desfeita (ADR-043, só PARCELAMENTO_VENDA). Campos próprios para o
+    // contrato se explicar sozinho, sem depender do log de auditoria do Imóvel.
+    @Column(name = "data_cancelamento")
+    private LocalDate dataCancelamento;
+
+    @Column(name = "motivo_cancelamento")
+    private String motivoCancelamento;
+
+    // Acumulado das baixas de estorno (registrarEstorno); "quanto falta devolver" é sempre
+    // calculado contra o total pago nas parcelas, nunca gravado (ADR-043).
+    @Column(name = "valor_estornado", precision = 14, scale = 2)
+    private BigDecimal valorEstornado;
+
+    // Data da baixa de estorno mais recente — não é um cronograma (ADR-043 descartou isso
+    // deliberadamente), só o fato mais recente, igual ao espírito de dataQuitacao.
+    @Column(name = "data_estorno")
+    private LocalDate dataEstorno;
+
     @Builder.Default
     @OneToMany(mappedBy = "contrato", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ParcelaContratoModel> parcelas = new ArrayList<>();
