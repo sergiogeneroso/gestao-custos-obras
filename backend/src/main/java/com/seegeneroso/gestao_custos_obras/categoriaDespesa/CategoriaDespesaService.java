@@ -6,6 +6,8 @@ import com.seegeneroso.gestao_custos_obras.shared.Buscas;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ public class CategoriaDespesaService {
 
     private final CategoriaDespesaRepository categoriaDespesaRepository;
     private final CategoriaDespesaMapper categoriaDespesaMapper;
+    private final AuditoriaService auditoriaService;
 
     @Transactional
     public CategoriaDespesaResponseDTO criar(CategoriaDespesaRequestDTO dto) {
@@ -30,7 +33,9 @@ public class CategoriaDespesaService {
 
         CategoriaDespesaModel entity = categoriaDespesaMapper.toEntity(dto);
         CategoriaDespesaModel salva = categoriaDespesaRepository.save(entity);
-        return categoriaDespesaMapper.toResponseDTO(salva);
+        CategoriaDespesaResponseDTO responseDto = categoriaDespesaMapper.toResponseDTO(salva);
+        auditoriaService.registrar("CategoriaDespesa", salva.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
+        return responseDto;
     }
 
     /**
@@ -63,6 +68,7 @@ public class CategoriaDespesaService {
     public CategoriaDespesaResponseDTO atualizar(Long id, CategoriaDespesaRequestDTO dto) {
         CategoriaDespesaModel entity = categoriaDespesaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria de despesa não encontrada com id: " + id));
+        CategoriaDespesaResponseDTO estadoAnterior = categoriaDespesaMapper.toResponseDTO(entity);
 
         categoriaDespesaRepository.findByNome(dto.nome()).ifPresent(e -> {
             if (!e.getId().equals(id)) {
@@ -72,14 +78,17 @@ public class CategoriaDespesaService {
 
         categoriaDespesaMapper.updateEntityFromDto(dto, entity);
         CategoriaDespesaModel atualizada = categoriaDespesaRepository.save(entity);
-        return categoriaDespesaMapper.toResponseDTO(atualizada);
+        CategoriaDespesaResponseDTO estadoNovo = categoriaDespesaMapper.toResponseDTO(atualizada);
+        auditoriaService.registrar("CategoriaDespesa", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional
     public void deletar(Long id) {
-        if (!categoriaDespesaRepository.existsById(id)) {
-            throw new RecursoNaoEncontradoException("Categoria de despesa não encontrada com id: " + id);
-        }
+        CategoriaDespesaModel entity = categoriaDespesaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria de despesa não encontrada com id: " + id));
+        CategoriaDespesaResponseDTO estadoAnterior = categoriaDespesaMapper.toResponseDTO(entity);
         categoriaDespesaRepository.deleteById(id);
+        auditoriaService.registrar("CategoriaDespesa", id, OperacaoAuditoria.EXCLUSAO, estadoAnterior, null);
     }
 }

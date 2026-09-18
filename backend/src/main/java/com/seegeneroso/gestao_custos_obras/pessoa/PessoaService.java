@@ -7,6 +7,8 @@ import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.validacao.Documentos;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +26,7 @@ public class PessoaService {
     private final PessoaRepository pessoaRepository;
     private final PessoaMapper pessoaMapper;
     private final UsuarioAutenticadoService usuarioAutenticadoService;
+    private final AuditoriaService auditoriaService;
 
     // O dígito verificador de CPF/CNPJ é checado por PessoaRequestDTO.isDocumentoValido(). Aqui a
     // comparação é sempre sobre o documento normalizado (o mesmo que o mapper grava): comparando a
@@ -37,7 +40,9 @@ public class PessoaService {
 
         PessoaModel entity = pessoaMapper.toEntity(dto);
         PessoaModel salvo = pessoaRepository.save(entity);
-        return pessoaMapper.toResponseDTO(salvo);
+        PessoaResponseDTO responseDto = pessoaMapper.toResponseDTO(salvo);
+        auditoriaService.registrar("Pessoa", salvo.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
+        return responseDto;
     }
 
     /**
@@ -73,6 +78,7 @@ public class PessoaService {
     public PessoaResponseDTO atualizar(Long id, PessoaRequestDTO dto) {
         PessoaModel entity = pessoaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pessoa não encontrada com id: " + id));
+        PessoaResponseDTO estadoAnterior = pessoaMapper.toResponseDTO(entity);
 
         String documento = Documentos.normalizar(dto.documento());
         if (!entity.getDocumento().equalsIgnoreCase(documento)
@@ -82,14 +88,18 @@ public class PessoaService {
 
         pessoaMapper.updateEntityFromDto(dto, entity);
         PessoaModel atualizado = pessoaRepository.save(entity);
-        return pessoaMapper.toResponseDTO(atualizado);
+        PessoaResponseDTO estadoNovo = pessoaMapper.toResponseDTO(atualizado);
+        auditoriaService.registrar("Pessoa", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional
     public void excluir(Long id, String motivo) {
         PessoaModel entity = pessoaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pessoa não encontrada com id: " + id));
+        PessoaResponseDTO estadoAnterior = pessoaMapper.toResponseDTO(entity);
         entity.getExclusao().excluir(motivo, usuarioAutenticadoService.usuarioAtual());
-        pessoaRepository.save(entity);
+        PessoaModel excluido = pessoaRepository.save(entity);
+        auditoriaService.registrar("Pessoa", id, OperacaoAuditoria.EXCLUSAO, estadoAnterior, pessoaMapper.toResponseDTO(excluido));
     }
 }

@@ -18,6 +18,8 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.Buscas;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
@@ -50,6 +52,7 @@ public class ContratoFinanceiroService {
     private final StorageService storageService;
     private final ContratoFinanceiroMapper contratoFinanceiroMapper;
     private final UsuarioAutenticadoService usuarioAutenticadoService;
+    private final AuditoriaService auditoriaService;
 
     @Transactional
     public ContratoFinanceiroResponseDTO criar(ContratoFinanceiroRequestDTO dto) {
@@ -84,7 +87,9 @@ public class ContratoFinanceiroService {
 
         ContratoFinanceiroModel salvo = contratoFinanceiroRepository.save(contrato);
         aplicarValorDoLote(imovel, salvo, dto);
-        return contratoFinanceiroMapper.toResponseDTO(salvo);
+        ContratoFinanceiroResponseDTO responseDto = contratoFinanceiroMapper.toResponseDTO(salvo);
+        auditoriaService.registrar("ContratoFinanceiro", salvo.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
+        return responseDto;
     }
 
     // A entrada é fato consumado no momento da compra, não evento futuro: nasce como parcela nº 0 já
@@ -139,6 +144,7 @@ public class ContratoFinanceiroService {
     @Transactional
     public ContratoFinanceiroResponseDTO atualizar(Long id, ContratoFinanceiroRequestDTO dto) {
         ContratoFinanceiroModel contrato = buscarContrato(id);
+        ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
 
         if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
             throw new RegraDeNegocioException("Contrato quitado não pode ser editado.");
@@ -157,7 +163,9 @@ public class ContratoFinanceiroService {
         aplicarParcelas(contrato, dto.parcelas() != null ? dto.parcelas() : List.of());
 
         ContratoFinanceiroModel atualizado = contratoFinanceiroRepository.save(contrato);
-        return contratoFinanceiroMapper.toResponseDTO(atualizado);
+        ContratoFinanceiroResponseDTO estadoNovo = contratoFinanceiroMapper.toResponseDTO(atualizado);
+        auditoriaService.registrar("ContratoFinanceiro", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     // Mexe só nas parcelas em aberto: as pagas continuam sendo as mesmas instâncias na coleção, porque
@@ -234,6 +242,7 @@ public class ContratoFinanceiroService {
     @Transactional
     public ContratoFinanceiroResponseDTO quitar(Long id, ContratoQuitacaoRequestDTO dto) {
         ContratoFinanceiroModel contrato = buscarContrato(id);
+        ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
 
         if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
             throw new RegraDeNegocioException("Contrato já está quitado.");
@@ -244,12 +253,15 @@ public class ContratoFinanceiroService {
         contrato.setValorQuitacao(dto.valorQuitacao());
 
         ContratoFinanceiroModel atualizado = contratoFinanceiroRepository.save(contrato);
-        return contratoFinanceiroMapper.toResponseDTO(atualizado);
+        ContratoFinanceiroResponseDTO estadoNovo = contratoFinanceiroMapper.toResponseDTO(atualizado);
+        auditoriaService.registrar("ContratoFinanceiro", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional
     public ContratoFinanceiroResponseDTO pagarParcela(Long contratoId, Long parcelaId, ParcelaPagamentoRequestDTO dto) {
         ContratoFinanceiroModel contrato = buscarContrato(contratoId);
+        ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
 
         ParcelaContratoModel parcela = parcelaContratoRepository.findById(parcelaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Parcela não encontrada com id: " + parcelaId));
@@ -262,7 +274,9 @@ public class ContratoFinanceiroService {
         parcela.setValorPago(dto.valorPago());
         parcelaContratoRepository.save(parcela);
 
-        return contratoFinanceiroMapper.toResponseDTO(contrato);
+        ContratoFinanceiroResponseDTO estadoNovo = contratoFinanceiroMapper.toResponseDTO(contrato);
+        auditoriaService.registrar("ContratoFinanceiro", contratoId, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional
@@ -326,9 +340,13 @@ public class ContratoFinanceiroService {
     // Endpoint avulso de exclusão (correção de cadastro errado, ADR-040). Trava espelhando a de
     // atualizar(): contrato QUITADO ou com parcela já paga já entrou no resultado apurado de
     // algum relatório — excluir mudaria isso silenciosamente.
+    // O registro de auditoria fica aqui, não em cascatearExclusao: a cascata disparada pela
+    // exclusão do imóvel inteiro (ImovelExclusaoService) não gera evento próprio de contrato,
+    // só o do imóvel (ver .agents/rules/auditoria.md).
     @Transactional
     public void excluir(Long id, String motivo) {
         ContratoFinanceiroModel contrato = buscarContrato(id);
+        ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
 
         if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
             throw new RegraDeNegocioException("Contrato quitado não pode ser excluído.");
@@ -339,6 +357,8 @@ public class ContratoFinanceiroService {
         }
 
         cascatearExclusao(contrato, motivo, usuarioAutenticadoService.usuarioAtual());
+        auditoriaService.registrar("ContratoFinanceiro", id, OperacaoAuditoria.EXCLUSAO, estadoAnterior,
+                contratoFinanceiroMapper.toResponseDTO(contrato));
     }
 
     /**

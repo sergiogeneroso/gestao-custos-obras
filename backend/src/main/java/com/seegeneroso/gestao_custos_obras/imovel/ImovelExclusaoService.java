@@ -6,9 +6,12 @@ import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiro
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroService;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImpactoExclusaoImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaModel;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaRepository;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
@@ -37,11 +40,17 @@ public class ImovelExclusaoService {
     private final ImovelDocumentoRepository imovelDocumentoRepository;
     private final StorageService storageService;
     private final UsuarioAutenticadoService usuarioAutenticadoService;
+    private final ImovelMapper imovelMapper;
+    private final AuditoriaService auditoriaService;
 
+    // Um único registro de auditoria para o imóvel: as entidades cascateadas (despesas, contratos,
+    // orçamento) já ganham excluidoPor/excluidoEm/motivoExclusao próprios via ExclusaoLogica — não
+    // duplicar um evento de auditoria por filho cascateado (ver .agents/rules/auditoria.md).
     @Transactional
     public void excluir(Long imovelId, String motivo) {
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(imovelId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + imovelId));
+        ImovelResponseDTO estadoAnterior = imovelMapper.toResponseDTO(imovel, null);
         UsuarioModel usuario = usuarioAutenticadoService.usuarioAtual();
 
         // Contratos antes de despesas: cascatearExclusao desvincula despesa de custo acessório
@@ -70,7 +79,9 @@ public class ImovelExclusaoService {
         }
 
         imovel.getExclusao().excluir(motivo, usuario);
-        imovelRepository.save(imovel);
+        ImovelModel imovelExcluido = imovelRepository.save(imovel);
+        auditoriaService.registrar("Imovel", imovelId, OperacaoAuditoria.EXCLUSAO, estadoAnterior,
+                imovelMapper.toResponseDTO(imovelExcluido, null));
     }
 
     @Transactional(readOnly = true)

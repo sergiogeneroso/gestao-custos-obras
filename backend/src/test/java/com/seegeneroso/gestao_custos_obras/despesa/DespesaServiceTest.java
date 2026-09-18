@@ -14,6 +14,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,6 +60,8 @@ class DespesaServiceTest {
     private StorageService storageService;
     @Spy
     private DespesaMapper despesaMapper = new DespesaMapper();
+    @Mock
+    private AuditoriaService auditoriaService;
 
     @InjectMocks
     private DespesaService despesaService;

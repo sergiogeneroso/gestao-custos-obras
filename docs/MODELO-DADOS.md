@@ -164,6 +164,16 @@ erDiagram
         VARCHAR fase_imovel
         VARCHAR url
     }
+    LOG_AUDITORIA {
+        BIGSERIAL id PK
+        VARCHAR entidade "Despesa, Imovel, Pessoa... (ADR-042)"
+        BIGINT entidade_id
+        VARCHAR operacao "CRIACAO, EDICAO, EXCLUSAO"
+        BIGINT usuario_id FK
+        TIMESTAMP data_hora
+        JSONB estado_anterior "ResponseDTO serializado, nulo em CRIACAO"
+        JSONB estado_novo "ResponseDTO serializado, nulo em exclusão física"
+    }
 
     PESSOA ||--o{ DESPESA : "paga"
     PESSOA ||--o{ DESPESA : "recebe"
@@ -186,6 +196,7 @@ erDiagram
     USUARIO ||--o{ CONTRATO_FINANCEIRO : "excluiu (ExclusaoLogica)"
     USUARIO ||--o{ PARCELA_CONTRATO : "excluiu (ExclusaoLogica)"
     USUARIO ||--o{ ORCAMENTO_CATEGORIA : "excluiu (ExclusaoLogica)"
+    USUARIO ||--o{ LOG_AUDITORIA : "fez"
 ```
 
 ## Regras que não estão óbvias só olhando o schema
@@ -231,5 +242,14 @@ erDiagram
   `contrato_financeiro`, `parcela_contrato` e `orcamento_categoria`. Fotos,
   documentos do imóvel, anexos de despesa e documentos de contrato continuam
   com DELETE físico — são arquivo, sem resultado financeiro a proteger
+- **`log_auditoria` é genérica e compartilhada** (ADR-042): toda mutação
+  (`criar`/`atualizar`/`excluir`, e transições como `avancarFase`) de
+  `Despesa`, `Imovel`, `Pessoa`, `ContratoFinanceiro`, `CategoriaDespesa` e
+  `OrcamentoCategoria` grava um registro aqui, com `estado_anterior`/
+  `estado_novo` sendo o `ResponseDTO` do domínio serializado em JSONB — nunca
+  a entidade JPA. A exclusão em cascata do imóvel gera um único evento (o do
+  próprio imóvel); despesas/contratos/orçamento cascateados não geram evento
+  próprio. Sub-recursos auxiliares (fotos, documentos, anexos) não são
+  auditados. Ver `.agents/rules/auditoria.md`
 - Regras de negócio que não são constraint de banco (regra de custo, transições
   de fase) estão em `.agents/rules/`, que carregam sozinhas no escopo delas

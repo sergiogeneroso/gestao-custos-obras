@@ -61,6 +61,14 @@ preferir um ponto de partida menor.
      nem `deletar` — grava via `entity.getExclusao().excluir(motivo,
      usuarioAutenticadoService.usuarioAtual())` (injetar
      `shared/auth/UsuarioAutenticadoService`)
+   - **Auditoria é obrigatória em `criar`/`atualizar`/`excluir`** (ADR-042,
+     ver `.agents/rules/auditoria.md`): injetar
+     `shared/auditoria/AuditoriaService` e chamar
+     `auditoriaService.registrar("{Dominio}", id, OperacaoAuditoria.CRIACAO|EDICAO|EXCLUSAO,
+     estadoAnterior, estadoNovo)`, sempre com o `ResponseDTO` (nunca a
+     entidade) como estado. Em `atualizar`/`excluir`, mapear `estadoAnterior`
+     para DTO **antes** de aplicar qualquer mutação na entidade — inclusive
+     antes da mutação de `ExclusaoLogica.excluir(...)`
    - `{Dominio}Controller.java` — `/api/{dominio-plural-em-portugues}`,
      `@Valid`, `ResponseEntity.created()` no POST. `DELETE /{id}` recebe
      `@Valid @RequestBody ExclusaoRequestDTO dto` (`shared/exclusao/`) e

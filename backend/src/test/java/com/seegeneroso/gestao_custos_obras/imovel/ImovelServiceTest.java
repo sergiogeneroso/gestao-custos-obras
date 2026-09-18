@@ -6,6 +6,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosConstrucaoDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFaseRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
@@ -50,6 +51,8 @@ class ImovelServiceTest {
     private StorageService storageService;
     @Spy
     private ImovelMapper imovelMapper = new ImovelMapper();
+    @Mock
+    private AuditoriaService auditoriaService;
 
     @InjectMocks
     private ImovelService imovelService;

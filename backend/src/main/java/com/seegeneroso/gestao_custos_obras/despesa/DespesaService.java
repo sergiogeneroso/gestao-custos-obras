@@ -20,6 +20,8 @@ import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontrado
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -50,6 +52,7 @@ public class DespesaService {
     private final StorageService storageService;
     private final DespesaMapper despesaMapper;
     private final UsuarioAutenticadoService usuarioAutenticadoService;
+    private final AuditoriaService auditoriaService;
 
     @Transactional
     public DespesaResponseDTO criar(DespesaRequestDTO dto) {
@@ -76,13 +79,16 @@ public class DespesaService {
                 .build();
 
         DespesaModel despesaSalva = despesaRepository.save(despesa);
-        return despesaMapper.toResponseDTO(despesaSalva);
+        DespesaResponseDTO responseDto = despesaMapper.toResponseDTO(despesaSalva);
+        auditoriaService.registrar("Despesa", despesaSalva.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
+        return responseDto;
     }
 
     @Transactional
     public DespesaResponseDTO atualizar(Long id, DespesaRequestDTO dto) {
         DespesaModel despesa = despesaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+        DespesaResponseDTO estadoAnterior = despesaMapper.toResponseDTO(despesa);
 
         ImovelModel imovel = buscarImovelOpcional(dto.imovelId());
         CategoriaDespesaModel categoria = buscarCategoria(dto.categoriaDespesaId());
@@ -105,7 +111,9 @@ public class DespesaService {
         despesa.setObservacao(dto.observacao());
 
         DespesaModel despesaAtualizada = despesaRepository.save(despesa);
-        return despesaMapper.toResponseDTO(despesaAtualizada);
+        DespesaResponseDTO estadoNovo = despesaMapper.toResponseDTO(despesaAtualizada);
+        auditoriaService.registrar("Despesa", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional(readOnly = true)
@@ -193,8 +201,10 @@ public class DespesaService {
     public void excluir(Long id, String motivo) {
         DespesaModel despesa = despesaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+        DespesaResponseDTO estadoAnterior = despesaMapper.toResponseDTO(despesa);
         despesa.getExclusao().excluir(motivo, usuarioAutenticadoService.usuarioAtual());
-        despesaRepository.save(despesa);
+        DespesaModel despesaExcluida = despesaRepository.save(despesa);
+        auditoriaService.registrar("Despesa", id, OperacaoAuditoria.EXCLUSAO, estadoAnterior, despesaMapper.toResponseDTO(despesaExcluida));
     }
 
     private ImovelModel buscarImovelOpcional(Long imovelId) {

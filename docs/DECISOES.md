@@ -950,3 +950,44 @@ repetiria a mesma decisão sem adicionar rede de segurança nova.
 de obrigatoriedade de campo) descoberta no meio do caminho, ainda exige plan
 mode — inclusive dentro de uma sessão que começou como grilling, se a
 resposta do usuário abrir uma regra nova não antes interrogada.
+
+## ADR-042 — Log de auditoria genérico, captura explícita (Set 2026)
+
+O usuário pediu para saber o que cada usuário fez no sistema e guardar o
+estado anterior em alteração/exclusão. Três caminhos técnicos foram
+avaliados: Hibernate Envers (tabela `_AUD` automática por entidade),
+captura via `Aspect` (AOP) interceptando os Services, e tabela genérica
+compartilhada com chamada explícita.
+
+**Decisão: tabela genérica `log_auditoria` em `shared/auditoria/`
+(entidade, entidadeId, operação, usuário, dataHora, estadoAnterior/
+estadoNovo em JSONB) + chamada explícita em cada Service**, no mesmo padrão
+já usado por `ExclusaoLogica`/`UsuarioAutenticadoService`.
+
+Envers foi descartado por criar uma tabela de histórico por entidade —
+schema duplicado a cada novo domínio — e por exigir configuração extra
+(`RevisionListener`) só para capturar quem fez a alteração, que o projeto já
+resolve com `UsuarioAutenticadoService`. AOP foi descartado por adicionar
+uma camada implícita: quem lê um `Service.atualizar()` não veria a
+auditoria acontecer, teria que saber que existe um `Aspect` em outro lugar
+interceptando aquele método — o oposto do estilo explícito que o projeto já
+usa em `ExclusaoLogica.excluir()`.
+
+**Snapshot é o `ResponseDTO` do domínio, não a entidade JPA.** Serializar a
+entidade com Jackson quebraria em relacionamento bidirecional (referência
+circular) ou `LazyInitializationException`; o `ResponseDTO` já é o formato
+plano que a API expõe, sem esse risco.
+
+**Escopo desta primeira versão, decidido em sessão de grilling:** cobre
+CREATE/UPDATE/DELETE dos domínios de negócio (não login/logout — evento
+diferente, sem estado antes/depois, fica para decisão futura separada); não
+cobre sub-recursos auxiliares (fotos, documentos, anexos) nem a exclusão em
+cascata de cada filho do imóvel — a exclusão do imóvel gera um único evento
+de auditoria, os filhos cascateados continuam identificáveis pelos próprios
+campos de `ExclusaoLogica`. Consulta via endpoint único
+`GET /api/auditoria?entidade=X&entidadeId=Y`, sem rota própria por domínio,
+acessível a qualquer usuário autenticado (RBAC ainda não existe).
+
+**Convenção geral daqui em diante:** todo domínio novo nasce com a chamada
+de auditoria em `criar`/`atualizar`/`excluir`, igual à exclusão lógica — ver
+`.agents/rules/auditoria.md` e a skill `gerar-crud-dominio`.

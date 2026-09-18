@@ -10,6 +10,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
@@ -59,6 +60,8 @@ class ContratoFinanceiroServiceTest {
     private ContratoFinanceiroMapper contratoFinanceiroMapper;
     @Mock
     private UsuarioAutenticadoService usuarioAutenticadoService;
+    @Mock
+    private AuditoriaService auditoriaService;
 
     @InjectMocks
     private ContratoFinanceiroService service;

@@ -19,6 +19,8 @@ import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import com.seegeneroso.gestao_custos_obras.shared.storage.ArquivoUrls;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +45,7 @@ public class ImovelService {
     private final ContratoFinanceiroRepository contratoFinanceiroRepository;
     private final com.seegeneroso.gestao_custos_obras.shared.storage.StorageService storageService;
     private final ImovelMapper imovelMapper;
+    private final AuditoriaService auditoriaService;
 
     @Transactional
     public ImovelResponseDTO criar(ImovelRequestDTO dto) {
@@ -53,7 +56,9 @@ public class ImovelService {
         PessoaModel vendedor = buscarPessoaOpcional(dto.compraVendedorId());
         ImovelModel imovel = imovelMapper.toEntity(dto, vendedor);
         ImovelModel imovelSalvo = imovelRepository.save(imovel);
-        return imovelMapper.toResponseDTO(imovelSalvo, null);
+        ImovelResponseDTO responseDto = imovelMapper.toResponseDTO(imovelSalvo, null);
+        auditoriaService.registrar("Imovel", imovelSalvo.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
+        return responseDto;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +103,7 @@ public class ImovelService {
     public ImovelResponseDTO atualizar(Long id, ImovelRequestDTO dto) {
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
+        ImovelResponseDTO estadoAnterior = imovelMapper.toResponseDTO(imovel, buscarUrlFotoPrincipal(id));
 
         if (!imovel.getIdentificador().equalsIgnoreCase(dto.identificador())
                 && imovelRepository.existsByIdentificadorIgnoreCase(dto.identificador())) {
@@ -111,13 +117,16 @@ public class ImovelService {
         imovelMapper.updateEntityFromDto(dto, vendedor, responsavelTecnico, imovel);
         validarOrdemDatas(imovel);
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
-        return imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
+        ImovelResponseDTO estadoNovo = imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
+        auditoriaService.registrar("Imovel", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional
     public ImovelResponseDTO avancarFase(Long id, ImovelFaseRequestDTO dto) {
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
+        ImovelResponseDTO estadoAnterior = imovelMapper.toResponseDTO(imovel, buscarUrlFotoPrincipal(id));
 
         FaseImovel[] ordem = FaseImovel.values();
         int atual = imovel.getFase().ordinal();
@@ -155,7 +164,9 @@ public class ImovelService {
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
 
         String aviso = dto.novaFase() == FaseImovel.CONSTRUCAO ? avisoParcelamentoCompraAtivo(id) : null;
-        return imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id), aviso);
+        ImovelResponseDTO estadoNovo = imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id), aviso);
+        auditoriaService.registrar("Imovel", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     // Ponto único da ordem das datas do ciclo (.agents/rules/ciclo-vida-imovel.md): vale tanto na
@@ -192,6 +203,7 @@ public class ImovelService {
     public ImovelResponseDTO alterarSituacao(Long id, ImovelSituacaoRequestDTO dto) {
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + id));
+        ImovelResponseDTO estadoAnterior = imovelMapper.toResponseDTO(imovel, buscarUrlFotoPrincipal(id));
 
         if (imovel.getSituacao() == SituacaoImovel.VENDIDO && dto.novaSituacao() != SituacaoImovel.VENDIDO) {
             throw new RegraDeNegocioException("Imóvel já vendido não pode voltar para outra situação.");
@@ -212,7 +224,9 @@ public class ImovelService {
 
         imovel.setSituacao(dto.novaSituacao());
         ImovelModel imovelAtualizado = imovelRepository.save(imovel);
-        return imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
+        ImovelResponseDTO estadoNovo = imovelMapper.toResponseDTO(imovelAtualizado, buscarUrlFotoPrincipal(id));
+        auditoriaService.registrar("Imovel", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     private PessoaModel buscarPessoaOpcional(Long pessoaId) {

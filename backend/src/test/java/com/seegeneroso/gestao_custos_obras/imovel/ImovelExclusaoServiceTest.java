@@ -9,6 +9,7 @@ import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImpactoExclusaoImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaModel;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaRepository;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
@@ -52,6 +53,10 @@ class ImovelExclusaoServiceTest {
     private StorageService storageService;
     @Mock
     private UsuarioAutenticadoService usuarioAutenticadoService;
+    @Mock
+    private ImovelMapper imovelMapper;
+    @Mock
+    private AuditoriaService auditoriaService;
 
     @InjectMocks
     private ImovelExclusaoService service;

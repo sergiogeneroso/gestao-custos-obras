@@ -10,6 +10,8 @@ import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCateg
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.dto.OrcamentoCategoriaResponseDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class OrcamentoCategoriaService {
     private final DespesaRepository despesaRepository;
     private final OrcamentoCategoriaMapper orcamentoCategoriaMapper;
     private final UsuarioAutenticadoService usuarioAutenticadoService;
+    private final AuditoriaService auditoriaService;
 
     @Transactional
     public OrcamentoCategoriaResponseDTO criar(OrcamentoCategoriaRequestDTO dto) {
@@ -53,13 +56,17 @@ public class OrcamentoCategoriaService {
         OrcamentoCategoriaModel orcamentoSalvo = orcamentoCategoriaRepository.save(orcamento);
         BigDecimal totalGasto = calcularTotalGasto(dto.imovelId(), dto.categoriaDespesaId());
 
-        return orcamentoCategoriaMapper.toResponseDTO(orcamentoSalvo, totalGasto);
+        OrcamentoCategoriaResponseDTO responseDto = orcamentoCategoriaMapper.toResponseDTO(orcamentoSalvo, totalGasto);
+        auditoriaService.registrar("OrcamentoCategoria", orcamentoSalvo.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
+        return responseDto;
     }
 
     @Transactional
     public OrcamentoCategoriaResponseDTO atualizar(Long id, OrcamentoCategoriaRequestDTO dto) {
         OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Orçamento de categoria não encontrado com id: " + id));
+        OrcamentoCategoriaResponseDTO estadoAnterior = orcamentoCategoriaMapper.toResponseDTO(orcamento,
+                calcularTotalGasto(orcamento.getImovel().getId(), orcamento.getCategoriaDespesa().getId()));
 
         ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(dto.imovelId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + dto.imovelId()));
@@ -83,7 +90,9 @@ public class OrcamentoCategoriaService {
         OrcamentoCategoriaModel orcamentoAtualizado = orcamentoCategoriaRepository.save(orcamento);
         BigDecimal totalGasto = calcularTotalGasto(dto.imovelId(), dto.categoriaDespesaId());
 
-        return orcamentoCategoriaMapper.toResponseDTO(orcamentoAtualizado, totalGasto);
+        OrcamentoCategoriaResponseDTO estadoNovo = orcamentoCategoriaMapper.toResponseDTO(orcamentoAtualizado, totalGasto);
+        auditoriaService.registrar("OrcamentoCategoria", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
     }
 
     @Transactional(readOnly = true)
@@ -122,8 +131,12 @@ public class OrcamentoCategoriaService {
     public void excluir(Long id, String motivo) {
         OrcamentoCategoriaModel orcamento = orcamentoCategoriaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Orçamento de categoria não encontrado com id: " + id));
+        BigDecimal totalGasto = calcularTotalGasto(orcamento.getImovel().getId(), orcamento.getCategoriaDespesa().getId());
+        OrcamentoCategoriaResponseDTO estadoAnterior = orcamentoCategoriaMapper.toResponseDTO(orcamento, totalGasto);
         orcamento.getExclusao().excluir(motivo, usuarioAutenticadoService.usuarioAtual());
-        orcamentoCategoriaRepository.save(orcamento);
+        OrcamentoCategoriaModel excluido = orcamentoCategoriaRepository.save(orcamento);
+        auditoriaService.registrar("OrcamentoCategoria", id, OperacaoAuditoria.EXCLUSAO, estadoAnterior,
+                orcamentoCategoriaMapper.toResponseDTO(excluido, totalGasto));
     }
 
     private BigDecimal calcularTotalGasto(Long imovelId, Long categoriaDespesaId) {
