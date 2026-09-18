@@ -202,21 +202,21 @@ class RelatorioServiceTest {
     // à proibição de double para valor monetário — este é indicador percentual).
     @Test
     void rentabilidadeAnualizadaAnualizaOLucroPeloTempoEmCarteira() {
-        // Compra em 2025-01-01, venda em 2026-01-01: 365 dias corridos (2025 não é bissexto).
+        // Compra em 2025-01-01, venda em 2027-01-01: 730 dias corridos (2025 e 2026 não são bissextos).
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
         imovel.getCompra().setData(LocalDate.of(2025, 1, 1));
         imovel.setSituacao(SituacaoImovel.VENDIDO);
         imovel.setFase(FaseImovel.CASA);
         imovel.getVenda().setValor(new BigDecimal("150000"));
-        imovel.getVenda().setData(LocalDate.of(2026, 1, 1));
+        imovel.getVenda().setData(LocalDate.of(2027, 1, 1));
 
         mockar(imovel, List.of(), List.of());
 
         ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
 
-        assertThat(resultado.diasEmCarteira()).isEqualTo(365L);
-        // roi = 50000/100000 = 0,5; anualizado com 365/365 dias = 1,5^(365/365) - 1 = 0,5
-        assertThat(resultado.rentabilidadeAnualizada()).isCloseTo(0.5, offset(0.0001));
+        assertThat(resultado.diasEmCarteira()).isEqualTo(730L);
+        // roi = 50000/100000 = 0,5 em dois anos; anualizado = 1,5^(365/730) - 1 = 0,224745
+        assertThat(resultado.rentabilidadeAnualizada()).isCloseTo(0.224745, offset(0.0001));
     }
 
     @Test
