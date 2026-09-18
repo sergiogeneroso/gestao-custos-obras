@@ -67,6 +67,7 @@ Alvo do reescopo de Ago 2026 (ADR-019 a ADR-029):
 | Relatório          | `/api/relatorios`           | Resultado, fornecedor, extrato, carteira + CSV |
 | OrcamentoCategoria | `/api/orcamentos-categoria` | Existe no código, **fora do MVP** (ADR-029); exclusão exige `{motivo}` (ADR-040) |
 | Auth               | `/api/auth`                 | POST /login emite JWT (RNF01)                  |
+| Auditoria          | `/api/auditoria`            | `GET ?entidade=X&entidadeId=Y` — histórico genérico de criação/edição/exclusão dos domínios de negócio (ADR-042) |
 
 As invariantes financeiras e as do ciclo de vida do imóvel não vivem aqui: estão
 em `.agents/rules/regras-negocio-financeiras.md`, `ciclo-vida-imovel.md` e
