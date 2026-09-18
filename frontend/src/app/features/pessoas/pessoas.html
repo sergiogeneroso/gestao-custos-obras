@@ -57,6 +57,9 @@
             <td class="table__acoes">
               <div class="table__acoes-grupo">
                 <button mat-stroked-button type="button" (click)="editar(pessoa)">Editar</button>
+                <button mat-icon-button type="button" (click)="verHistorico(pessoa)" aria-label="Ver histórico">
+                  <i class="ph ph-clock-counter-clockwise icone-secundario"></i>
+                </button>
                 <button mat-icon-button type="button" (click)="excluir(pessoa)" aria-label="Excluir pessoa">
                   <i class="ph ph-trash icone-secundario"></i>
                 </button>

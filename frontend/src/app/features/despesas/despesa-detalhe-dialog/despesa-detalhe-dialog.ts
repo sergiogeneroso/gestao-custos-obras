@@ -9,6 +9,7 @@ import {
 import { DespesaFormDialog } from '../despesa-form-dialog/despesa-form-dialog';
 import { DespesaPainelDetalhe } from '../despesa-painel-detalhe/despesa-painel-detalhe';
 import { DespesaResponseDTO } from '../despesa.model';
+import { HistoricoDialog } from '../../../shared/auditoria/historico-dialog/historico-dialog';
 
 export interface DespesaDetalheDialogData {
   /** A página carregada da tabela, para o diálogo percorrê-la sem voltar ao servidor. */
@@ -60,6 +61,15 @@ export class DespesaDetalheDialog {
         // campos, sem perder a posição de quem estava percorrendo a página.
         this.despesas.update((atuais) => atuais.map((d) => (d.id === salva.id ? salva : d)));
       });
+  }
+
+  protected verHistorico(): void {
+    this.dialog.open(HistoricoDialog, {
+      data: { entidade: 'Despesa', entidadeId: this.despesa().id, titulo: this.despesa().descricao || `#${this.despesa().id}` },
+      autoFocus: false,
+      width: '640px',
+      maxWidth: '95vw',
+    });
   }
 
   protected fechar(): void {

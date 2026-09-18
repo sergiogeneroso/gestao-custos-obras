@@ -6,6 +6,7 @@ import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/d
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
+import { HistoricoDialog } from '../../../shared/auditoria/historico-dialog/historico-dialog';
 import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { paraData, paraIso } from '../../../shared/data/data.util';
@@ -165,6 +166,15 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
 
   protected rotuloSaldo(contrato: PosicaoContratoDTO): string {
     return contrato.tipo === 'PARCELAMENTO_VENDA' ? 'a receber' : 'saldo devedor';
+  }
+
+  protected verHistorico(): void {
+    this.dialog.open(HistoricoDialog, {
+      data: { entidade: 'Imovel', entidadeId: this.imovel().id, titulo: this.imovel().identificador },
+      autoFocus: false,
+      width: '640px',
+      maxWidth: '95vw',
+    });
   }
 
   private carregarDocumentos(): void {

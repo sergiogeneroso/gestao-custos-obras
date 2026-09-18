@@ -5,6 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
+import { HistoricoDialog } from '../../shared/auditoria/historico-dialog/historico-dialog';
 import { PessoaFormDialog } from './pessoa-form-dialog/pessoa-form-dialog';
 import { PessoaResponseDTO, TIPO_PESSOA_LABEL } from './pessoa.model';
 import { formatarDocumento } from '../../shared/mascara/documento';
@@ -58,6 +59,15 @@ export class Pessoas {
 
   protected editar(pessoa: PessoaResponseDTO): void {
     this.abrirFormulario(pessoa);
+  }
+
+  protected verHistorico(pessoa: PessoaResponseDTO): void {
+    this.dialog.open(HistoricoDialog, {
+      data: { entidade: 'Pessoa', entidadeId: pessoa.id, titulo: pessoa.nome },
+      autoFocus: false,
+      width: '640px',
+      maxWidth: '95vw',
+    });
   }
 
   protected excluir(pessoa: PessoaResponseDTO): void {

@@ -13,6 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { ConfirmExclusaoDialog } from '../../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
+import { HistoricoDialog } from '../../../shared/auditoria/historico-dialog/historico-dialog';
 import {
   ContratoDocumentoResponseDTO,
   ContratoFinanceiroResponseDTO,
@@ -214,6 +215,15 @@ export class ContratoDetalheDialog implements OnInit {
 
   protected editar(): void {
     this.dialogRef.close('editar');
+  }
+
+  protected verHistorico(): void {
+    this.dialog.open(HistoricoDialog, {
+      data: { entidade: 'ContratoFinanceiro', entidadeId: this.contrato().id, titulo: this.tipoLabel[this.contrato().tipo] },
+      autoFocus: false,
+      width: '640px',
+      maxWidth: '95vw',
+    });
   }
 
   // Trava de QUITADO/parcela paga fica no backend (ADR-040) — aqui só evita o clique óbvio,

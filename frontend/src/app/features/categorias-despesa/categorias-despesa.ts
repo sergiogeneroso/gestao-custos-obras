@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
+import { HistoricoDialog } from '../../shared/auditoria/historico-dialog/historico-dialog';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { CategoriaDespesaFormDialog } from './categoria-despesa-form-dialog/categoria-despesa-form-dialog';
 import { CategoriaDespesaResponseDTO } from './categoria-despesa.model';
@@ -45,6 +46,15 @@ export class CategoriasDespesa {
 
   protected editar(categoria: CategoriaDespesaResponseDTO): void {
     this.abrirFormulario(categoria);
+  }
+
+  protected verHistorico(categoria: CategoriaDespesaResponseDTO): void {
+    this.dialog.open(HistoricoDialog, {
+      data: { entidade: 'CategoriaDespesa', entidadeId: categoria.id, titulo: categoria.nome },
+      autoFocus: false,
+      width: '640px',
+      maxWidth: '95vw',
+    });
   }
 
   protected excluir(categoria: CategoriaDespesaResponseDTO): void {

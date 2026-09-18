@@ -1,9 +1,14 @@
 <div class="detalhe-contrato">
   <div class="detalhe-contrato__topo">
     <h2 mat-dialog-title>{{ tipoLabel[contrato().tipo] }}</h2>
-    <button mat-icon-button type="button" mat-dialog-close aria-label="Fechar">
-      <i class="ph ph-x"></i>
-    </button>
+    <div>
+      <button mat-icon-button type="button" (click)="verHistorico()" aria-label="Ver histórico">
+        <i class="ph ph-clock-counter-clockwise"></i>
+      </button>
+      <button mat-icon-button type="button" mat-dialog-close aria-label="Fechar">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
   </div>
 
   <mat-dialog-content>

@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>Histórico — {{ data.titulo }}</h2>
+
+<mat-dialog-content class="historico">
+  @if (carregando()) {
+    <p class="historico__vazio">Carregando…</p>
+  } @else if (eventos().length === 0) {
+    <p class="historico__vazio">Nenhum evento de auditoria para este registro ainda.</p>
+  } @else {
+    <ul class="historico__lista">
+      @for (evento of eventos(); track evento.id) {
+        <li class="historico__item">
+          <button type="button" class="historico__cabecalho" (click)="alternarExpandido(evento)">
+            <span class="tag" [class]="'tag--' + evento.operacao.toLowerCase()">
+              {{ operacaoLabel[evento.operacao] }}
+            </span>
+            <span class="historico__quando">{{ evento.dataHora | date: 'dd/MM/yyyy HH:mm' }}</span>
+            <span class="historico__usuario">{{ evento.usuarioNome ?? '—' }}</span>
+            <i class="ph" [class.ph-caret-down]="expandidoId() !== evento.id" [class.ph-caret-up]="expandidoId() === evento.id"></i>
+          </button>
+
+          @if (expandidoId() === evento.id) {
+            <div class="historico__detalhe">
+              <div>
+                <h3>Antes</h3>
+                <pre>{{ formatarEstado(evento.estadoAnterior) }}</pre>
+              </div>
+              <div>
+                <h3>Depois</h3>
+                <pre>{{ formatarEstado(evento.estadoNovo) }}</pre>
+              </div>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="fechar()">Fechar</button>
+</mat-dialog-actions>
