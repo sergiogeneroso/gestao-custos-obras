@@ -1,6 +1,6 @@
 # 05 — Filtros AtivoTrue com banco real
 Type: task
-Status: open
+Status: resolved
 Blocked by: 01
 
 Testes de repository (perfil `test`, rollback por teste) que provam que

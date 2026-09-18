@@ -51,9 +51,13 @@ fica sem teste.
 Repository com `@Query` escrita à mão (JPQL) e regra que depende dela ganham
 teste de integração contra o banco de teste local
 (`gestao_custos_obras_test`, perfil `test` — ver ADR-045): `@SpringBootTest`
-+ `@ActiveProfiles("test")` + `@Transactional(readOnly = true)` para
-isolamento por rollback, injeta o Repository por `@Autowired` (sem mock) e
-chama o método direto. Ver `BuscasPaginadasTest`.
++ `@ActiveProfiles("test")` + `@Transactional` para isolamento por rollback,
+injeta o Repository por `@Autowired` (sem mock) e chama o método direto.
+`@Transactional` sem `readOnly` sempre que o teste grava dado de setup (caso
+comum, ex. `DespesaRepositoryTest`) — com `readOnly = true` o Postgres recusa
+o insert porque a conexão vai como somente leitura. Reserve
+`readOnly = true` para o teste que só lê, sem inserir nada (ver
+`BuscasPaginadasTest`).
 
 ## Armadilhas do projeto
 
