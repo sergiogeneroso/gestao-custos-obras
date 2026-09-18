@@ -321,16 +321,31 @@ public class ContratoFinanceiroService {
         return estadoNovo;
     }
 
+    /**
+     * Dar baixa numa parcela. Recusa (ADR-044) os três casos em que a parcela não pode mais mudar
+     * de mãos: contrato já {@code QUITADO} ou {@code CANCELADO} (histórico fechado, mesma trava de
+     * {@link #atualizar}/{@link #excluir}) e parcela que já foi paga (não existe "pagar de novo").
+     */
     @Transactional
     public ContratoFinanceiroResponseDTO pagarParcela(Long contratoId, Long parcelaId, ParcelaPagamentoRequestDTO dto) {
         ContratoFinanceiroModel contrato = buscarContrato(contratoId);
         ContratoFinanceiroResponseDTO estadoAnterior = contratoFinanceiroMapper.toResponseDTO(contrato);
+
+        if (contrato.getSituacao() == SituacaoContrato.QUITADO) {
+            throw new RegraDeNegocioException("Contrato quitado não pode receber pagamento de parcela.");
+        }
+        if (contrato.getSituacao() == SituacaoContrato.CANCELADO) {
+            throw new RegraDeNegocioException("Contrato cancelado não pode receber pagamento de parcela.");
+        }
 
         ParcelaContratoModel parcela = parcelaContratoRepository.findById(parcelaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Parcela não encontrada com id: " + parcelaId));
 
         if (!parcela.getContrato().getId().equals(contratoId)) {
             throw new RegraDeNegocioException("A parcela não pertence ao contrato informado.");
+        }
+        if (parcela.getDataPagamento() != null) {
+            throw new RegraDeNegocioException("A parcela já foi paga.");
         }
 
         parcela.setDataPagamento(dto.dataPagamento());

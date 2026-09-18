@@ -1,6 +1,6 @@
 # 02 — Contrato financeiro
 Type: task
-Status: open
+Status: resolved
 
 Em `ContratoFinanceiroServiceTest` (ampliar, reaproveitar construtores).
 

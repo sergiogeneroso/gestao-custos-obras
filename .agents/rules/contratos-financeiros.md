@@ -73,6 +73,10 @@ um prejuízo inexistente de 133k.
 - **Não validar a soma das parcelas contra o `valorContratado`.** Juros fazem a
   soma exceder o principal legitimamente; essa validação quebraria em uso normal.
 - Pagar uma prestação é **dar baixa na parcela**, nunca criar uma despesa.
+  `ContratoFinanceiroService.pagarParcela` recusa (ADR-044) os três casos em
+  que a parcela não pode mais mudar de mãos: parcela já paga (não existe
+  "pagar de novo"), contrato `QUITADO` e contrato `CANCELADO` — mesma trava,
+  em espírito, da edição e da exclusão avulsa logo abaixo.
 
 ## Custos acessórios do financiamento
 

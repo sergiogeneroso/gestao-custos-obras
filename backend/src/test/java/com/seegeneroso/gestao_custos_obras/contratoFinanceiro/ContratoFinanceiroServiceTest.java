@@ -3,7 +3,9 @@ package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.auth.UsuarioModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoEstornoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoQuitacaoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaPagamentoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
@@ -31,6 +33,8 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -237,6 +241,242 @@ class ContratoFinanceiroServiceTest {
         assertThat(contrato.getDataEstorno()).isEqualTo(LocalDate.of(2026, 10, 1));
     }
 
+    // Trava nova (ADR-044): pagarParcela recusa parcela já paga, contrato QUITADO e CANCELADO —
+    // os três casos em que a parcela não pode mais mudar de mãos.
+    @Test
+    void pagarParcelaRecusaParcelaJaPaga() {
+        ContratoFinanceiroModel contrato = contratoComParcela(SituacaoContrato.ATIVO, LocalDate.of(2026, 9, 10));
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(parcelaContratoRepository.findById(10L)).thenReturn(Optional.of(contrato.getParcelas().get(0)));
+
+        assertThatThrownBy(() -> service.pagarParcela(1L, 10L,
+                new ParcelaPagamentoRequestDTO(LocalDate.of(2026, 9, 20), new BigDecimal("5000"))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("já foi paga");
+        verify(parcelaContratoRepository, never()).save(any());
+    }
+
+    @Test
+    void pagarParcelaRecusaContratoQuitado() {
+        ContratoFinanceiroModel contrato = contratoComParcela(SituacaoContrato.QUITADO, null);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThatThrownBy(() -> service.pagarParcela(1L, 10L,
+                new ParcelaPagamentoRequestDTO(LocalDate.of(2026, 9, 20), new BigDecimal("5000"))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("quitado");
+        verify(parcelaContratoRepository, never()).save(any());
+    }
+
+    @Test
+    void pagarParcelaRecusaContratoCancelado() {
+        ContratoFinanceiroModel contrato = contratoComParcela(SituacaoContrato.CANCELADO, null);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThatThrownBy(() -> service.pagarParcela(1L, 10L,
+                new ParcelaPagamentoRequestDTO(LocalDate.of(2026, 9, 20), new BigDecimal("5000"))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("cancelado");
+        verify(parcelaContratoRepository, never()).save(any());
+    }
+
+    @Test
+    void pagarParcelaGravaDataEValorDaBaixa() {
+        ContratoFinanceiroModel contrato = contratoComParcela(SituacaoContrato.ATIVO, null);
+        ParcelaContratoModel parcela = contrato.getParcelas().get(0);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(parcelaContratoRepository.findById(10L)).thenReturn(Optional.of(parcela));
+
+        service.pagarParcela(1L, 10L, new ParcelaPagamentoRequestDTO(LocalDate.of(2026, 9, 20), new BigDecimal("5000")));
+
+        assertThat(parcela.getDataPagamento()).isEqualTo(LocalDate.of(2026, 9, 20));
+        assertThat(parcela.getValorPago()).isEqualByComparingTo("5000");
+    }
+
+    @Test
+    void pagarParcelaRecusaParcelaDeOutroContrato() {
+        ContratoFinanceiroModel contrato = contratoComParcela(SituacaoContrato.ATIVO, null);
+        ContratoFinanceiroModel outroContrato = ContratoFinanceiroModel.builder().id(2L).build();
+        ParcelaContratoModel parcelaDeOutroContrato = ParcelaContratoModel.builder()
+                .id(20L).contrato(outroContrato).numero(1).dataVencimento(LocalDate.of(2026, 9, 15))
+                .valor(new BigDecimal("5000")).build();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(parcelaContratoRepository.findById(20L)).thenReturn(Optional.of(parcelaDeOutroContrato));
+
+        assertThatThrownBy(() -> service.pagarParcela(1L, 20L,
+                new ParcelaPagamentoRequestDTO(LocalDate.of(2026, 9, 20), new BigDecimal("5000"))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("não pertence");
+        verify(parcelaContratoRepository, never()).save(any());
+    }
+
+    @Test
+    void atualizarRecusaContratoQuitado() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.QUITADO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThatThrownBy(() -> service.atualizar(1L, requisicaoEdicao(List.of(
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 10, 15), new BigDecimal("5000"), null)))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("quitado");
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    // ADR-036: parcela paga é histórico fechado — nem valor, nem vencimento, nem valorJuros podem
+    // mudar, e ela não pode sumir do cronograma enviado.
+    @Test
+    void atualizarRecusaAlterarOuRemoverParcelaPagaInclusiveValorJuros() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato.getImovel()));
+        when(pessoaRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(new PessoaModel()));
+
+        // Altera o valor da parcela paga (número 1).
+        assertThatThrownBy(() -> service.atualizar(1L, requisicaoEdicao(List.of(
+                new ParcelaContratoRequestDTO(1, LocalDate.of(2026, 9, 15), new BigDecimal("6000"), new BigDecimal("30")),
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 10, 15), new BigDecimal("5000"), null)))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("já foi paga");
+
+        // Remove a parcela paga do cronograma enviado.
+        assertThatThrownBy(() -> service.atualizar(1L, requisicaoEdicao(List.of(
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 10, 15), new BigDecimal("5000"), null)))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("já foi paga");
+
+        // Muda só o valorJuros, mantendo número/vencimento/valor.
+        assertThatThrownBy(() -> service.atualizar(1L, requisicaoEdicao(List.of(
+                new ParcelaContratoRequestDTO(1, LocalDate.of(2026, 9, 15), new BigDecimal("5000"), new BigDecimal("999")),
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 10, 15), new BigDecimal("5000"), null)))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("já foi paga");
+
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    @Test
+    void atualizarPreservaParcelasPagasSemRecriarInstancia() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.ATIVO);
+        ParcelaContratoModel pagaOriginal = contrato.getParcelas().get(0);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato.getImovel()));
+        when(pessoaRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(new PessoaModel()));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        service.atualizar(1L, requisicaoEdicao(List.of(
+                new ParcelaContratoRequestDTO(1, LocalDate.of(2026, 9, 15), new BigDecimal("5000"), new BigDecimal("30")),
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 11, 15), new BigDecimal("6000"), null))));
+
+        // Mesma instância na coleção — clear()+re-add apagaria a parcela paga do banco (orphanRemoval).
+        assertThat(contrato.getParcelas()).contains(pagaOriginal);
+    }
+
+    @Test
+    void atualizarNuncaRegravaValorDeCompraAoEditarCronograma() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato.getImovel()));
+        when(pessoaRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(new PessoaModel()));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        // Cronograma editado soma 90.000, bem diferente do valor de compra já gravado (50.000).
+        service.atualizar(1L, requisicaoEdicao(List.of(
+                new ParcelaContratoRequestDTO(1, LocalDate.of(2026, 9, 15), new BigDecimal("5000"), new BigDecimal("30")),
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 10, 15), new BigDecimal("85000"), null))));
+
+        assertThat(contrato.getImovel().getCompra().getValor()).isEqualByComparingTo("50000");
+        verify(imovelRepository, never()).save(any());
+    }
+
+    @Test
+    void naoValidaSomaDasParcelasContraValorContratado() {
+        // valorContratado = 50.000, mas a única parcela vale 70.000 — divergência aceita sem
+        // validação (juros legítimos fazem a soma exceder o principal, ADR-025).
+        ImovelModel imovel = imovel(new BigDecimal("50000"));
+        mockar(imovel);
+        ContratoFinanceiroRequestDTO dto = new ContratoFinanceiroRequestDTO(
+                1L, TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 1L, new BigDecimal("50000"),
+                List.of(new ParcelaContratoRequestDTO(1, LocalDate.of(2026, 9, 15), new BigDecimal("70000"), null)),
+                null, null, null);
+
+        assertThatCode(() -> service.criar(dto)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void quitarGravaDataEValorSemAlterarParcelas() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.ATIVO);
+        ParcelaContratoModel aberta = contrato.getParcelas().get(1);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        service.quitar(1L, new ContratoQuitacaoRequestDTO(LocalDate.of(2026, 11, 1), new BigDecimal("4800")));
+
+        assertThat(contrato.getSituacao()).isEqualTo(SituacaoContrato.QUITADO);
+        assertThat(contrato.getDataQuitacao()).isEqualTo(LocalDate.of(2026, 11, 1));
+        assertThat(contrato.getValorQuitacao()).isEqualByComparingTo("4800");
+        assertThat(aberta.getValor()).isEqualByComparingTo("5000");
+        assertThat(aberta.getDataPagamento()).isNull();
+    }
+
+    @Test
+    void quitarRecusaContratoJaQuitado() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.QUITADO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+
+        assertThatThrownBy(() -> service.quitar(1L,
+                new ContratoQuitacaoRequestDTO(LocalDate.of(2026, 11, 1), new BigDecimal("4800"))))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("já está quitado");
+        verify(contratoFinanceiroRepository, never()).save(any());
+    }
+
+    @Test
+    void excluirCascataRemoveDocumentosDoContrato() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        ContratoDocumentoModel documento = ContratoDocumentoModel.builder()
+                .id(30L).contrato(contrato).url("/api/arquivos/download/contratos/1/foo.pdf").build();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato));
+        when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of(documento));
+        when(despesaRepository.findByContratoFinanceiroId(1L)).thenReturn(List.of());
+        when(usuarioAutenticadoService.usuarioAtual()).thenReturn(UsuarioModel.builder().id(9L).build());
+
+        service.excluir(1L, "cadastro errado");
+
+        verify(contratoDocumentoRepository).delete(documento);
+        verify(storageService).deletar("foo.pdf", "contratos/1");
+    }
+
+    @Test
+    void excluirComOutroParcelamentoCompraRestanteMantemValorDoLote() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        ContratoFinanceiroModel outroContrato = ContratoFinanceiroModel.builder()
+                .id(2L).imovel(contrato.getImovel()).tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .situacao(SituacaoContrato.QUITADO).valorContratado(new BigDecimal("50000")).build();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato, outroContrato));
+        when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of());
+        when(despesaRepository.findByContratoFinanceiroId(1L)).thenReturn(List.of());
+        when(usuarioAutenticadoService.usuarioAtual()).thenReturn(UsuarioModel.builder().id(9L).build());
+
+        service.excluir(1L, "cadastro errado");
+
+        assertThat(contrato.getImovel().getCompra().getValor()).isEqualByComparingTo("50000");
+        verify(imovelRepository, never()).save(any());
+    }
+
+    @Test
+    void deletarDocumentoRecusaDocumentoDeOutroContrato() {
+        ContratoFinanceiroModel outroContrato = ContratoFinanceiroModel.builder().id(2L).build();
+        ContratoDocumentoModel documento = ContratoDocumentoModel.builder().id(30L).contrato(outroContrato).build();
+        when(contratoDocumentoRepository.findById(30L)).thenReturn(Optional.of(documento));
+
+        assertThatThrownBy(() -> service.deletarDocumento(1L, 30L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("não pertence");
+        verify(contratoDocumentoRepository, never()).delete(any());
+    }
+
     // Parcela nº 1 paga em 5.000 — o total que precisaria ser devolvido se a venda caísse.
     private ContratoFinanceiroModel contratoDeVenda() {
         ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
@@ -269,6 +509,57 @@ class ContratoFinanceiroServiceTest {
                 ParcelaContratoModel.builder().contrato(contrato).numero(1)
                         .dataVencimento(LocalDate.of(2026, 9, 15)).valor(new BigDecimal("5000")).build())));
         return contrato;
+    }
+
+    // Contrato de id 1 com uma única parcela (id 10), paga ou não conforme dataPagamentoParcela.
+    private ContratoFinanceiroModel contratoComParcela(SituacaoContrato situacaoContrato, LocalDate dataPagamentoParcela) {
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(1L)
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .situacao(situacaoContrato)
+                .valorContratado(new BigDecimal("50000"))
+                .build();
+        ParcelaContratoModel parcela = ParcelaContratoModel.builder()
+                .id(10L)
+                .contrato(contrato)
+                .numero(1)
+                .dataVencimento(LocalDate.of(2026, 9, 15))
+                .valor(new BigDecimal("5000"))
+                .dataPagamento(dataPagamentoParcela)
+                .valorPago(dataPagamentoParcela != null ? new BigDecimal("5000") : null)
+                .build();
+        contrato.setParcelas(new java.util.ArrayList<>(List.of(parcela)));
+        return contrato;
+    }
+
+    // Contrato de id 1, com imóvel já com valor de compra gravado (50.000), uma parcela paga
+    // (número 1, com juros de 30) e uma em aberto (número 2) — base para os testes de atualizar/quitar.
+    private ContratoFinanceiroModel contratoParaAtualizar(SituacaoContrato situacao) {
+        ImovelModel imovel = imovel(new BigDecimal("50000"));
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(1L)
+                .imovel(imovel)
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .situacao(situacao)
+                .valorContratado(new BigDecimal("50000"))
+                .build();
+        ParcelaContratoModel paga = ParcelaContratoModel.builder()
+                .id(10L).contrato(contrato).numero(1)
+                .dataVencimento(LocalDate.of(2026, 9, 15)).valor(new BigDecimal("5000"))
+                .valorJuros(new BigDecimal("30"))
+                .dataPagamento(LocalDate.of(2026, 9, 15)).valorPago(new BigDecimal("5000")).build();
+        ParcelaContratoModel aberta = ParcelaContratoModel.builder()
+                .id(11L).contrato(contrato).numero(2)
+                .dataVencimento(LocalDate.of(2026, 10, 15)).valor(new BigDecimal("5000")).build();
+        contrato.setParcelas(new java.util.ArrayList<>(List.of(paga, aberta)));
+        return contrato;
+    }
+
+    // DTO de edição do contrato de contratoParaAtualizar(): imóvel/contraparte/tipo/valorContratado
+    // fixos, só o cronograma varia entre os testes.
+    private ContratoFinanceiroRequestDTO requisicaoEdicao(List<ParcelaContratoRequestDTO> parcelas) {
+        return new ContratoFinanceiroRequestDTO(1L, TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 1L,
+                new BigDecimal("50000"), parcelas, null, null, null);
     }
 
     private ParcelaContratoModel capturarParcela(int numero) {

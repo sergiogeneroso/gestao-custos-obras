@@ -1086,6 +1086,31 @@ automático vs manual) se aplica sem ressalva.
 Ver `.agents/rules/ciclo-vida-imovel.md` e `.agents/rules/contratos-financeiros.md`
 para o resumo operacional.
 
+## ADR-044 — `pagarParcela` recusa parcela já paga e contrato QUITADO/CANCELADO (Set 2026)
+
+Decisão da sessão de grilling sobre cobertura de testes do financeiro
+(`.scratch/cobertura-testes-financeiro/spec.md`, decisão 6): ao escrever os
+testes de `ContratoFinanceiroService`, ficou evidente que `pagarParcela` não
+tinha nenhuma trava de estado — dava baixa numa parcela já paga (sobrescrevendo
+`dataPagamento`/`valorPago` de um histórico já apurado) e num contrato
+`QUITADO` ou `CANCELADO`, que não deveriam mais receber movimento nenhum.
+
+**Recusa, com `RegraDeNegocioException`, os três casos:**
+- **Parcela já paga** (`dataPagamento != null`) — não existe "pagar de novo";
+  a baixa é um fato único.
+- **Contrato `QUITADO`** — mesma trava de `atualizar`/`excluir` (ADR-036/040):
+  é histórico fechado, e o `valorJuros` das parcelas já entrou em
+  `jurosPagos`/`custoTotal` de um relatório apurado.
+- **Contrato `CANCELADO`** — a venda caiu (ADR-043); não existe prestação a
+  cobrar de um contrato cancelado, só estorno (`registrarEstorno`).
+
+Checagem de situação do contrato roda antes da busca da parcela, mesmo
+padrão de fail-fast que `atualizar` já usa para `QUITADO`.
+
+Ver `.agents/rules/contratos-financeiros.md` e
+`ContratoFinanceiroServiceTest.pagarParcelaRecusaParcelaJaPaga` /
+`pagarParcelaRecusaContratoQuitado` / `pagarParcelaRecusaContratoCancelado`.
+
 ## ADR-045 — Banco de teste local em vez de Testcontainers (Set 2026)
 
 Decisão da sessão de grilling sobre cobertura de testes do financeiro: os
