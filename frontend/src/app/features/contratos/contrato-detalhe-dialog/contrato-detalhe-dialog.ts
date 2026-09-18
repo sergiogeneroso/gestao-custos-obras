@@ -18,6 +18,7 @@ import {
   ContratoDocumentoResponseDTO,
   ContratoFinanceiroResponseDTO,
   ParcelaContratoResponseDTO,
+  saldoAEstornar,
   SITUACAO_CONTRATO_LABEL,
   TIPO_CONTRATO_LABEL,
   TIPO_DOCUMENTO_CONTRATO_LABEL,
@@ -70,13 +71,7 @@ export class ContratoDetalheDialog implements OnInit {
 
   // Total pago nas parcelas, menos o que já foi devolvido — sempre calculado, nunca vem pronto do
   // backend (ADR-043: "quanto falta devolver" nunca é gravado).
-  protected readonly saldoAEstornar = computed(() => {
-    const c = this.contrato();
-    const totalPago = c.parcelas
-      .filter((p) => p.dataPagamento != null)
-      .reduce((soma, p) => soma + (p.valorPago ?? 0), 0);
-    return totalPago - (c.valorEstornado ?? 0);
-  });
+  protected readonly saldoAEstornar = computed(() => saldoAEstornar(this.contrato()));
 
   protected readonly tiposDocumento = TIPOS_DOCUMENTO_CONTRATO;
   protected readonly tipoDocumentoLabel = TIPO_DOCUMENTO_CONTRATO_LABEL;

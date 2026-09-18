@@ -25,6 +25,7 @@ import {
   TipoContratoFinanceiro,
 } from '../contrato.model';
 import { ContratosService } from '../contratos.service';
+import { diferencaJuros, distribuirJuros, gerarParcelas, proximoNumero, totalCronograma } from '../cronograma';
 
 type ParcelaFormGroup = FormGroup<{
   numero: FormControl<number | null>;
@@ -134,16 +135,12 @@ export class ContratoFormDialog implements OnInit {
 
   protected readonly ehCompraDeLote = computed(() => this.tipoSelecionado() === 'PARCELAMENTO_COMPRA');
 
-  protected readonly totalCronograma = computed(() => {
-    const entrada = this.entradaInformada() ?? 0;
-    return entrada + this.valoresParcelas().reduce((soma, valor) => soma + valor, 0);
-  });
+  protected readonly totalCronograma = computed(() =>
+    totalCronograma(this.entradaInformada(), this.valoresParcelas()),
+  );
 
   /** Positivo = juros embutidos; zero = sem juros; negativo = preço informado maior que o total. */
-  protected readonly diferencaJuros = computed(() => {
-    const preco = this.precoInformado();
-    return preco == null ? 0 : Math.round((this.totalCronograma() - preco) * 100) / 100;
-  });
+  protected readonly diferencaJuros = computed(() => diferencaJuros(this.totalCronograma(), this.precoInformado()));
 
   protected readonly precoNaoInformado = computed(() => this.precoInformado() == null);
 
@@ -154,26 +151,15 @@ export class ContratoFormDialog implements OnInit {
     () => this.ehCompraDeLote() && !this.contrato && (this.entradaInformada() ?? 0) > 0,
   );
 
+  // ponytail: rateio linear, proporcional ao valor da parcela — não é tabela Price/SAC. Para
+  // acompanhamento de custo basta, e a quitação antecipada tem valor próprio negociado que
+  // substitui as parcelas restantes de qualquer forma.
   protected distribuirJuros(): void {
-    const total = this.diferencaJuros();
-    const valores = this.valoresParcelas();
-    const somaParcelas = valores.reduce((soma, valor) => soma + valor, 0);
-    if (total <= 0 || somaParcelas <= 0) {
+    const jurosPorParcela = distribuirJuros(this.diferencaJuros(), this.valoresParcelas());
+    if (!jurosPorParcela) {
       return;
     }
-
-    // ponytail: rateio linear, proporcional ao valor da parcela — não é tabela Price/SAC. Para
-    // acompanhamento de custo basta, e a quitação antecipada tem valor próprio negociado que
-    // substitui as parcelas restantes de qualquer forma.
-    let alocado = 0;
-    this.parcelas.controls.forEach((linha, indice) => {
-      const ultima = indice === this.parcelas.length - 1;
-      const juros = ultima
-        ? Math.round((total - alocado) * 100) / 100 // a sobra de arredondamento fecha na última
-        : Math.round((total * (valores[indice] / somaParcelas)) * 100) / 100;
-      alocado += juros;
-      linha.controls.valorJuros.setValue(juros);
-    });
+    this.parcelas.controls.forEach((linha, indice) => linha.controls.valorJuros.setValue(jurosPorParcela[indice]));
   }
 
   private valoresParcelas(): number[] {
@@ -233,7 +219,7 @@ export class ContratoFormDialog implements OnInit {
   }
 
   protected adicionarParcela(): void {
-    this.parcelas.push(this.novaLinhaParcela(this.proximoNumero()));
+    this.parcelas.push(this.novaLinhaParcela(proximoNumero(this.numerosParcelas())));
   }
 
   protected removerParcela(indice: number): void {
@@ -255,25 +241,14 @@ export class ContratoFormDialog implements OnInit {
       }
     }
 
-    const numeroInicial = this.proximoNumero();
-    for (let i = 0; i < quantidade!; i++) {
-      this.parcelas.push(
-        this.novaLinhaParcela(numeroInicial + i, this.somarMeses(primeiroVencimento!, i), valorParcela),
-      );
-    }
+    const numeroInicial = proximoNumero(this.numerosParcelas());
+    gerarParcelas(numeroInicial, quantidade!, valorParcela!, primeiroVencimento!).forEach((parcela) =>
+      this.parcelas.push(this.novaLinhaParcela(parcela.numero, parcela.dataVencimento, parcela.valor)),
+    );
   }
 
-  // Vencimento dia 31 num mês de 30 cai para o último dia do mês, em vez de pular para o mês seguinte.
-  private somarMeses(base: Date, meses: number): Date {
-    const alvo = new Date(base.getFullYear(), base.getMonth() + meses, 1);
-    const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
-    alvo.setDate(Math.min(base.getDate(), ultimoDia));
-    return alvo;
-  }
-
-  private proximoNumero(): number {
-    const numeros = this.parcelas.controls.map((linha) => linha.controls.numero.value ?? 0);
-    return numeros.length ? Math.max(...numeros) + 1 : 1;
+  private numerosParcelas(): number[] {
+    return this.parcelas.controls.map((linha) => linha.controls.numero.value ?? 0);
   }
 
   protected salvar(): void {

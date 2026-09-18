@@ -116,3 +116,15 @@ export interface ContratoDocumentoResponseDTO {
   descricao: string | null;
   dataUpload: string;
 }
+
+/**
+ * Total pago nas parcelas, menos o que já foi devolvido — sempre calculado, nunca gravado (ADR-043:
+ * "quanto falta devolver" nunca é gravado). Centavos inteiros para não acumular erro de ponto
+ * flutuante ao somar os pagamentos.
+ */
+export function saldoAEstornar(contrato: ContratoFinanceiroResponseDTO): number {
+  const totalPagoCentavos = contrato.parcelas
+    .filter((p) => p.dataPagamento != null)
+    .reduce((soma, p) => soma + Math.round((p.valorPago ?? 0) * 100), 0);
+  return (totalPagoCentavos - Math.round((contrato.valorEstornado ?? 0) * 100)) / 100;
+}

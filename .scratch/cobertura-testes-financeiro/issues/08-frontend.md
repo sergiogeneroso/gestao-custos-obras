@@ -1,6 +1,6 @@
 # 08 — Frontend: cálculo do cronograma
 Type: task
-Status: open
+Status: resolved
 
 Decisão 9. Extrair de
 `frontend/src/app/features/contratos/contrato-form-dialog/contrato-form-dialog.ts`
