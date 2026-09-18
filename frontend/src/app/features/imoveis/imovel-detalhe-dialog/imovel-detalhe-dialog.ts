@@ -30,6 +30,7 @@ import {
 } from '../imovel.model';
 import { ImoveisService } from '../imoveis.service';
 import { ImovelAVendaDialog } from '../imovel-a-venda-dialog/imovel-a-venda-dialog';
+import { ImovelDesfazerVendaDialog } from '../imovel-desfazer-venda-dialog/imovel-desfazer-venda-dialog';
 import { ImovelFaseDialog } from '../imovel-fase-dialog/imovel-fase-dialog';
 import { ImovelVendaDialog } from '../imovel-venda-dialog/imovel-venda-dialog';
 
@@ -154,6 +155,23 @@ export class ImovelDetalheDialog implements OnInit, OnDestroy {
       .subscribe((atualizado: ImovelResponseDTO | undefined) => {
         if (atualizado) {
           this.imovel.set(atualizado);
+        }
+      });
+  }
+
+  protected desfazerVenda(): void {
+    this.dialog
+      .open(ImovelDesfazerVendaDialog, {
+        data: { imovel: this.imovel() },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((atualizado: ImovelResponseDTO | undefined) => {
+        if (atualizado) {
+          this.imovel.set(atualizado);
+          this.carregarFinanceiro();
         }
       });
   }

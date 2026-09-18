@@ -27,10 +27,15 @@ paths:
 
 Com o Flyway pausado, o Hibernate cria tabela e coluna novas, mas **nunca**
 apaga tabela ou coluna que saiu do modelo, não aplica `NOT NULL` em coluna que
-já existe, não cria índice funcional e não migra dado nenhum. Tudo isso vira um
-script em `backend/src/main/resources/db/manual/`, nomeado
-`AAAA-MM-o-que-faz.sql`, que **alguém roda à mão uma vez** — o backend não o
-executa.
+já existe, não cria índice funcional, não migra dado nenhum e **não atualiza o
+CHECK constraint de uma coluna ligada a enum quando um valor novo entra no
+enum Java** — a constraint foi gerada uma vez, na primeira vez que a tabela
+nasceu, com os valores que existiam então (achado em ADR-043: adicionar
+`CANCELADO` a `SituacaoContrato` sem rodar `ALTER TABLE ... DROP/ADD
+CONSTRAINT` faz todo `save()` com esse valor falhar em runtime, não em teste
+com mock nem na compilação). Tudo isso vira um script em
+`backend/src/main/resources/db/manual/`, nomeado `AAAA-MM-o-que-faz.sql`, que
+**alguém roda à mão uma vez** — o backend não o executa.
 
 Convenções desses scripts, seguidas pelos que já existem:
 

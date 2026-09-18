@@ -29,6 +29,11 @@
     background: rgba(94, 214, 150, 0.18);
     color: #9de8bb;
   }
+
+  &--CANCELADO {
+    background: rgba(255, 157, 157, 0.18);
+    color: #ff9d9d;
+  }
 }
 
 .detalhe-contrato__tags {

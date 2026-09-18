@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import { PaginaDTO } from '../../shared/pagina/pagina.model';
 import {
   ContratoDocumentoResponseDTO,
+  ContratoEstornoRequestDTO,
   ContratoFinanceiroRequestDTO,
   ContratoFinanceiroResponseDTO,
   ContratoQuitacaoRequestDTO,
@@ -52,6 +53,10 @@ export class ContratosService {
 
   pagarParcela(id: number, parcelaId: number, dto: ParcelaPagamentoRequestDTO): Observable<ContratoFinanceiroResponseDTO> {
     return this.http.patch<ContratoFinanceiroResponseDTO>(`${this.baseUrl}/${id}/parcelas/${parcelaId}/pagamento`, dto);
+  }
+
+  registrarEstorno(id: number, dto: ContratoEstornoRequestDTO): Observable<ContratoFinanceiroResponseDTO> {
+    return this.http.patch<ContratoFinanceiroResponseDTO>(`${this.baseUrl}/${id}/estorno`, dto);
   }
   listarDocumentos(id: number): Observable<ContratoDocumentoResponseDTO[]> {
     return this.http.get<ContratoDocumentoResponseDTO[]>(`${this.baseUrl}/${id}/documentos`);

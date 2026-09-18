@@ -13,6 +13,7 @@ interface CarteiraDTO {
   imoveisPorSituacao: Partial<Record<SituacaoImovel, number>>;
   saldoDevedorTotal: number;
   saldoAReceberTotal: number;
+  saldoAEstornarTotal: number;
   parcelasAVencer30Dias: number;
   parcelasAReceber30Dias: number;
   gastosGeraisPeriodo: number;

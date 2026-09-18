@@ -37,6 +37,9 @@
         <button mat-stroked-button type="button" (click)="marcarComoAdquirido()">Tirar da venda</button>
         <button mat-stroked-button type="button" color="primary" (click)="registrarVenda()">Registrar venda</button>
       }
+      @if (imovel().situacao === 'VENDIDO') {
+        <button mat-stroked-button type="button" color="warn" (click)="desfazerVenda()">Desfazer venda</button>
+      }
     </div>
 
     <mat-tab-group class="detalhe-imovel__abas" animationDuration="0ms">

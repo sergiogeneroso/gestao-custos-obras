@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { mensagemErro } from '../../../shared/erro/erro.util';
@@ -65,7 +65,18 @@ export class ContratoDetalheDialog implements OnInit {
 
   protected readonly parcelaEmBaixa = signal<number | null>(null);
   protected readonly quitandoContrato = signal(false);
+  protected readonly registrandoEstorno = signal(false);
   protected readonly salvando = signal(false);
+
+  // Total pago nas parcelas, menos o que já foi devolvido — sempre calculado, nunca vem pronto do
+  // backend (ADR-043: "quanto falta devolver" nunca é gravado).
+  protected readonly saldoAEstornar = computed(() => {
+    const c = this.contrato();
+    const totalPago = c.parcelas
+      .filter((p) => p.dataPagamento != null)
+      .reduce((soma, p) => soma + (p.valorPago ?? 0), 0);
+    return totalPago - (c.valorEstornado ?? 0);
+  });
 
   protected readonly tiposDocumento = TIPOS_DOCUMENTO_CONTRATO;
   protected readonly tipoDocumentoLabel = TIPO_DOCUMENTO_CONTRATO_LABEL;
@@ -85,6 +96,11 @@ export class ContratoDetalheDialog implements OnInit {
   protected readonly formQuitacao = this.fb.group({
     dataQuitacao: [new Date() as Date | null, Validators.required],
     valorQuitacao: [null as number | null, Validators.required],
+  });
+
+  protected readonly formEstorno = this.fb.group({
+    data: [new Date() as Date | null, Validators.required],
+    valor: [null as number | null, Validators.required],
   });
 
   protected iniciarBaixa(parcela: ParcelaContratoResponseDTO): void {
@@ -155,6 +171,42 @@ export class ContratoDetalheDialog implements OnInit {
         error: (erro: HttpErrorResponse) => {
           this.salvando.set(false);
           this.snackBar.open(mensagemErro(erro, 'Não foi possível quitar o contrato.'), 'Fechar', {
+            duration: 6000,
+          });
+        },
+      });
+  }
+
+  protected iniciarEstorno(): void {
+    this.registrandoEstorno.set(true);
+    this.formEstorno.setValue({ data: new Date(), valor: this.saldoAEstornar() });
+  }
+
+  protected cancelarEstorno(): void {
+    this.registrandoEstorno.set(false);
+  }
+
+  protected confirmarEstorno(): void {
+    if (this.formEstorno.invalid) {
+      return;
+    }
+    this.salvando.set(true);
+    const bruto = this.formEstorno.getRawValue();
+    this.service
+      .registrarEstorno(this.contrato().id, {
+        data: paraIso(bruto.data)!,
+        valor: bruto.valor!,
+      })
+      .subscribe({
+        next: (atualizado) => {
+          this.contrato.set(atualizado);
+          this.registrandoEstorno.set(false);
+          this.salvando.set(false);
+          this.snackBar.open('Estorno registrado com sucesso.', 'Fechar', { duration: 4000 });
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.salvando.set(false);
+          this.snackBar.open(mensagemErro(erro, 'Não foi possível registrar o estorno.'), 'Fechar', {
             duration: 6000,
           });
         },

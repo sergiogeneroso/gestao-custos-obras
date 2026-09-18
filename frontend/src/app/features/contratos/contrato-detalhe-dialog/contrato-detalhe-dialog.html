@@ -37,7 +37,56 @@
           </p>
         </div>
       }
+      @if (contrato().situacao === 'CANCELADO') {
+        <div>
+          <p class="detalhe-contrato__label">Cancelado em</p>
+          <p class="detalhe-contrato__valor">{{ contrato().dataCancelamento | date: 'dd/MM/yyyy' }}</p>
+        </div>
+        <div>
+          <p class="detalhe-contrato__label">Motivo</p>
+          <p class="detalhe-contrato__valor">{{ contrato().motivoCancelamento ?? '—' }}</p>
+        </div>
+      }
     </section>
+
+    @if (contrato().situacao === 'CANCELADO') {
+      <section class="detalhe-contrato__estorno">
+        <h3>Estorno</h3>
+        <p>
+          Já devolvido: {{ contrato().valorEstornado ?? 0 | currency: 'BRL' }}
+          @if (contrato().dataEstorno) {
+            (última baixa em {{ contrato().dataEstorno | date: 'dd/MM/yyyy' }})
+          }
+        </p>
+        <p>Falta devolver: {{ saldoAEstornar() | currency: 'BRL' }}</p>
+
+        @if (saldoAEstornar() > 0) {
+          @if (!registrandoEstorno()) {
+            <button mat-stroked-button type="button" color="primary" (click)="iniciarEstorno()">
+              Registrar estorno
+            </button>
+          } @else {
+            <form [formGroup]="formEstorno" class="detalhe-contrato__form-inline" (ngSubmit)="confirmarEstorno()">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Data</mat-label>
+                <input matInput [matDatepicker]="estornoPicker" appMascaraData formControlName="data" />
+                <mat-datepicker-toggle matIconSuffix [for]="estornoPicker" />
+                <mat-datepicker #estornoPicker />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Valor devolvido</mat-label>
+                <span matTextPrefix>R$&nbsp;</span>
+                <input matInput appMoeda formControlName="valor" />
+              </mat-form-field>
+              <button mat-stroked-button type="button" (click)="cancelarEstorno()">Cancelar</button>
+              <button mat-stroked-button type="submit" color="primary" [disabled]="formEstorno.invalid || salvando()">
+                Confirmar
+              </button>
+            </form>
+          }
+        }
+      </section>
+    }
 
     @if (contrato().situacao === 'ATIVO') {
       @if (!quitandoContrato()) {

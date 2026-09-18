@@ -128,6 +128,8 @@ export interface ImovelSituacaoRequestDTO {
   dataVenda: string | null;
   compradorId: number | null;
   vendaValorPretendido?: number | null;
+  // Obrigatório só ao desfazer uma venda, isto é, sair de VENDIDO (ADR-043).
+  motivo?: string | null;
 }
 
 export interface ImovelFotoResponseDTO {

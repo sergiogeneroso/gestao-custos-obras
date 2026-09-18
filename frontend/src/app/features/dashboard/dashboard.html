@@ -39,6 +39,12 @@
         <p class="card__label">A receber</p>
         <p class="card__valor">{{ r.saldoAReceberTotal | currency: 'BRL' }}</p>
       </div>
+      @if (r.saldoAEstornarTotal > 0) {
+        <div class="card">
+          <p class="card__label">A estornar</p>
+          <p class="card__valor">{{ r.saldoAEstornarTotal | currency: 'BRL' }}</p>
+        </div>
+      }
       <div class="card">
         <p class="card__label">Parcelas a vencer (30 dias)</p>
         <p class="card__valor">{{ r.parcelasAVencer30Dias }}</p>

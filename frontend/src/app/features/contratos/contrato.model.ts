@@ -1,5 +1,5 @@
 export type TipoContratoFinanceiro = 'PARCELAMENTO_COMPRA' | 'FINANCIAMENTO_CONSTRUCAO' | 'PARCELAMENTO_VENDA';
-export type SituacaoContrato = 'ATIVO' | 'QUITADO';
+export type SituacaoContrato = 'ATIVO' | 'QUITADO' | 'CANCELADO';
 
 export const TIPO_CONTRATO_LABEL: Record<TipoContratoFinanceiro, string> = {
   PARCELAMENTO_COMPRA: 'Parcelamento da compra',
@@ -10,6 +10,8 @@ export const TIPO_CONTRATO_LABEL: Record<TipoContratoFinanceiro, string> = {
 export const SITUACAO_CONTRATO_LABEL: Record<SituacaoContrato, string> = {
   ATIVO: 'Ativo',
   QUITADO: 'Quitado',
+  // Venda desfeita (ADR-043) — diferente de QUITADO, que significa "cumprido com sucesso".
+  CANCELADO: 'Cancelado',
 };
 
 export interface ParcelaContratoRequestDTO {
@@ -53,12 +55,22 @@ export interface ContratoFinanceiroResponseDTO {
   situacao: SituacaoContrato;
   dataQuitacao: string | null;
   valorQuitacao: number | null;
+  // Cancelamento por venda desfeita (ADR-043) — só PARCELAMENTO_VENDA.
+  dataCancelamento: string | null;
+  motivoCancelamento: string | null;
+  valorEstornado: number | null;
+  dataEstorno: string | null;
   parcelas: ParcelaContratoResponseDTO[];
 }
 
 export interface ContratoQuitacaoRequestDTO {
   dataQuitacao: string;
   valorQuitacao: number;
+}
+
+export interface ContratoEstornoRequestDTO {
+  data: string;
+  valor: number;
 }
 
 export interface ParcelaPagamentoRequestDTO {

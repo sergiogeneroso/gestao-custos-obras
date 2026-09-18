@@ -1,0 +1,38 @@
+<div class="dialogo-desfazer-venda">
+  <div class="dialogo-desfazer-venda__topo">
+    <h2 mat-dialog-title>Desfazer venda</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <p>
+        O acordo de venda do imóvel "{{ imovel.identificador }}" caiu. Os dados da venda (valor, data,
+        comprador) são apagados; se houver um contrato de parcelamento de venda vinculado, ele é
+        resolvido automaticamente — excluído se ainda não recebeu nenhuma parcela, ou cancelado com
+        rastreio de estorno se já recebeu.
+      </p>
+
+      <mat-form-field appearance="outline">
+        <mat-label>O imóvel volta para</mat-label>
+        <mat-select formControlName="destino">
+          <mat-option value="A_VENDA">À venda</mat-option>
+          <mat-option value="ADQUIRIDO">Adquirido (fora do mercado)</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Motivo</mat-label>
+        <textarea matInput formControlName="motivo" rows="2"></textarea>
+      </mat-form-field>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="warn" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Confirmar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>
