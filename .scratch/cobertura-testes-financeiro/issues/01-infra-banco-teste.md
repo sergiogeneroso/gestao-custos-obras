@@ -1,6 +1,6 @@
 # 01 — Infraestrutura de teste de integração (banco local)
 Type: task
-Status: open
+Status: resolved
 
 Decisões 3, 4 e 5 da spec.
 

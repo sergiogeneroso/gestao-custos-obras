@@ -56,7 +56,11 @@ lado a lado. Ver ADR-014/015 em `docs/DECISOES.md`.
 ## Testes
 
 Rodar `cd backend && ./mvnw test` antes de considerar uma tarefa de backend
-finalizada.
+finalizada. Precisa do Postgres local de pé e do banco
+`gestao_custos_obras_test` criado (rodar uma vez
+`backend/src/main/resources/db/manual/criar-banco-teste.sql`) — os testes de
+integração usam esse banco via perfil `test` e falham (não pulam) sem ele.
+Ver ADR-045.
 
 Ao escrever ou revisar testes, siga as guias `.agents/rules/testes-*.md`
 (core, backend, frontend e domínio financeiro). Para gerar testes de um

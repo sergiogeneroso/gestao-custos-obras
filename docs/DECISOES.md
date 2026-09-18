@@ -1085,3 +1085,27 @@ automático vs manual) se aplica sem ressalva.
 
 Ver `.agents/rules/ciclo-vida-imovel.md` e `.agents/rules/contratos-financeiros.md`
 para o resumo operacional.
+
+## ADR-045 — Banco de teste local em vez de Testcontainers (Set 2026)
+
+Decisão da sessão de grilling sobre cobertura de testes do financeiro: os
+filtros `AtivoTrue`/queries JPQL e o caminho do relatório precisam de teste
+de integração contra Postgres de verdade (JPQL só quebra na execução, não na
+subida do contexto). A escolha usual para isso hoje é Testcontainers, mas o
+**Docker não roda no ambiente do usuário** — então a alternativa adotada é
+um banco fixo, `gestao_custos_obras_test`, criado uma vez localmente por
+`db/manual/criar-banco-teste.sql` e usado via perfil Spring `test`
+(`application-test.properties`, só a URL muda; mesmo usuário/senha do dev;
+`ddl-auto=create-drop` recria o schema a cada execução).
+
+**Postgres desligado ou banco inexistente faz o teste falhar, nunca pular.**
+Um `@Disabled`/skip condicional pareceria build verde enquanto a proteção
+que os testes de integração existem para dar já teria sumido — pior que um
+teste vermelho óbvio.
+
+**Gatilho da troca para Testcontainers**: quando o projeto passar a usar
+Docker por outro motivo. Nesse momento: adicionar
+`spring-boot-testcontainers` + `testcontainers-postgresql`, trocar
+`application-test.properties` por `@ServiceConnection` nos testes, apagar o
+script manual e o perfil `test`. Registrado como item em
+`docs/PROXIMOS-PASSOS.md`.

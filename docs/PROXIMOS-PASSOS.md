@@ -409,6 +409,11 @@ superado; sobrou o que continua valendo:
 - [x] Trilha de auditoria (quem alterou o quê e quando) — ADR-042, Set 2026
 - [ ] Reativação do Flyway com baseline V1 única — risco registrado na ADR-029:
       fica mais caro depois do primeiro imóvel real lançado
+- [ ] Migrar o banco de teste local para Testcontainers quando o projeto
+      passar a usar Docker (ADR-045): adicionar `spring-boot-testcontainers` +
+      `testcontainers-postgresql`, trocar `application-test.properties` por
+      `@ServiceConnection` nos testes, apagar `db/manual/criar-banco-teste.sql`
+      e o perfil `test`
 
 ## Ajustes de uso diário (Ago 2026) ✅
 
