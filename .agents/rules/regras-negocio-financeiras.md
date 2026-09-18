@@ -66,8 +66,11 @@ Convenção geral do projeto, não só destas seis: `Imovel`, `Pessoa`, `Despesa
   exclusão avulsa de contrato tem (ver `contratos-financeiros.md`)
 - **Motivo é obrigatório em toda exclusão lógica**, inclusive as retroativas
   (Imóvel, Pessoa, Despesa) — o service recusa gravar sem ele
-- Fora de escopo por enquanto: reverter `situacao` de um imóvel vendido e
-  endpoint de restauração de exclusão lógica (ver `docs/PROXIMOS-PASSOS.md`)
+- Reverter `situacao` de um imóvel vendido **não é mais fora de escopo**
+  (ADR-043) — ver `ciclo-vida-imovel.md`; a cascata que isso dispara no
+  `PARCELAMENTO_VENDA` usa exclusão lógica normalmente. Ainda fora de
+  escopo: endpoint de restauração de exclusão lógica (ver
+  `docs/PROXIMOS-PASSOS.md`)
 
 ## Despesa (ADR-023)
 

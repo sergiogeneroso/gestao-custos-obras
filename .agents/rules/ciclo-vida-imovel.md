@@ -11,8 +11,9 @@ O imóvel tem **dois eixos independentes**, e confundi-los é o erro mais fácil
 cometer aqui:
 
 - **`fase`** (`FaseImovel`): `LOTE → CONSTRUCAO → CASA` — a natureza física
-- **`situacao`** (`SituacaoImovel`): `ADQUIRIDO ⇄ A_VENDA → VENDIDO` — a
-  situação comercial
+- **`situacao`** (`SituacaoImovel`): `ADQUIRIDO ⇄ A_VENDA ⇄ VENDIDO` — a
+  situação comercial. `VENDIDO` também pode voltar (ADR-043): um acordo de
+  venda pode ser desfeito
 
 ## Regras que não podem ser quebradas
 
@@ -102,3 +103,22 @@ dado que não pode ser reconstruído depois.
 - Ao iniciar a construção, **avisar** (sem bloquear) se ainda houver contrato de
   `PARCELAMENTO_COMPRA` com situação `ATIVO` — o banco costuma exigir o terreno
   quitado para financiar a obra
+
+## Desfazer uma venda (ADR-043)
+
+Sair de `VENDIDO` (para `A_VENDA` ou `ADQUIRIDO`, escolha livre do usuário)
+é uma transição normal do `PATCH /situacao`, **nunca bloqueada pelo estado
+de um contrato de venda vinculado** — a devolução do dinheiro pode demorar,
+e o imóvel precisa poder voltar ao mercado imediatamente para gerar o
+caixa do estorno.
+
+- **Motivo é obrigatório** ao sair de `VENDIDO`, mesmo padrão de
+  `ExclusaoLogica.motivoExclusao`
+- **`venda.valor`/`venda.data`/`venda.comprador` são limpos** (voltam a
+  `null`); `venda.valorPretendido` não muda
+- **Cascata automática e incondicional** no `PARCELAMENTO_VENDA` vinculado,
+  se existir: sem parcela paga, o contrato é excluído; com parcela paga, o
+  contrato vira `CANCELADO` e passa a rastrear estorno — ver
+  `contratos-financeiros.md`. Essa cascata gera evento de auditoria próprio
+  no `ContratoFinanceiro`, não é silenciosa como a cascata de exclusão do
+  imóvel inteiro (`auditoria.md`)

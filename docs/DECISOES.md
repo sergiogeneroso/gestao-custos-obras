@@ -991,3 +991,97 @@ acessível a qualquer usuário autenticado (RBAC ainda não existe).
 **Convenção geral daqui em diante:** todo domínio novo nasce com a chamada
 de auditoria em `criar`/`atualizar`/`excluir`, igual à exclusão lógica — ver
 `.agents/rules/auditoria.md` e a skill `gerar-crud-dominio`.
+
+## ADR-043 — Venda cancelável: reverte o eixo `situacao`, cascata automática no contrato (Set 2026)
+
+O usuário confirmou (memória do projeto, Ago 2026) que `situacao = VENDIDO`
+não é permanente: um acordo de venda pode cair, e o sistema precisava
+comportar isso. Decisão tomada em sessão de grilling, campo a campo.
+
+**Modelagem do "desfazer": reaproveita o eixo `situacao` que já existe**,
+em vez de um estado novo/terminal (`VENDA_CANCELADA`). `VENDIDO` passa a
+poder voltar para `A_VENDA`/`ADQUIRIDO`, escolha livre do usuário — mesma
+mão dupla que `ADQUIRIDO ⇄ A_VENDA` já tinha (ADR-020). Alternativa
+descartada: um status terminal separado, no padrão de "cancelado" que
+sistemas de pedido/e-commerce costumam usar — descartado porque o negócio
+deste projeto se parece mais com o padrão do mercado imobiliário (MLS), em
+que um negócio desfeito simplesmente devolve o imóvel para "disponível",
+sem um estado à parte para carimbar.
+
+**Por que não precisa de um histórico de vendas separado:** o log de
+auditoria (ADR-042) já captura `estadoAnterior`/`estadoNovo` do
+`ImovelResponseDTO` inteiro em toda chamada de `alterarSituacao`, incluindo
+os campos de venda. Criar uma entidade "histórico de venda" duplicaria o
+que a auditoria genérica já resolve.
+
+**Ao sair de `VENDIDO`:**
+- **Motivo é obrigatório** — mesmo padrão de `ExclusaoLogica.motivoExclusao`,
+  já convenção no projeto para toda reversão sensível.
+- **`venda.valor`/`venda.data`/`venda.comprador` são limpos** (voltam a
+  `null`). Mantê-los seria dado morto e arriscado — uma tela ou relatório
+  futuro que leia `vendaValor` sem checar `situacao` primeiro mentiria.
+  `venda.valorPretendido` não muda: é um campo de "quanto eu quero pedir",
+  independente de ter havido venda.
+- **Endpoint reaproveitado**: `PATCH /api/imoveis/{id}/situacao`, removendo
+  o bloqueio que hoje existe para sair de `VENDIDO`. Um endpoint dedicado
+  duplicaria a única porta de entrada que já muda esse campo (regra de
+  `ciclo-vida-imovel.md`).
+- **Nunca bloqueado pelo estado do contrato de venda.** Cogitado e
+  descartado: prender o `PATCH /situacao` até o `PARCELAMENTO_VENDA`
+  vinculado estar resolvido. Descartado porque a devolução do dinheiro pode
+  demorar, e o imóvel precisa poder voltar ao mercado imediatamente — é
+  vendê-lo de novo que costuma gerar o dinheiro do estorno. Situação de
+  destino (`A_VENDA` vs `ADQUIRIDO`) é escolha livre do usuário, não
+  forçada: o sistema não sabe se existe outra fonte de caixa para o
+  estorno.
+
+**Cascata automática e incondicional no `PARCELAMENTO_VENDA` vinculado**
+(se existir, `ContratoFinanceiroService` decide, acionado por
+`ImovelService` na mesma operação, sem passo manual do usuário):
+- **Nenhuma parcela paga:** o contrato é excluído automaticamente (mesma
+  trava/caminho da exclusão avulsa — aqui nunca dispara, porque não há
+  parcela paga).
+- **Ao menos uma parcela paga:** o contrato passa para o novo valor
+  `SituacaoContrato.CANCELADO` — deliberadamente distinto de `QUITADO`, que
+  significa "cumprido com sucesso"; usar o mesmo valor para "não aconteceu"
+  faria `RelatorioService` e as travas de edição tratarem os dois casos
+  opostos como idênticos.
+- Sem essa cascata, o contrato ficaria `ATIVO` contando em
+  `saldoAReceberTotal` da Carteira como "dinheiro que ainda vamos receber"
+  de um negócio que já caiu — exatamente o valor financeiro incorreto que
+  a decisão inteira existe para evitar.
+
+**Rastreio do estorno** (dinheiro já recebido do comprador, que precisa
+voltar, possivelmente aos poucos e sem prazo definido):
+- `ContratoFinanceiroModel` ganha `dataCancelamento`, `motivoCancelamento`
+  (o contrato precisa se explicar sozinho — quem abre só a tela do
+  contrato não deveria precisar ir atrás do log de auditoria do Imóvel
+  para saber por que está `CANCELADO`) e `valorEstornado` (acumulado,
+  começa em zero).
+- Uma ação nova, `registrarEstorno(contratoId, data, valor)`, soma em
+  `valorEstornado` a cada devolução parcial. "Quanto falta devolver" é
+  sempre calculado (`total pago nas parcelas − valorEstornado`), nunca
+  gravado — mesmo espírito de nunca alterar os valores originais das
+  parcelas (ADR-025). Alternativa descartada: um cronograma de parcelas de
+  estorno, espelhando `ParcelaContratoModel` — rejeitada por duplicar a
+  máquina de parcelas (o ponto mais sensível do domínio) para um caso que
+  não tem parcelamento negociado de verdade, só devoluções avulsas ao
+  longo do tempo.
+- Novo indicador consolidado na Carteira, `saldoAEstornarTotal` — mesmo
+  padrão de `saldoDevedorTotal`/`saldoAReceberTotal` (ADR "Parcelamento de
+  venda não é dívida"). Fora de `custoTotal`/`lucro` em qualquer caso —
+  regra de custo (ADR-025) não muda.
+
+**Auditoria da cascata: gera evento próprio no `ContratoFinanceiro`**, não
+fica silenciosa. Cogitado seguir o padrão da cascata de exclusão do imóvel
+inteiro (ADR-042, que não audita os filhos cascateados) — descartado
+porque aquela exceção foi desenhada para "apagar o imóvel inteiro apaga
+tudo junto" (evitar um evento por cada uma das N entidades cascateadas
+numa exclusão em massa). Desfazer uma venda não é uma exclusão em massa: é
+uma operação normal de uso que, de tabela, muda o estado de **um**
+contrato — a regra geral de `auditoria.md` ("toda mutação do agregado
+principal chama `AuditoriaService.registrar`", sem exceção para gatilho
+automático vs manual) se aplica sem ressalva.
+
+Ver `.agents/rules/ciclo-vida-imovel.md` e `.agents/rules/contratos-financeiros.md`
+para o resumo operacional.

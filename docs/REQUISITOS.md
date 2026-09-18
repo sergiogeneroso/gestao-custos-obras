@@ -33,8 +33,10 @@ destino, e o valor de venda pretendido entra ao colocar à venda.
 **Ciclo de vida em dois eixos independentes** (ADR-020):
 - `fase`: LOTE → CONSTRUCAO → CASA, só avança. Todo imóvel começa como lote;
   construir é opcional.
-- `situacao`: ADQUIRIDO ⇄ A_VENDA → VENDIDO. A venda pode ocorrer em qualquer
-  fase, inclusive na planta, e não congela a fase.
+- `situacao`: ADQUIRIDO ⇄ A_VENDA ⇄ VENDIDO. A venda pode ocorrer em qualquer
+  fase, inclusive na planta, e não congela a fase. Uma venda pode ser desfeita
+  (ADR-043): `VENDIDO` volta para `A_VENDA`/`ADQUIRIDO`, com motivo obrigatório
+  e cascata automática no contrato de `PARCELAMENTO_VENDA` vinculado.
 
 **Compra e venda** (ADR-024): valor, data e contraparte de cada uma, mais o
 valor pretendido de venda. A **data da compra é obrigatória** e é o marco
@@ -127,7 +129,17 @@ de Fornecedores — a gestão acontece em Pessoas, com filtro "Só fornecedores"
 Um imóvel encadeia vários contratos ao longo da vida (ADR-025): parcelamento da
 compra com o vendedor, financiamento de construção com o banco, parcelamento da
 venda. Campos: tipo, contraparte, número, valor contratado, data, situação
-(Ativo/Quitado) e, na quitação antecipada, data e valor negociados.
+(Ativo/Quitado/Cancelado) e, na quitação antecipada, data e valor negociados.
+
+**Cancelamento por venda desfeita** (ADR-043, só `PARCELAMENTO_VENDA`): quando
+o imóvel deixa de estar `VENDIDO`, o contrato vinculado é resolvido
+automaticamente — excluído se não tinha parcela paga, ou marcado `Cancelado`
+(com `dataCancelamento`/`motivoCancelamento` próprios) se já tinha recebido
+alguma parcela. Um contrato `Cancelado` passa a rastrear **estorno**: valor já
+devolvido ao comprador (`valorEstornado`, incrementado a cada baixa parcial),
+com "quanto falta devolver" sempre calculado contra o total recebido, nunca
+gravado. `saldoAEstornarTotal`, consolidado na Carteira (RF10), soma isso entre
+todos os contratos `Cancelado` — fora do custo e do lucro em qualquer caso.
 
 Cronograma de parcelas: número, vencimento, valor, valor de juros, data e valor
 de pagamento (parcela sem data de pagamento está em aberto).
@@ -146,9 +158,11 @@ principal em aberto.
 
 ### RF10 — Dashboard da Carteira 🆕
 Visão consolidada: total investido, total vendido, lucro realizado, imóveis por
-fase e por situação, parcelas a vencer nos próximos 30 dias, saldo devedor total
-e gastos gerais do período. Alimentado por um endpoint único de relatório — o
-cálculo financeiro não é refeito no frontend.
+fase e por situação, parcelas a vencer nos próximos 30 dias, saldo devedor
+total, saldo a receber (`PARCELAMENTO_VENDA` ativo), saldo a estornar
+(contratos de venda cancelados, ADR-043) e gastos gerais do período. Alimentado
+por um endpoint único de relatório — o cálculo financeiro não é refeito no
+frontend.
 
 ## Requisitos Não Funcionais (RNF)
 

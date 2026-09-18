@@ -166,6 +166,41 @@ negociado e soma. **A invariante que prova a fórmula:** num `PARCELAMENTO_COMPR
 quitado, `custoTotal` do lote converge exatamente para o desembolso real. As
 parcelas originais continuam intocadas — o ajuste é calculado, nunca gravado.
 
+## Venda desfeita: contrato cancelado e estorno (ADR-043) — só `PARCELAMENTO_VENDA`
+
+Quando o imóvel sai de `VENDIDO` (ver `ciclo-vida-imovel.md`), o
+`PARCELAMENTO_VENDA` vinculado (se houver) é resolvido automaticamente na
+mesma operação, sem passo manual do usuário e sem nunca bloquear o
+`PATCH /situacao` do imóvel:
+
+- **Sem parcela paga:** o contrato é excluído.
+- **Com ao menos uma parcela paga:** o contrato vira
+  `SituacaoContrato.CANCELADO` — deliberadamente diferente de `QUITADO`
+  (que significa "cumprido com sucesso"). Sem essa cascata, o contrato
+  ficaria `ATIVO` contando em `saldoAReceberTotal` como dinheiro que ainda
+  vai entrar, de um negócio que já caiu.
+
+Um contrato `CANCELADO` guarda `dataCancelamento` e `motivoCancelamento`
+próprios — não depende do log de auditoria do Imóvel para se explicar. A
+cascata em si gera um evento de auditoria próprio no `ContratoFinanceiro`
+(não é silenciosa como a cascata de exclusão do imóvel inteiro).
+
+**Estorno** é o dinheiro já recebido do comprador que precisa voltar,
+possivelmente aos poucos e sem prazo definido:
+
+- `valorEstornado` no contrato começa em zero e só cresce, via
+  `registrarEstorno(contratoId, data, valor)` — cada baixa parcial soma
+  nele. **Nunca existe cronograma de parcelas de estorno** — seria
+  duplicar a máquina de `ParcelaContratoModel` para um caso que não tem
+  parcelamento negociado, só devoluções avulsas.
+- "Quanto falta devolver" é sempre **calculado**
+  (`Σ parcelas pagas − valorEstornado`), nunca gravado — mesmo espírito de
+  nunca alterar os valores originais das parcelas.
+- `saldoAEstornarTotal`, consolidado na Carteira, soma isso entre todos os
+  contratos `CANCELADO` — mesmo padrão de `saldoDevedorTotal`/
+  `saldoAReceberTotal`. **Fora de `custoTotal`/`lucro`** em qualquer caso;
+  a regra de custo não muda.
+
 ### Desembolso é caixa, não custo
 
 `totalDesembolsado` e `saldoAPagar` do `ResultadoImovelDTO` são posição de caixa e

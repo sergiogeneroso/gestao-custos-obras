@@ -483,11 +483,6 @@ sempre lógica daqui em diante — não só uma exceção para o fluxo do imóve
       `ExclusaoLogica` por padrão
 
 **Fora de escopo, registrado para depois:**
-- [ ] **Venda cancelável** — reverter `situacao = VENDIDO` quando um acordo de
-      venda é desfeito. O usuário sinalizou que isso precisa existir, mas é
-      mudança de regra de negócio em `ImovelService.alterarSituacao`
-      (`.agents/rules/ciclo-vida-imovel.md`), não mecânica de exclusão — pede
-      plan mode dedicado
 - [ ] Endpoint de restauração de exclusão lógica (nenhuma das entidades com
       soft delete tem isso hoje, nem as três anteriores à ADR-040)
 - [x] Rotina de auditoria geral do sistema — ADR-042, Set 2026. Decisão sobre a
@@ -498,3 +493,24 @@ sempre lógica daqui em diante — não só uma exceção para o fluxo do imóve
 - [ ] Auditoria de login/logout — fora do escopo do log de auditoria genérico
       (ADR-042): evento de segurança diferente, sem `entidadeId` nem estado
       antes/depois
+
+## Venda cancelável (Set 2026) — ADR-043
+
+Decisão fechada em sessão de grilling, campo a campo. Escopo: `situacao`
+volta a poder sair de `VENDIDO`, com cascata automática no
+`PARCELAMENTO_VENDA` vinculado e rastreio de estorno quando havia parcela
+paga. Ver `.agents/rules/ciclo-vida-imovel.md` e
+`.agents/rules/contratos-financeiros.md`.
+
+- [ ] Backend: `SituacaoContrato.CANCELADO`; `ContratoFinanceiroModel` ganha
+      `dataCancelamento`, `motivoCancelamento`, `valorEstornado`
+- [ ] Backend: `ImovelSituacaoRequestDTO` aceita `motivo` (obrigatório ao sair
+      de `VENDIDO`); `ImovelService.alterarSituacao` remove o bloqueio de
+      sair de `VENDIDO`, limpa os campos de venda e aciona a cascata
+- [ ] Backend: `ContratoFinanceiroService` ganha a cascata (excluir sem
+      parcela paga / cancelar com parcela paga, evento de auditoria próprio)
+      e `registrarEstorno(contratoId, data, valor)`
+- [ ] Backend: `CarteiraDTO.saldoAEstornarTotal`
+- [ ] Frontend: dialog de desfazer venda (motivo, destino `A_VENDA`/
+      `ADQUIRIDO`); tela de contrato mostra `Cancelado`/estorno e permite
+      registrar baixa; card de saldo a estornar na Carteira
