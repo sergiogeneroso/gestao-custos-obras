@@ -578,6 +578,38 @@ class RelatorioServiceTest {
         assertThat(resultado.ajusteQuitacao()).isEqualByComparingTo("0");
     }
 
+    // Lacuna fechada: um mesmo imóvel encadeia PARCELAMENTO_COMPRA quitado antecipadamente com
+    // FINANCIAMENTO_CONSTRUCAO ativo (contratos-financeiros.md) — os dois precisam somar certo no
+    // mesmo resultadoImovel, não só isolados como nos testes acima.
+    @Test
+    void parcelamentoCompraQuitadoMaisFinanciamentoConstrucaoAtivoSomamNoMesmoResultado() {
+        ImovelModel imovel = imovelParcelado(1L, new BigDecimal("100000"));
+        // Lote: entrada 30.000 + 20 x 3.500 = 100.000, sem juros; quitado por 45.000 com 6 parcelas já pagas.
+        ContratoFinanceiroModel lote = parcelamentoCompra(SituacaoContrato.QUITADO, new BigDecimal("45000"),
+                cronograma(new BigDecimal("30000"), 20, new BigDecimal("3500"), null, 6));
+        // Financiamento da obra: uma parcela paga com 200 de juros e uma parcela em aberto.
+        ParcelaContratoModel paga = parcela(new BigDecimal("5000"), new BigDecimal("200"), LocalDate.now(), new BigDecimal("5000"));
+        ParcelaContratoModel aberta = parcela(new BigDecimal("6000"), new BigDecimal("300"), null, null);
+        ContratoFinanceiroModel financiamento = contrato(TipoContratoFinanceiro.FINANCIAMENTO_CONSTRUCAO,
+                SituacaoContrato.ATIVO, new BigDecimal("100000"), null, null, paga, aberta);
+
+        mockar(imovel, List.of(), List.of(lote, financiamento));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        // jurosPagos = 200: só a parcela paga do financiamento tem valorJuros; o lote não tem juros.
+        assertThat(resultado.jurosPagos()).isEqualByComparingTo("200");
+        // ajusteQuitacao do lote: principal em aberto = 14 parcelas x 3.500 = 49.000; 45.000 - 49.000 = -4.000.
+        assertThat(resultado.ajusteQuitacao()).isEqualByComparingTo("-4000");
+        // custoTotal = compra (100000) + despesas (0) + jurosPagos (200) + ajusteQuitacao (-4000) = 96.200.
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("96200");
+        // totalDesembolsado: lote pago = entrada 30.000 + 6 x 3.500 = 51.000, mais os 45.000 da
+        // quitação = 96.000; financiamento pago = só a parcela paga, 5.000. Total = 101.000.
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("101000");
+        // saldoAPagar: lote quitado conta zero; financiamento em aberto = 6.000 (a parcela aberta).
+        assertThat(resultado.saldoAPagar()).isEqualByComparingTo("6000");
+    }
+
     private ImovelModel imovelParcelado(Long id, BigDecimal valorLote) {
         ImovelModel imovel = imovel(id, valorLote);
         imovel.getCompra().setParcelada(true);

@@ -31,6 +31,9 @@ somam ao custo (`custoSemCompraSomaDespesas...`,
 `despesasPorEtapaNuncaEntraNoCusto...`); compra parcelada sem/com juros,
 quitação com desconto ou juros embutidos (`loteParceladoSemJuros...`,
 `descontoNaQuitacaoDoLote...`, `quitacaoComJurosEmbutidos...`);
+`PARCELAMENTO_COMPRA` quitado antecipadamente encadeado com
+`FINANCIAMENTO_CONSTRUCAO` ativo no mesmo imóvel
+(`parcelamentoCompraQuitadoMaisFinanciamentoConstrucaoAtivoSomamNoMesmoResultado`);
 `PARCELAMENTO_VENDA` é a receber, não dívida
 (`parcelamentoDeVendaContaComoAReceberNaoComoDivida`,
 `jurosDeParcelamentoDeVendaNaoEntramNoCusto`); venda desfeita com parcela
@@ -75,10 +78,14 @@ inativos são recusados (`pagadorInativoNaoPodeSerVinculado`,
 (`imovelVendidoAceitaDespesa`); `temComprovante` só conta anexo COMPROVANTE
 (`buscaMarcaTemComprovanteSoParaDespesaComAnexoDoTipoComprovante`);
 duplicidade de orçamento ignora registro excluído — bug corrigido
-(`orcamentoExcluidoNaoBloqueiaCriarOutroParaMesmaCategoria`); auditoria de
-criar/atualizar/excluir nos dois domínios.
+(`orcamentoExcluidoNaoBloqueiaCriarOutroParaMesmaCategoria`); despesa de
+custo acessório vinculada a contrato válido grava o vínculo sem alterar o
+contrato (`despesaDeCustoAcessorioVinculadaAContratoAtivoGravaOVinculoSemAlterarOContrato`);
+auditoria de criar/atualizar/excluir nos dois domínios.
 
-**`ImovelServiceTest`/`ImovelExclusaoServiceTest`** — fase só avança, nunca
+**`ImovelServiceTest`/`ImovelExclusaoServiceTest`** — `criar` audita
+`CRIACAO` com `estadoAnterior` nulo (`criarAuditaCriacaoComEstadoAnteriorNulo`);
+fase só avança, nunca
 retrocede nem pula (`faseNaoRetrocede`, `transicaoQuePulaFaseEhRecusada`);
 venda em qualquer fase sem mudar fase, avanço de fase sem mudar situação —
 eixos independentes (`venderGravaValorDataCompradorSemAlterarFase`,
@@ -115,17 +122,6 @@ inteiros; `contrato.model.spec.ts` cobre `saldoAEstornar`.
   exclusão lógica, `PessoaService`, `CategoriaDespesaService`
 - Decisão de design sem comportamento a testar: auditoria manual em vez de
   Envers/AOP (ADR-042)
-
-## Lacunas conhecidas
-
-- Quitação antecipada do `PARCELAMENTO_COMPRA` seguida de
-  `FINANCIAMENTO_CONSTRUCAO` no mesmo imóvel, em `RelatorioService` — nenhum
-  teste combina os dois contratos no mesmo `mockar(...)`
-- `ImovelService.criar` audita `CRIACAO` com `estadoAnterior` nulo (o código
-  já faz isso), mas sem teste dedicado — só despesa, contrato e orçamento têm
-- Despesa de custo acessório vinculada a um `ContratoFinanceiro` **válido**
-  via FK opcional — só o caminho de contrato excluído está testado
-  (`contratoExcluidoEhTratadoComoNaoEncontrado`)
 
 ## Como montar os cenários
 

@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -384,6 +385,27 @@ class ImovelServiceTest {
 
         verify(contratoFinanceiroService).cancelarPorVendaDesfeita(eq(9L), eq("caiu"), any());
         verify(contratoFinanceiroService, never()).excluir(any(), any());
+    }
+
+    // Cobre .agents/rules/auditoria.md: criar audita CRIACAO com estadoAnterior nulo — o código já
+    // fazia isso, mas só despesa e contrato tinham teste dedicado para essa regra (lacuna conhecida
+    // de testes-dominio-financeiro.md).
+    @Test
+    void criarAuditaCriacaoComEstadoAnteriorNulo() {
+        when(imovelRepository.save(any())).thenAnswer(chamada -> {
+            ImovelModel salvo = chamada.getArgument(0);
+            salvo.setId(77L);
+            return salvo;
+        });
+
+        ImovelRequestDTO dto = new ImovelRequestDTO("LOTE-77", null, null, null, null, null, null,
+                null, null, null, null, new BigDecimal("100000"), COMPRA, null, false, null, null);
+
+        imovelService.criar(dto);
+
+        ArgumentCaptor<ImovelResponseDTO> novoCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Imovel"), eq(77L), eq(OperacaoAuditoria.CRIACAO), isNull(), novoCaptor.capture());
+        assertThat(novoCaptor.getValue().identificador()).isEqualTo("LOTE-77");
     }
 
     // Cobre .agents/rules/auditoria.md: atualizar, avancarFase e alterarSituacao gravam o evento

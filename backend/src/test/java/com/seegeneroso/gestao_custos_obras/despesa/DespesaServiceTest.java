@@ -2,6 +2,7 @@ package com.seegeneroso.gestao_custos_obras.despesa;
 
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaModel;
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
@@ -12,6 +13,7 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
+import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
@@ -204,6 +206,27 @@ class DespesaServiceTest {
                 .isInstanceOf(RecursoNaoEncontradoException.class)
                 .hasMessageContaining("Contrato financeiro não encontrado");
         verify(despesaRepository, never()).save(any());
+    }
+
+    // contratos-financeiros.md: custo acessório do financiamento (vistoria, avaliação, tarifa...) é
+    // despesa comum vinculada por FK opcional a um contrato válido — grava o vínculo sem tocar em
+    // nada do contrato, porque prestação nunca é despesa e despesa nunca é prestação.
+    @Test
+    void despesaDeCustoAcessorioVinculadaAContratoAtivoGravaOVinculoSemAlterarOContrato() {
+        mockarDependencias(imovel(FaseImovel.CONSTRUCAO));
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .id(5L).situacao(SituacaoContrato.ATIVO)
+                .valorContratado(new BigDecimal("200000.00")).parcelas(new java.util.ArrayList<>()).build();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(5L)).thenReturn(Optional.of(contrato));
+        when(despesaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        despesaService.criar(dto(1L, null, null, 5L));
+
+        assertThat(capturarSalva().getContratoFinanceiro()).isSameAs(contrato);
+        // O valor da despesa (1500.00) não altera nada do contrato — prestação e despesa são coisas
+        // separadas (contratos-financeiros.md).
+        assertThat(contrato.getValorContratado()).isEqualByComparingTo("200000.00");
+        assertThat(contrato.getParcelas()).isEmpty();
     }
 
     // atualizar aplica a mesma regra de criar: etapa de obra só existe na fase Construção.
