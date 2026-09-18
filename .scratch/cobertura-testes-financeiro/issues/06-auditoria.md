@@ -1,6 +1,6 @@
 # 06 — Auditoria
 Type: task
-Status: open
+Status: resolved
 
 Decisão 8. Ler `.agents/rules/auditoria.md` antes. Nos testes de Service de
 contrato, despesa, imóvel e orçamento: um teste por método de mutação

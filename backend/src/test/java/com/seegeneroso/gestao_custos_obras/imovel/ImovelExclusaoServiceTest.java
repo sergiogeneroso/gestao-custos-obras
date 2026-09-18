@@ -10,6 +10,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.ImpactoExclusaoImovelRespo
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaModel;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
@@ -26,6 +27,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -90,8 +93,14 @@ class ImovelExclusaoServiceTest {
         assertThat(imovel.getExclusao().getAtivo()).isFalse();
         verify(imovelFotoRepository).delete(foto);
         verify(imovelDocumentoRepository).delete(documento);
-        verify(storageService, org.mockito.Mockito.times(2)).deletar(any(), any());
+        verify(storageService, times(2)).deletar(any(), any());
         verify(imovelRepository).save(imovel);
+
+        // Cobre .agents/rules/auditoria.md: a cascata gera um único evento, o do Imovel — despesa,
+        // orçamento e contrato cascateados não geram evento próprio (auditoriaService é mockado
+        // aqui, então cascatearExclusao real de ContratoFinanceiroService nem entra em jogo).
+        verify(auditoriaService, times(1)).registrar(any(), any(), any(), any(), any());
+        verify(auditoriaService).registrar(eq("Imovel"), eq(1L), eq(OperacaoAuditoria.EXCLUSAO), any(), any());
     }
 
     @Test

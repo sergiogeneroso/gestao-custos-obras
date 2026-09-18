@@ -8,9 +8,11 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosCasaDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.DadosConstrucaoDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFaseRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
+import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
@@ -19,6 +21,7 @@ import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioExcept
 import com.seegeneroso.gestao_custos_obras.shared.storage.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -254,6 +257,81 @@ class ImovelServiceTest {
 
         verify(contratoFinanceiroService).cancelarPorVendaDesfeita(eq(9L), eq("caiu"), any());
         verify(contratoFinanceiroService, never()).excluir(any(), any());
+    }
+
+    // Cobre .agents/rules/auditoria.md: atualizar, avancarFase e alterarSituacao gravam o evento
+    // certo com o estadoAnterior capturado antes da mutação em memória.
+    @Test
+    void atualizarAuditaComEstadoAnteriorCapturadoAntesDaMutacao() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(imovelRepository.existsByIdentificadorIgnoreCase("LOTE-02")).thenReturn(false);
+
+        // Identificador muda de LOTE-01 (estado original de imovel(...)) para LOTE-02.
+        ImovelRequestDTO dto = new ImovelRequestDTO("LOTE-02", null, null, null, null, null, null, null,
+                null, null, null, new BigDecimal("100000"), COMPRA, null, false, null, null);
+
+        imovelService.atualizar(1L, dto);
+
+        ArgumentCaptor<ImovelResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        ArgumentCaptor<ImovelResponseDTO> novoCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Imovel"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().identificador()).isEqualTo("LOTE-01");
+        assertThat(novoCaptor.getValue().identificador()).isEqualTo("LOTE-02");
+    }
+
+    @Test
+    void avancarFaseAuditaComEstadoAnteriorCapturadoAntesDaMutacao() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of());
+
+        imovelService.avancarFase(1L, new ImovelFaseRequestDTO(FaseImovel.CONSTRUCAO, COMPRA.plusMonths(2), null, null));
+
+        ArgumentCaptor<ImovelResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        ArgumentCaptor<ImovelResponseDTO> novoCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Imovel"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().fase()).isEqualTo(FaseImovel.LOTE);
+        assertThat(novoCaptor.getValue().fase()).isEqualTo(FaseImovel.CONSTRUCAO);
+    }
+
+    @Test
+    void alterarSituacaoAuditaComEstadoAnteriorCapturadoAntesDaMutacao() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        imovelService.alterarSituacao(1L, new ImovelSituacaoRequestDTO(
+                SituacaoImovel.A_VENDA, null, null, null, new BigDecimal("120000"), null));
+
+        ArgumentCaptor<ImovelResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        ArgumentCaptor<ImovelResponseDTO> novoCaptor = ArgumentCaptor.forClass(ImovelResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Imovel"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().situacao()).isEqualTo(SituacaoImovel.ADQUIRIDO);
+        assertThat(novoCaptor.getValue().situacao()).isEqualTo(SituacaoImovel.A_VENDA);
+    }
+
+    // Sub-recurso (foto do imóvel) não audita — mesma fronteira de documentos/anexos.
+    @Test
+    void adicionarFotoNaoGeraEventoDeAuditoria() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelFotoRepository.findByImovelIdAndPrincipalTrue(1L)).thenReturn(Optional.empty());
+        org.springframework.web.multipart.MultipartFile arquivo = org.mockito.Mockito.mock(org.springframework.web.multipart.MultipartFile.class);
+        when(storageService.salvar(any(), any())).thenReturn("foto.jpg");
+        when(imovelFotoRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        imovelService.adicionarFoto(1L, arquivo, "fachada");
+
+        verify(auditoriaService, never()).registrar(any(), any(), any(), any(), any());
     }
 
     private ImovelModel imovel(FaseImovel fase) {

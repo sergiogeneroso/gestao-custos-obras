@@ -14,6 +14,7 @@ import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -112,6 +114,49 @@ class OrcamentoCategoriaServiceTest {
 
         // 2000 + 500
         assertThat(totalGasto).isEqualByComparingTo("2500.00");
+    }
+
+    // Cobre .agents/rules/auditoria.md: criar audita CRIACAO com estadoAnterior nulo.
+    @Test
+    void criarAuditaCriacaoComEstadoAnteriorNulo() {
+        mockarImovelECategoria();
+        when(orcamentoCategoriaRepository.existsByImovelIdAndCategoriaDespesaIdAndAtivoTrue(1L, 2L)).thenReturn(false);
+        when(orcamentoCategoriaRepository.save(any())).thenAnswer(chamada -> {
+            OrcamentoCategoriaModel salvo = chamada.getArgument(0);
+            salvo.setId(50L);
+            return salvo;
+        });
+        when(despesaRepository.findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(1L, 2L)).thenReturn(List.of());
+
+        orcamentoCategoriaService.criar(dto());
+
+        ArgumentCaptor<OrcamentoCategoriaResponseDTO> novoCaptor = ArgumentCaptor.forClass(OrcamentoCategoriaResponseDTO.class);
+        verify(auditoriaService).registrar(eq("OrcamentoCategoria"), eq(50L), eq(OperacaoAuditoria.CRIACAO), isNull(), novoCaptor.capture());
+        assertThat(novoCaptor.getValue().valorOrcado()).isEqualByComparingTo("10000.00");
+    }
+
+    // Cobre .agents/rules/auditoria.md: atualizar captura o estadoAnterior antes de aplicar os
+    // setters — provado comparando valorOrcado, que muda de 10.000 (orcamento(10L)) para 15.000.
+    @Test
+    void atualizarAuditaComEstadoAnteriorCapturadoAntesDaMutacao() {
+        OrcamentoCategoriaModel existente = orcamento(10L);
+        when(orcamentoCategoriaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(existente));
+        when(despesaRepository.findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(1L, 2L)).thenReturn(List.of());
+        mockarImovelECategoria();
+        when(orcamentoCategoriaRepository.findByImovelIdAndCategoriaDespesaIdAndAtivoTrue(1L, 2L))
+                .thenReturn(Optional.of(existente));
+        when(orcamentoCategoriaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        OrcamentoCategoriaRequestDTO dtoEditado = new OrcamentoCategoriaRequestDTO(1L, 2L, new BigDecimal("15000.00"), null, null);
+        orcamentoCategoriaService.atualizar(10L, dtoEditado);
+
+        ArgumentCaptor<OrcamentoCategoriaResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(OrcamentoCategoriaResponseDTO.class);
+        ArgumentCaptor<OrcamentoCategoriaResponseDTO> novoCaptor = ArgumentCaptor.forClass(OrcamentoCategoriaResponseDTO.class);
+        verify(auditoriaService).registrar(eq("OrcamentoCategoria"), eq(10L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().valorOrcado()).isEqualByComparingTo("10000.00");
+        assertThat(novoCaptor.getValue().valorOrcado()).isEqualByComparingTo("15000.00");
     }
 
     @Test

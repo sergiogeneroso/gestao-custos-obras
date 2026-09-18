@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -218,6 +219,8 @@ class DespesaServiceTest {
         verify(despesaRepository, never()).save(any());
     }
 
+    // Cobre .agents/rules/auditoria.md: excluir grava o estado anterior (ativo=true) antes da
+    // exclusão lógica mudar o campo para false.
     @Test
     void excluirAplicaExclusaoLogicaComMotivo() {
         DespesaModel despesa = DespesaModel.builder().id(10L).build();
@@ -228,7 +231,65 @@ class DespesaServiceTest {
 
         assertThat(despesa.getExclusao().getAtivo()).isFalse();
         assertThat(despesa.getExclusao().getMotivoExclusao()).isEqualTo("Lançamento duplicado");
-        verify(auditoriaService).registrar(eq("Despesa"), eq(10L), eq(OperacaoAuditoria.EXCLUSAO), any(), any());
+
+        ArgumentCaptor<DespesaResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(DespesaResponseDTO.class);
+        ArgumentCaptor<DespesaResponseDTO> novoCaptor = ArgumentCaptor.forClass(DespesaResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Despesa"), eq(10L), eq(OperacaoAuditoria.EXCLUSAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+        assertThat(anteriorCaptor.getValue().ativo()).isTrue();
+        assertThat(novoCaptor.getValue().ativo()).isFalse();
+    }
+
+    // Cobre .agents/rules/auditoria.md: criar audita CRIACAO com estadoAnterior nulo.
+    @Test
+    void criarAuditaCriacaoComEstadoAnteriorNulo() {
+        mockarDependencias(imovel(FaseImovel.LOTE));
+        when(despesaRepository.save(any())).thenAnswer(chamada -> {
+            DespesaModel salva = chamada.getArgument(0);
+            salva.setId(77L);
+            return salva;
+        });
+
+        despesaService.criar(dto(1L, null, null));
+
+        ArgumentCaptor<DespesaResponseDTO> novoCaptor = ArgumentCaptor.forClass(DespesaResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Despesa"), eq(77L), eq(OperacaoAuditoria.CRIACAO), isNull(), novoCaptor.capture());
+        assertThat(novoCaptor.getValue().valor()).isEqualByComparingTo("1500.00");
+    }
+
+    // Cobre .agents/rules/auditoria.md: atualizar captura o estadoAnterior antes de aplicar os
+    // setters — provado comparando o valor, que muda de 1000 (estado original) para 1500 (do dto).
+    @Test
+    void atualizarAuditaComEstadoAnteriorCapturadoAntesDaMutacao() {
+        DespesaModel existente = DespesaModel.builder().id(10L).imovel(imovel(FaseImovel.LOTE))
+                .valor(new BigDecimal("1000.00")).dataPagamento(PAGAMENTO).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(existente));
+        mockarDependencias(imovel(FaseImovel.LOTE));
+        when(despesaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        despesaService.atualizar(10L, dto(1L, null, null));
+
+        ArgumentCaptor<DespesaResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(DespesaResponseDTO.class);
+        ArgumentCaptor<DespesaResponseDTO> novoCaptor = ArgumentCaptor.forClass(DespesaResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Despesa"), eq(10L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().valor()).isEqualByComparingTo("1000.00");
+        assertThat(novoCaptor.getValue().valor()).isEqualByComparingTo("1500.00");
+    }
+
+    // Sub-recurso (anexo de despesa) não audita — mesma fronteira de fotos/documentos.
+    @Test
+    void adicionarAnexoNaoGeraEventoDeAuditoria() {
+        DespesaModel despesa = DespesaModel.builder().id(10L).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(despesa));
+        org.springframework.web.multipart.MultipartFile arquivo = org.mockito.Mockito.mock(org.springframework.web.multipart.MultipartFile.class);
+        when(storageService.salvar(any(), any())).thenReturn("recibo.pdf");
+        when(despesaAnexoRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        despesaService.adicionarAnexo(10L, arquivo, TipoAnexoDespesa.RECIBO);
+
+        verify(auditoriaService, never()).registrar(any(), any(), any(), any(), any());
     }
 
     @Test

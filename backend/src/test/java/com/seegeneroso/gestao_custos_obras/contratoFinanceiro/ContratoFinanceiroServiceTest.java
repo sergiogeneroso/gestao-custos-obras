@@ -3,8 +3,10 @@ package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 import com.seegeneroso.gestao_custos_obras.auth.UsuarioModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoEstornoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoQuitacaoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaPagamentoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
@@ -14,6 +16,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
+import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
 import com.seegeneroso.gestao_custos_obras.shared.auth.UsuarioAutenticadoService;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
@@ -38,6 +41,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -463,6 +468,181 @@ class ContratoFinanceiroServiceTest {
 
         assertThat(contrato.getImovel().getCompra().getValor()).isEqualByComparingTo("50000");
         verify(imovelRepository, never()).save(any());
+    }
+
+    // Cobre .agents/rules/auditoria.md: toda mutação do agregado principal registra o evento certo,
+    // com o estadoAnterior capturado antes da mutação em memória.
+    @Test
+    void criarAuditaCriacaoComEstadoAnteriorNulo() {
+        ImovelModel imovel = imovel(null);
+        mockar(imovel);
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        service.criar(requisicao(imovel, new BigDecimal("20000"), null));
+
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> novoCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), any(), eq(OperacaoAuditoria.CRIACAO), isNull(), novoCaptor.capture());
+        assertThat(novoCaptor.getValue().valorContratado()).isEqualByComparingTo("50000");
+    }
+
+    @Test
+    void atualizarAuditaComEstadoAnteriorCapturadoAntesDaMutacao() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato.getImovel()));
+        when(pessoaRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(new PessoaModel()));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        // valorContratado muda de 50.000 (estado original de contratoParaAtualizar) para 60.000.
+        ContratoFinanceiroRequestDTO dto = new ContratoFinanceiroRequestDTO(1L, TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 1L,
+                new BigDecimal("60000"), List.of(
+                new ParcelaContratoRequestDTO(1, LocalDate.of(2026, 9, 15), new BigDecimal("5000"), new BigDecimal("30")),
+                new ParcelaContratoRequestDTO(2, LocalDate.of(2026, 10, 15), new BigDecimal("5000"), null)),
+                null, null, null);
+
+        service.atualizar(1L, dto);
+
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> novoCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().valorContratado()).isEqualByComparingTo("50000");
+        assertThat(novoCaptor.getValue().valorContratado()).isEqualByComparingTo("60000");
+    }
+
+    @Test
+    void quitarAuditaComEstadoAnteriorAntesDaQuitacao() {
+        ContratoFinanceiroModel contrato = contratoParaAtualizar(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        service.quitar(1L, new ContratoQuitacaoRequestDTO(LocalDate.of(2026, 11, 1), new BigDecimal("4800")));
+
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> novoCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().situacao()).isEqualTo(SituacaoContrato.ATIVO);
+        assertThat(novoCaptor.getValue().situacao()).isEqualTo(SituacaoContrato.QUITADO);
+    }
+
+    // Cascata de venda desfeita (ADR-043) gera evento de auditoria próprio do contrato — diferente
+    // da cascata silenciosa de exclusão do imóvel inteiro (ver cascatearExclusaoNaoGeraEventoDeAuditoriaProprio).
+    @Test
+    void cancelarPorVendaDesfeitaGeraEventoDeAuditoriaProprioDoContrato() {
+        ContratoFinanceiroModel contrato = contratoDeVenda();
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        service.cancelarPorVendaDesfeita(1L, "comprador desistiu", LocalDate.of(2026, 9, 20));
+
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> novoCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().situacao()).isEqualTo(SituacaoContrato.ATIVO);
+        assertThat(novoCaptor.getValue().situacao()).isEqualTo(SituacaoContrato.CANCELADO);
+    }
+
+    @Test
+    void registrarEstornoAuditaComEstadoAnteriorAntesDaMutacao() {
+        ContratoFinanceiroModel contrato = contratoDeVenda();
+        contrato.setSituacao(SituacaoContrato.CANCELADO);
+        contrato.setValorEstornado(new BigDecimal("1000"));
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        service.registrarEstorno(1L, new ContratoEstornoRequestDTO(LocalDate.of(2026, 10, 1), new BigDecimal("2000")));
+
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> novoCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().valorEstornado()).isEqualByComparingTo("1000");
+        assertThat(novoCaptor.getValue().valorEstornado()).isEqualByComparingTo("3000");
+    }
+
+    @Test
+    void pagarParcelaAuditaComEstadoAnteriorAntesDaBaixa() {
+        ContratoFinanceiroModel contrato = contratoComParcela(SituacaoContrato.ATIVO, null);
+        ParcelaContratoModel parcela = contrato.getParcelas().get(0);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(parcelaContratoRepository.findById(10L)).thenReturn(Optional.of(parcela));
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        service.pagarParcela(1L, 10L, new ParcelaPagamentoRequestDTO(LocalDate.of(2026, 9, 20), new BigDecimal("5000")));
+
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        ArgumentCaptor<ContratoFinanceiroResponseDTO> novoCaptor = ArgumentCaptor.forClass(ContratoFinanceiroResponseDTO.class);
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), eq(1L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), novoCaptor.capture());
+
+        assertThat(anteriorCaptor.getValue().parcelas().get(0).dataPagamento()).isNull();
+        assertThat(novoCaptor.getValue().parcelas().get(0).dataPagamento()).isEqualTo(LocalDate.of(2026, 9, 20));
+    }
+
+    @Test
+    void excluirAuditaAOperacaoDeExclusao() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato));
+        when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of());
+        when(despesaRepository.findByContratoFinanceiroId(1L)).thenReturn(List.of());
+        when(usuarioAutenticadoService.usuarioAtual()).thenReturn(UsuarioModel.builder().id(9L).build());
+        when(contratoFinanceiroMapper.toResponseDTO(any())).thenAnswer(chamada -> mapear(chamada.getArgument(0)));
+
+        service.excluir(1L, "cadastro errado");
+
+        verify(auditoriaService).registrar(eq("ContratoFinanceiro"), eq(1L), eq(OperacaoAuditoria.EXCLUSAO), any(), any());
+    }
+
+    // .agents/rules/auditoria.md: a cascata de exclusão do imóvel inteiro (ImovelExclusaoService)
+    // chama cascatearExclusao diretamente, sem passar por excluir(), e não gera evento próprio de
+    // contrato — só o do Imovel (ver ImovelExclusaoServiceTest).
+    @Test
+    void cascatearExclusaoNaoGeraEventoDeAuditoriaProprio() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of());
+        when(despesaRepository.findByContratoFinanceiroId(1L)).thenReturn(List.of());
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of());
+
+        service.cascatearExclusao(contrato, "exclusão em cascata do imóvel", UsuarioModel.builder().id(9L).build());
+
+        verify(auditoriaService, never()).registrar(any(), any(), any(), any(), any());
+    }
+
+    // Sub-recurso (documento do contrato) não audita — mesma fronteira de fotos/anexos/documentos.
+    @Test
+    void adicionarDocumentoNaoGeraEventoDeAuditoria() {
+        ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
+        when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
+        org.springframework.web.multipart.MultipartFile arquivo = org.mockito.Mockito.mock(org.springframework.web.multipart.MultipartFile.class);
+        when(storageService.salvar(any(), any())).thenReturn("contrato.pdf");
+        when(contratoDocumentoRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.adicionarDocumento(1L, arquivo, com.seegeneroso.gestao_custos_obras.shared.enums.TipoDocumentoContrato.OUTRO, null);
+
+        verify(auditoriaService, never()).registrar(any(), any(), any(), any(), any());
+    }
+
+    private ContratoFinanceiroResponseDTO mapear(ContratoFinanceiroModel contrato) {
+        List<ParcelaContratoResponseDTO> parcelas = contrato.getParcelas().stream()
+                .map(p -> new ParcelaContratoResponseDTO(p.getId(), p.getNumero(), p.getDataVencimento(),
+                        p.getValor(), p.getValorJuros(), p.getDataPagamento(), p.getValorPago()))
+                .toList();
+        return new ContratoFinanceiroResponseDTO(
+                contrato.getId(), null, null, contrato.getTipo(), null, null,
+                contrato.getValorContratado(), contrato.getSituacao(), contrato.getDataQuitacao(),
+                contrato.getValorQuitacao(), contrato.getDataCancelamento(), contrato.getMotivoCancelamento(),
+                contrato.getValorEstornado(), contrato.getDataEstorno(), parcelas);
     }
 
     @Test
