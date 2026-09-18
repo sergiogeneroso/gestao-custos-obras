@@ -41,3 +41,6 @@ uploads/
 # Snapshot do banco: contém dados reais (CPF/CNPJ, matrículas, valores). Fica só no disco.
 # Regerar com backend/db/snapshot/gerar.ps1.
 backend/db/snapshot/snapshot.sql
+
+### Logs ###
+*.log
