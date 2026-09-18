@@ -57,3 +57,7 @@ lado a lado. Ver ADR-014/015 em `docs/DECISOES.md`.
 
 Rodar `cd backend && ./mvnw test` antes de considerar uma tarefa de backend
 finalizada.
+
+Ao escrever ou revisar testes, siga as guias `.agents/rules/testes-*.md`
+(core, backend, frontend e domínio financeiro). Para gerar testes de um
+arquivo ou dos arquivos alterados: skill `gerar-testes`.
