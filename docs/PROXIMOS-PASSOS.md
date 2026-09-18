@@ -406,7 +406,7 @@ superado; sobrou o que continua valendo:
 - [ ] Diário de obra (clima, equipe, ocorrências, fotos com timestamp)
 - [ ] OCR de notas fiscais
 - [ ] Alertas de orçamento e de parcelas a vencer (e-mail/push)
-- [ ] Trilha de auditoria (quem alterou o quê e quando)
+- [x] Trilha de auditoria (quem alterou o quê e quando) — ADR-042, Set 2026
 - [ ] Reativação do Flyway com baseline V1 única — risco registrado na ADR-029:
       fica mais caro depois do primeiro imóvel real lançado
 
@@ -490,6 +490,11 @@ sempre lógica daqui em diante — não só uma exceção para o fluxo do imóve
       plan mode dedicado
 - [ ] Endpoint de restauração de exclusão lógica (nenhuma das entidades com
       soft delete tem isso hoje, nem as três anteriores à ADR-040)
-- [ ] Rotina de auditoria geral do sistema (sinalizada pelo usuário como
-      próxima etapa; pode tornar `excluidoPor`/`excluidoEm` redundante com um
-      log mais amplo — decidir quando a etapa chegar)
+- [x] Rotina de auditoria geral do sistema — ADR-042, Set 2026. Decisão sobre a
+      redundância levantada aqui: `excluidoPor`/`excluidoEm` **não** foram
+      substituídos pelo log genérico — continuam respondendo "está excluído,
+      por quem, quando" sem join; o log de auditoria (`.agents/rules/auditoria.md`)
+      é complementar, cobrindo também criação/edição
+- [ ] Auditoria de login/logout — fora do escopo do log de auditoria genérico
+      (ADR-042): evento de segurança diferente, sem `entidadeId` nem estado
+      antes/depois
