@@ -330,6 +330,21 @@ class DespesaServiceTest {
         verify(despesaRepository, never()).save(any());
     }
 
+    // Imóvel vendido continua aceitando despesa (ciclo-vida-imovel.md): obra em andamento,
+    // corretagem e acertos chegam depois da venda e são custo real. DespesaService não filtra por
+    // situação — este teste prova que criar() não recusa o caso.
+    @Test
+    void imovelVendidoAceitaDespesa() {
+        ImovelModel imovel = imovel(FaseImovel.CONSTRUCAO);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        mockarDependencias(imovel);
+        when(despesaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        despesaService.criar(dto(1L, FaseImovel.CONSTRUCAO, null));
+
+        verify(despesaRepository).save(any());
+    }
+
     private DespesaModel capturarSalva() {
         ArgumentCaptor<DespesaModel> captor = ArgumentCaptor.forClass(DespesaModel.class);
         verify(despesaRepository).save(captor.capture());

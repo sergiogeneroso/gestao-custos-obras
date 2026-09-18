@@ -10,6 +10,7 @@ import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelFaseRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelRequestDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelResponseDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImovelSituacaoRequestDTO;
+import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.AuditoriaService;
 import com.seegeneroso.gestao_custos_obras.shared.auditoria.OperacaoAuditoria;
@@ -170,6 +171,20 @@ class ImovelServiceTest {
         verify(imovelRepository, never()).save(any());
     }
 
+    // Pular etapa não é "retroceder", mas a mesma regra de sequência estrita recusa os dois
+    // (ADR-020): só a próxima fase da ordem é destino válido.
+    @Test
+    void transicaoQuePulaFaseEhRecusada() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+
+        ImovelFaseRequestDTO dto = new ImovelFaseRequestDTO(FaseImovel.CASA, COMPRA.plusMonths(2), null, null);
+
+        assertThatThrownBy(() -> imovelService.avancarFase(1L, dto))
+                .isInstanceOf(RegraDeNegocioException.class);
+        verify(imovelRepository, never()).save(any());
+    }
+
     @Test
     void avancoDeFaseGravaADataInformada() {
         ImovelModel imovel = imovel(FaseImovel.LOTE);
@@ -182,6 +197,118 @@ class ImovelServiceTest {
 
         assertThat(imovel.getFase()).isEqualTo(FaseImovel.CONSTRUCAO);
         assertThat(imovel.getConstrucao().getDataInicio()).isEqualTo(inicioObra);
+    }
+
+    // fase e situação são eixos independentes (ADR-020): vender não mexe na fase.
+    @Test
+    void venderGravaValorDataCompradorSemAlterarFase() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        PessoaModel comprador = PessoaModel.builder().id(5L).nome("Comprador").build();
+        when(pessoaRepository.findByIdAndAtivoTrue(5L)).thenReturn(Optional.of(comprador));
+
+        ImovelSituacaoRequestDTO dto = new ImovelSituacaoRequestDTO(
+                SituacaoImovel.VENDIDO, new BigDecimal("250000"), LocalDate.of(2026, 6, 1), 5L, null, null);
+        imovelService.alterarSituacao(1L, dto);
+
+        assertThat(imovel.getVenda().getValor()).isEqualByComparingTo("250000");
+        assertThat(imovel.getVenda().getData()).isEqualTo(LocalDate.of(2026, 6, 1));
+        assertThat(imovel.getVenda().getComprador()).isEqualTo(comprador);
+        assertThat(imovel.getFase()).isEqualTo(FaseImovel.LOTE);
+    }
+
+    // Eixo inverso da anterior: avançar a fase de um imóvel já vendido não mexe na situação
+    // comercial — a obra segue depois da venda (ciclo-vida-imovel.md).
+    @Test
+    void avancarFaseDeImovelVendidoNaoAlteraSituacao() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of());
+
+        imovelService.avancarFase(1L, new ImovelFaseRequestDTO(FaseImovel.CONSTRUCAO, COMPRA.plusMonths(2), null, null));
+
+        assertThat(imovel.getFase()).isEqualTo(FaseImovel.CONSTRUCAO);
+        assertThat(imovel.getSituacao()).isEqualTo(SituacaoImovel.VENDIDO);
+    }
+
+    // Colocar à venda é quando o valor pretendido é decidido (ADR-033).
+    @Test
+    void colocarAVendaGravaValorPretendido() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        ImovelSituacaoRequestDTO dto = new ImovelSituacaoRequestDTO(
+                SituacaoImovel.A_VENDA, null, null, null, new BigDecimal("280000"), null);
+        imovelService.alterarSituacao(1L, dto);
+
+        assertThat(imovel.getVenda().getValorPretendido()).isEqualByComparingTo("280000");
+    }
+
+    // Cobre ADR-043: valorPretendido não é dado da venda desfeita, então desfazer venda não o toca.
+    @Test
+    void desfazerVendaPreservaValorPretendido() {
+        ImovelModel imovel = imovel(FaseImovel.CASA);
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.getVenda().setValorPretendido(new BigDecimal("280000"));
+        imovel.getVenda().setValor(new BigDecimal("300000"));
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of());
+
+        imovelService.alterarSituacao(1L, new ImovelSituacaoRequestDTO(
+                SituacaoImovel.A_VENDA, null, null, null, null, "comprador desistiu"));
+
+        assertThat(imovel.getVenda().getValorPretendido()).isEqualByComparingTo("280000");
+    }
+
+    // Cobre ADR-020: fase e situação só mudam pelo PATCH dedicado, nunca pelo PUT de cadastro.
+    @Test
+    void putNaoMudaFaseNemSituacao() {
+        ImovelModel imovel = imovel(FaseImovel.CONSTRUCAO);
+        imovel.setSituacao(SituacaoImovel.A_VENDA);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        imovelService.atualizar(1L, dtoCom(null, null));
+
+        assertThat(imovel.getFase()).isEqualTo(FaseImovel.CONSTRUCAO);
+        assertThat(imovel.getSituacao()).isEqualTo(SituacaoImovel.A_VENDA);
+    }
+
+    // Terceira combinação de validarOrdemDatas: sem início de obra registrado, a conclusão não
+    // pode ficar antes da própria compra (ciclo-vida-imovel.md).
+    @Test
+    void conclusaoAntesDaCompraSemInicioDeObraEhRecusada() {
+        ImovelModel imovel = imovel(FaseImovel.CASA);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+
+        ImovelRequestDTO dto = dtoCom(null, casaCom(COMPRA.minusDays(10)));
+
+        assertThatThrownBy(() -> imovelService.atualizar(1L, dto))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("conclusão da obra não pode ser anterior à data da compra");
+        verify(imovelRepository, never()).save(any());
+    }
+
+    // Aviso (não bloqueio) quando ainda há PARCELAMENTO_COMPRA ativo ao iniciar a construção —
+    // banco costuma exigir o terreno quitado para financiar a obra (ciclo-vida-imovel.md).
+    @Test
+    void avisoDeParcelamentoCompraAtivoAoAvancarParaConstrucao() {
+        ImovelModel imovel = imovel(FaseImovel.LOTE);
+        when(imovelRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(imovel));
+        when(imovelRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA).situacao(SituacaoContrato.ATIVO).build();
+        when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of(contrato));
+
+        ImovelResponseDTO resultado = imovelService.avancarFase(1L,
+                new ImovelFaseRequestDTO(FaseImovel.CONSTRUCAO, COMPRA.plusMonths(2), null, null));
+
+        assertThat(resultado.aviso()).contains("PARCELAMENTO_COMPRA");
     }
 
     // Cobre ADR-043: desfazer venda nunca é bloqueado pelo estado do contrato, e cascateia nele.
@@ -332,6 +459,30 @@ class ImovelServiceTest {
         imovelService.adicionarFoto(1L, arquivo, "fachada");
 
         verify(auditoriaService, never()).registrar(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void deletarFotoRecusaFotoDeOutroImovel() {
+        ImovelFotoModel foto = ImovelFotoModel.builder().id(7L).imovel(imovel(FaseImovel.LOTE))
+                .url("imoveis/1/foto.jpg").build();
+        when(imovelFotoRepository.findById(7L)).thenReturn(Optional.of(foto));
+
+        assertThatThrownBy(() -> imovelService.deletarFoto(2L, 7L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("não pertence");
+        verify(imovelFotoRepository, never()).delete(any());
+    }
+
+    @Test
+    void deletarDocumentoRecusaDocumentoDeOutroImovel() {
+        ImovelDocumentoModel documento = ImovelDocumentoModel.builder().id(8L).imovel(imovel(FaseImovel.LOTE))
+                .url("imoveis/1/documentos/doc.pdf").build();
+        when(imovelDocumentoRepository.findById(8L)).thenReturn(Optional.of(documento));
+
+        assertThatThrownBy(() -> imovelService.deletarDocumento(2L, 8L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("não pertence");
+        verify(imovelDocumentoRepository, never()).delete(any());
     }
 
     private ImovelModel imovel(FaseImovel fase) {

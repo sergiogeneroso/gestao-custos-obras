@@ -1,6 +1,6 @@
 # 07 — Imóvel (lacunas do ciclo de vida)
 Type: task
-Status: open
+Status: resolved
 
 Em `ImovelServiceTest`. Só cobrir existente; contradição com rule → parar.
 - transição que pula fase (LOTE → CASA) é recusada
