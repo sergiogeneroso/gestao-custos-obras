@@ -494,7 +494,7 @@ sempre lógica daqui em diante — não só uma exceção para o fluxo do imóve
       (ADR-042): evento de segurança diferente, sem `entidadeId` nem estado
       antes/depois
 
-## Venda cancelável (Set 2026) — ADR-043
+## Venda cancelável (Set 2026) — ADR-043 ✅
 
 Decisão fechada em sessão de grilling, campo a campo. Escopo: `situacao`
 volta a poder sair de `VENDIDO`, com cascata automática no
@@ -502,15 +502,25 @@ volta a poder sair de `VENDIDO`, com cascata automática no
 paga. Ver `.agents/rules/ciclo-vida-imovel.md` e
 `.agents/rules/contratos-financeiros.md`.
 
-- [ ] Backend: `SituacaoContrato.CANCELADO`; `ContratoFinanceiroModel` ganha
-      `dataCancelamento`, `motivoCancelamento`, `valorEstornado`
-- [ ] Backend: `ImovelSituacaoRequestDTO` aceita `motivo` (obrigatório ao sair
+- [x] Backend: `SituacaoContrato.CANCELADO`; `ContratoFinanceiroModel` ganha
+      `dataCancelamento`, `motivoCancelamento`, `valorEstornado`, `dataEstorno`
+- [x] Backend: `ImovelSituacaoRequestDTO` aceita `motivo` (obrigatório ao sair
       de `VENDIDO`); `ImovelService.alterarSituacao` remove o bloqueio de
       sair de `VENDIDO`, limpa os campos de venda e aciona a cascata
-- [ ] Backend: `ContratoFinanceiroService` ganha a cascata (excluir sem
+- [x] Backend: `ContratoFinanceiroService` ganha a cascata (excluir sem
       parcela paga / cancelar com parcela paga, evento de auditoria próprio)
       e `registrarEstorno(contratoId, data, valor)`
-- [ ] Backend: `CarteiraDTO.saldoAEstornarTotal`
-- [ ] Frontend: dialog de desfazer venda (motivo, destino `A_VENDA`/
+- [x] Backend: `CarteiraDTO.saldoAEstornarTotal`
+- [x] Frontend: dialog de desfazer venda (motivo, destino `A_VENDA`/
       `ADQUIRIDO`); tela de contrato mostra `Cancelado`/estorno e permite
-      registrar baixa; card de saldo a estornar na Carteira
+      registrar baixa; card de saldo a estornar na Carteira (só aparece
+      quando há saldo pendente)
+
+**Nota da implementação (Set 2026):** o CHECK constraint de
+`contrato_financeiro.situacao` não é atualizado pelo `ddl-auto=update`
+quando o enum Java ganha um valor novo — só foi descoberto ao testar o
+fluxo de ponta a ponta no navegador (não falha na compilação nem nos
+testes com mock). Corrigido com
+`db/manual/2026-09-contrato-situacao-cancelado.sql`; documentado em
+`.agents/rules/banco-e-migrations.md` como lacuna geral do
+`ddl-auto=update`, não só deste caso.
