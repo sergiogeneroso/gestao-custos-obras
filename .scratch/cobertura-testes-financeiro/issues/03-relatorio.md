@@ -1,6 +1,6 @@
 # 03 — Relatório
 Type: task
-Status: open
+Status: resolved
 
 Em `RelatorioServiceTest`. Só cobrir comportamento existente — se o código
 contradisser uma rule, PARAR e relatar (decisão 11).

@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.relatorio;
 
+import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ParcelaContratoModel;
@@ -15,12 +16,15 @@ import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.orcamentoCategoria.OrcamentoCategoriaService;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
+import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
+import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
@@ -192,6 +198,27 @@ class RelatorioServiceTest {
         assertThat(resultado.margem()).isEqualByComparingTo(new BigDecimal("50000").divide(new BigDecimal("150000"), 4, java.math.RoundingMode.HALF_UP));
     }
 
+    // rentabilidadeAnualizada anualiza o ROI pelo tempo em carteira (Math.pow, exceção documentada
+    // à proibição de double para valor monetário — este é indicador percentual).
+    @Test
+    void rentabilidadeAnualizadaAnualizaOLucroPeloTempoEmCarteira() {
+        // Compra em 2025-01-01, venda em 2026-01-01: 365 dias corridos (2025 não é bissexto).
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        imovel.getCompra().setData(LocalDate.of(2025, 1, 1));
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.setFase(FaseImovel.CASA);
+        imovel.getVenda().setValor(new BigDecimal("150000"));
+        imovel.getVenda().setData(LocalDate.of(2026, 1, 1));
+
+        mockar(imovel, List.of(), List.of());
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.diasEmCarteira()).isEqualTo(365L);
+        // roi = 50000/100000 = 0,5; anualizado com 365/365 dias = 1,5^(365/365) - 1 = 0,5
+        assertThat(resultado.rentabilidadeAnualizada()).isCloseTo(0.5, offset(0.0001));
+    }
+
     @Test
     void resultadoProvisorioQuandoVendidoComObraPendente() {
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
@@ -232,6 +259,25 @@ class RelatorioServiceTest {
         assertThat(resultado.custoTotal()).isEqualByComparingTo("103000");
     }
 
+    // ADR-039/regras-negocio-financeiras.md: despesasPorEtapa é recorte de apresentação sobre o
+    // mesmo dinheiro que já entra por fase — não pode dobrar o custo, e despesa sem etapa fica de
+    // fora do quadro em vez de virar chave nula (mesmo espírito de despesaComFaseNulaNaoDerrubaOResultado).
+    @Test
+    void despesasPorEtapaNuncaEntraNoCustoEDespesaSemEtapaFicaForaDoQuadro() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        DespesaModel comEtapa = despesaComEtapa(imovel, FaseImovel.CONSTRUCAO, EtapaConstrucao.FUNDACAO, new BigDecimal("20000"));
+        DespesaModel semEtapa = despesaComEtapa(imovel, FaseImovel.CONSTRUCAO, null, new BigDecimal("5000"));
+
+        mockar(imovel, List.of(comEtapa, semEtapa), List.of());
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.despesasPorEtapa()).containsOnlyKeys(EtapaConstrucao.FUNDACAO);
+        assertThat(resultado.despesasPorEtapa().get(EtapaConstrucao.FUNDACAO)).isEqualByComparingTo("20000");
+        // As duas despesas entram no custo normalmente — o quadro por etapa é só apresentação.
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("125000");
+    }
+
     @Test
     void quitacaoEntraNoTotalPagoNuncaNoCustoESaldoDevedorZera() {
         ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
@@ -268,6 +314,32 @@ class RelatorioServiceTest {
         assertThat(resultado.jurosPagos()).isEqualByComparingTo("0");
         assertThat(resultado.custoTotal()).isEqualByComparingTo("100000");
         assertThat(resultado.lucro()).isEqualByComparingTo("50000");
+    }
+
+    // contratos-financeiros.md: receber parcela de PARCELAMENTO_VENDA é caixa entrando, nunca
+    // receita nova — a receita é o valor da venda, já registrado em venda.valor. O que já entrou
+    // fica visível só na posição do contrato (totalPago), não em lucro/custoTotal/totalDesembolsado.
+    @Test
+    void parcelaRecebidaDeVendaParceladaECaixaNaoAlteraLucroNemDesembolso() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.getVenda().setValor(new BigDecimal("150000"));
+        imovel.getVenda().setData(LocalDate.now());
+        ParcelaContratoModel entradaPaga = parcela(new BigDecimal("50000"), null, LocalDate.now(), new BigDecimal("50000"));
+        ParcelaContratoModel parcelaPaga = parcela(new BigDecimal("20000"), null, LocalDate.now(), new BigDecimal("20000"));
+        ContratoFinanceiroModel contratoVenda = contrato(TipoContratoFinanceiro.PARCELAMENTO_VENDA,
+                SituacaoContrato.ATIVO, new BigDecimal("150000"), null, null, entradaPaga, parcelaPaga);
+
+        mockar(imovel, List.of(), List.of(contratoVenda));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("100000");
+        assertThat(resultado.lucro()).isEqualByComparingTo("50000");
+        assertThat(resultado.totalDesembolsado()).isEqualByComparingTo("100000");
+        // As 70.000 recebidas do comprador (50.000 + 20.000) aparecem como caixa do contrato, não
+        // como receita extra somada ao lucro.
+        assertThat(resultado.contratos().get(0).totalPago()).isEqualByComparingTo("70000");
     }
 
     @Test
@@ -361,6 +433,57 @@ class RelatorioServiceTest {
         assertThat(resultado.diasEmCarteira()).isEqualTo(200L);
         assertThat(resultado.tempoPorFase().get(FaseImovel.LOTE)).isEqualTo(150L);
         assertThat(resultado.tempoPorFase().get(FaseImovel.CONSTRUCAO)).isEqualTo(50L);
+    }
+
+    // Obra concluída soma tempo também em CONSTRUCAO (início -> conclusão) e CASA (conclusão ->
+    // venda, ou hoje se ainda não vendido) — não só o tempo de LOTE já coberto acima.
+    @Test
+    void tempoPorFaseComObraConcluidaContabilizaConstrucaoECasa() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        LocalDate compraData = LocalDate.of(2026, 1, 10);
+        imovel.getCompra().setData(compraData);
+        imovel.getConstrucao().setDataInicio(compraData.plusDays(30));
+        imovel.getCasa().setDataConclusaoObra(compraData.plusDays(230));
+        imovel.setSituacao(SituacaoImovel.VENDIDO);
+        imovel.setFase(FaseImovel.CASA);
+        imovel.getVenda().setValor(new BigDecimal("150000"));
+        imovel.getVenda().setData(compraData.plusDays(275));
+
+        mockar(imovel, List.of(), List.of());
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        assertThat(resultado.tempoPorFase().get(FaseImovel.LOTE)).isEqualTo(30L);
+        assertThat(resultado.tempoPorFase().get(FaseImovel.CONSTRUCAO)).isEqualTo(200L);
+        assertThat(resultado.tempoPorFase().get(FaseImovel.CASA)).isEqualTo(45L);
+    }
+
+    @Test
+    void custoPorM2SemImovelIdLancaRegraDeNegocio() {
+        assertThatThrownBy(() -> relatorioService.custoPorM2(null, null, null, null))
+                .isInstanceOf(RegraDeNegocioException.class);
+    }
+
+    @Test
+    void custoPorImovelFiltraPorCategoriaSomandoSoAsDespesasDaquelaCategoria() {
+        ImovelModel imovel1 = imovel(1L, new BigDecimal("100000"));
+        ImovelModel imovel2 = imovel(2L, new BigDecimal("50000"));
+        CategoriaDespesaModel material = categoria(10L);
+        CategoriaDespesaModel maoDeObra = categoria(20L);
+        DespesaModel materialImovel1 = despesaComCategoria(imovel1, material, new BigDecimal("2000"));
+        DespesaModel maoDeObraImovel1 = despesaComCategoria(imovel1, maoDeObra, new BigDecimal("3000"));
+        DespesaModel materialImovel2 = despesaComCategoria(imovel2, material, new BigDecimal("1000"));
+
+        when(imovelRepository.findByAtivoTrue()).thenReturn(List.of(imovel1, imovel2));
+        when(despesaRepository.findByImovelIdAndAtivoTrue(1L)).thenReturn(List.of(materialImovel1, maoDeObraImovel1));
+        when(despesaRepository.findByImovelIdAndAtivoTrue(2L)).thenReturn(List.of(materialImovel2));
+
+        List<CustoPorImovelDTO> resultado = relatorioService.custoPorImovel(null, 10L, null, null);
+
+        assertThat(resultado).hasSize(2);
+        // maoDeObraImovel1 (categoria 20) fica de fora do custo do imóvel 1.
+        assertThat(resultado.get(0).custoTotal()).isEqualByComparingTo("2000");
+        assertThat(resultado.get(1).custoTotal()).isEqualByComparingTo("1000");
     }
 
     // custoPorM2 não consulta contratos — stubar findByImovelId aqui viraria UnnecessaryStubbing.
@@ -527,6 +650,29 @@ class RelatorioServiceTest {
                 .valor(valor)
                 .dataPagamento(LocalDate.now())
                 .build();
+    }
+
+    private DespesaModel despesaComEtapa(ImovelModel imovel, FaseImovel fase, EtapaConstrucao etapa, BigDecimal valor) {
+        return DespesaModel.builder()
+                .imovel(imovel)
+                .faseImovel(fase)
+                .etapaConstrucao(etapa)
+                .valor(valor)
+                .dataPagamento(LocalDate.now())
+                .build();
+    }
+
+    private DespesaModel despesaComCategoria(ImovelModel imovel, CategoriaDespesaModel categoria, BigDecimal valor) {
+        return DespesaModel.builder()
+                .imovel(imovel)
+                .categoriaDespesa(categoria)
+                .valor(valor)
+                .dataPagamento(LocalDate.now())
+                .build();
+    }
+
+    private CategoriaDespesaModel categoria(Long id) {
+        return CategoriaDespesaModel.builder().id(id).nome("Categoria " + id).build();
     }
 
     private ContratoFinanceiroModel contrato(TipoContratoFinanceiro tipo, SituacaoContrato situacao,
