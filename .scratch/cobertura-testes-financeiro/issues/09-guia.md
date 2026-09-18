@@ -1,6 +1,6 @@
 # 09 — Atualizar a guia de testes do domínio financeiro
 Type: task
-Status: open
+Status: resolved
 Blocked by: 01..08
 
 `.agents/rules/testes-dominio-financeiro.md`: mover as "lacunas conhecidas"

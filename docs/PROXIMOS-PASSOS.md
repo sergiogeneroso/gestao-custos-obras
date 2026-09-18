@@ -529,3 +529,33 @@ testes com mock). Corrigido com
 `db/manual/2026-09-contrato-situacao-cancelado.sql`; documentado em
 `.agents/rules/banco-e-migrations.md` como lacuna geral do
 `ddl-auto=update`, não só deste caso.
+
+## Cobertura de testes do domínio financeiro (Set 2026) ✅
+
+Sessão de grilling fechou o critério "cada regra das quatro rules
+financeiras tem teste nomeado por ela"; nove etapas, uma por commit. Ver
+`.agents/rules/testes-dominio-financeiro.md` (guia atualizada com a
+conferência regra a regra) e ADR-045.
+
+- [x] `ContratoFinanceiroService.pagarParcela` passa a recusar parcela já
+      paga, contrato `QUITADO` e contrato `CANCELADO` — ADR-044
+- [x] Banco de teste local (`gestao_custos_obras_test`, perfil `test`,
+      `ddl-auto=create-drop`) para testes de repository/`@Query` JPQL contra
+      banco real — ADR-045. `contextLoads` e `BuscasPaginadasTest` migrados
+      para esse perfil, nunca mais o banco de dev
+- [x] Dois bugs corrigidos, teste primeiro: `DespesaService.buscarContratoOpcional`
+      não filtrava por ativo (contrato excluído era aceito) e
+      `OrcamentoCategoriaRepository` de duplicidade não filtrava por ativo
+      (orçamento excluído bloqueava a criação de outro)
+- [x] Frontend: matemática do cronograma (`totalCronograma`, `diferencaJuros`,
+      `distribuirJuros`, `gerarParcelas`, `somarMeses`, `proximoNumero`)
+      extraída para `features/contratos/cronograma.ts`, calculando em
+      centavos inteiros, e testada
+- [x] Auditoria: um teste por método de mutação em contrato, despesa,
+      imóvel e orçamento, verificando o estado anterior capturado antes da
+      mutação
+- [x] 166 testes de backend, 36 de frontend — conferência regra a regra
+      encontrou 3 lacunas, registradas na guia (quitação antecipada +
+      financiamento de construção encadeados no mesmo imóvel, auditoria de
+      `ImovelService.criar` sem teste dedicado, despesa vinculada a contrato
+      válido via FK de custo acessório)

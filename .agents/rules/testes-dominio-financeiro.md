@@ -4,65 +4,135 @@ paths:
   - "backend/src/test/**/contratoFinanceiro/**"
   - "backend/src/test/**/imovel/**"
   - "backend/src/test/**/despesa/**"
+  - "backend/src/test/**/orcamentoCategoria/**"
 ---
 
 # Testes do domínio financeiro e do ciclo de vida
 
 Estes são os testes que impedem o resultado do imóvel de mentir. As regras em
-si estão em `regras-negocio-financeiras.md`, `contratos-financeiros.md` e
-`ciclo-vida-imovel.md` (leia a correspondente antes de escrever o teste); aqui
-está **quais cenários** precisam existir e já existem.
+si estão em `regras-negocio-financeiras.md`, `contratos-financeiros.md`,
+`ciclo-vida-imovel.md` e `auditoria.md` (leia a correspondente antes de
+escrever o teste); aqui está **quais cenários** precisam existir.
 
-## Cenários que toda mudança nesses pacotes mantém cobertos
+## Critério de cobertura
 
-Ao mexer em cálculo ou transição, confira que o cenário afetado tem teste; se
-não tiver, ele é o primeiro a ser escrito.
+Cada bullet dessas quatro rules tem ao menos um teste nomeado pela regra, ou
+está na lista de "estáticas" abaixo. Mudar uma regra atualiza ou cria o
+teste correspondente antes de considerar a mudança pronta — regra nova sem
+teste correspondente é trabalho inacabado, não uma lacuna para depois.
 
-**Custo e resultado** (`RelatorioServiceTest`)
-- Imóvel **sem contrato nenhum** é caso normal, custo = compra + despesas
-  (`semContratoCustoEApenasCompraMaisDespesas`)
-- Juros pagos entram no custo; prestação inteira e saldo devedor não
-  (`jurosDaParcelaEntramNoCustoMasAPrestacaoInteiraNao`,
-  `saldoDevedorNaoEntraNoCusto`)
-- Gasto geral fora do custo de qualquer imóvel
-  (`gastoGeralNaoEntraNoCustoDoImovel`)
-- Compra parcelada sem juros não muda de custo conforme paga; com juros só
-  incorpora os pagos (`loteParcelado...`); desconto e juros na quitação
-  (`descontoNaQuitacao...`, `quitacaoComJuros...`)
-- Vendido com obra pendente = resultado provisório
-  (`resultadoProvisorioQuandoVendidoComObraPendente`)
-- Venda desfeita com parcela paga vira saldo a estornar
-  (`vendaDesfeitaComParcelaPaga...`)
+## Cenários cobertos, por arquivo
 
-**Ciclo de vida** (`ImovelServiceTest`, `ImovelExclusaoServiceTest`)
-- Fase não retrocede (`faseNaoRetrocede`); ordem das datas pelo PUT e pela
-  transição (`putCom...`, `transicaoComDataAnterior...`)
-- Desfazer venda: exige motivo, limpa venda, exclui ou cancela o contrato de
-  venda conforme tenha parcela paga (`desfazerVenda...`)
-- Exclusão em cascata e cálculo de impacto
+**`RelatorioServiceTest`** — custo vs. caixa (`jurosDaParcelaEntramNoCustoMasAPrestacaoInteiraNao`,
+`saldoDevedorNaoEntraNoCusto`); sem contrato = compra + despesas
+(`semContratoCustoEApenasCompraMaisDespesas`); gasto geral fora do custo
+(`gastoGeralNaoEntraNoCustoDoImovel`); indicadores de apresentação nunca
+somam ao custo (`custoSemCompraSomaDespesas...`,
+`despesasPorEtapaNuncaEntraNoCusto...`); compra parcelada sem/com juros,
+quitação com desconto ou juros embutidos (`loteParceladoSemJuros...`,
+`descontoNaQuitacaoDoLote...`, `quitacaoComJurosEmbutidos...`);
+`PARCELAMENTO_VENDA` é a receber, não dívida
+(`parcelamentoDeVendaContaComoAReceberNaoComoDivida`,
+`jurosDeParcelamentoDeVendaNaoEntramNoCusto`); venda desfeita com parcela
+paga vira saldo a estornar (`vendaDesfeitaComParcelaPagaContaComoSaldoAEstornar...`);
+vendido com obra pendente é provisório, lote sem obra não é
+(`resultadoProvisorioQuandoVendidoComObraPendente`,
+`loteRevendidoSemObraNaoTemResultadoProvisorio`); custo por m² usa área
+construída (`custoObraPorM2...`).
 
-**Contratos** (`ContratoFinanceiroServiceTest`)
-- Entrada como parcela 0, valor do lote deduzido do cronograma, bloqueios de
-  exclusão, cancelamento por venda desfeita e estorno
+**`RelatorioCarteiraServiceTest`** — orçado vs. realizado, extratos por
+pessoa, indicadores da carteira, saldo a estornar fora do lucro realizado
+(`contratoCanceladoNaoEntraEmTotalInvestidoNemLucroRealizadoMasEntraEmSaldoAEstornar`).
 
-**Lacunas conhecidas** — ainda sem teste; escreva-o ao mexer no código
-correspondente e mova-o para a lista acima:
-- Transição que pula fase (`LOTE → CASA`) é recusada — só existe
-  `faseNaoRetrocede`
-- Vender na planta não altera a fase, e avançar a fase de um imóvel vendido
-  não mexe na situação (independência dos dois eixos no `ImovelService`)
-- Quitação antecipada do parcelamento do lote seguida de um financiamento de
-  construção no mesmo imóvel, no `RelatorioService`
+**`ContratoFinanceiroServiceTest`** — entrada como parcela nº 0
+(`entradaViraParcelaZeroJaBaixadaNaDataInformada`); valor do lote deduzido
+do cronograma e nunca sobrescrito/regravado
+(`valorDoLoteJaPreenchidoNuncaEhSobrescrito`,
+`atualizarNuncaRegravaValorDeCompraAoEditarCronograma`); `pagarParcela`
+recusa os três casos do ADR-044 (`pagarParcelaRecusaParcelaJaPaga`,
+`pagarParcelaRecusaContratoQuitado`, `pagarParcelaRecusaContratoCancelado`);
+edição recusa contrato quitado e parcela paga
+(`atualizarRecusaContratoQuitado`,
+`atualizarRecusaAlterarOuRemoverParcelaPagaInclusiveValorJuros`); exclusão
+recusa quitado/parcela paga e cascateia
+(`excluirRecusaContratoQuitado`,
+`excluirContratoAtivoMarcaParcelasInativasEZeraValorDoLoteQuandoUnico`,
+`excluirDesvinculaDespesaDeCustoAcessorioSemExcluiLa`); cancelamento e
+estorno por venda desfeita (`cancelarPorVendaDesfeitaGravaSituacaoDataMotivoEZeraEstorno`,
+`registrarEstornoAcumulaOValorDevolvidoEGravaAData`); auditoria de cada
+mutação com estado anterior capturado antes de mutar
+(`criarAuditaCriacaoComEstadoAnteriorNulo`,
+`pagarParcelaAuditaComEstadoAnteriorAntesDaBaixa`,
+`cascatearExclusaoNaoGeraEventoDeAuditoriaProprio`).
+
+**`DespesaServiceTest`/`OrcamentoCategoriaServiceTest`** — etapa de obra só
+em fase Construção (`etapaDeObraEmDespesaDeLoteEhRecusada`,
+`etapaDeObraEmDespesaDeConstrucaoEhAceita`); fase informada vence a fase
+atual (`faseInformadaVenceAFaseAtualDoImovel`); pessoa/imóvel/contrato
+inativos são recusados (`pagadorInativoNaoPodeSerVinculado`,
+`imovelInativoNaoAceitaDespesa`, `contratoExcluidoEhTratadoComoNaoEncontrado`
+— bug corrigido); imóvel vendido continua aceitando despesa
+(`imovelVendidoAceitaDespesa`); `temComprovante` só conta anexo COMPROVANTE
+(`buscaMarcaTemComprovanteSoParaDespesaComAnexoDoTipoComprovante`);
+duplicidade de orçamento ignora registro excluído — bug corrigido
+(`orcamentoExcluidoNaoBloqueiaCriarOutroParaMesmaCategoria`); auditoria de
+criar/atualizar/excluir nos dois domínios.
+
+**`ImovelServiceTest`/`ImovelExclusaoServiceTest`** — fase só avança, nunca
+retrocede nem pula (`faseNaoRetrocede`, `transicaoQuePulaFaseEhRecusada`);
+venda em qualquer fase sem mudar fase, avanço de fase sem mudar situação —
+eixos independentes (`venderGravaValorDataCompradorSemAlterarFase`,
+`avancarFaseDeImovelVendidoNaoAlteraSituacao`); ordem coerente das datas
+(`putComConclusaoDaObraAntesDoInicioEhRecusado`,
+`transicaoComDataAnteriorAFaseAnteriorEhRecusada`); desfazer venda exige
+motivo, limpa venda e cascateia o contrato
+(`desfazerVendaSemMotivoEhRecusado`, `desfazerVendaLimpaCamposDeVenda`,
+`desfazerVendaExcluiContratoDeVendaSemParcelaPaga`,
+`desfazerVendaCancelaContratoDeVendaComParcelaPaga`); exclusão em cascata
+ignora a trava de contrato quitado/parcela paga e gera um único evento de
+auditoria (`excluirCascateiaContratoQuitadoDespesaOrcamentoFotosEDocumentos`).
+
+**Repositórios, perfil `test` (ADR-045)** — filtros `AtivoTrue`/`@Query` JPQL
+contra o banco `gestao_custos_obras_test`: `ImovelRepositoryTest`,
+`DespesaRepositoryTest`, `ContratoFinanceiroRepositoryTest`,
+`OrcamentoCategoriaRepositoryTest` (todos `findBy...AtivoTrue...`) e
+`BuscasPaginadasTest` (busca de pessoa/contrato/categoria).
+
+**Frontend** — `cronograma.spec.ts` cobre `totalCronograma`, `diferencaJuros`,
+`distribuirJuros`, `gerarParcelas`, `somarMeses`, `proximoNumero` em centavos
+inteiros; `contrato.model.spec.ts` cobre `saldoAEstornar`.
+
+## Regras estáticas/não testáveis
+
+- BigDecimal/`NUMERIC` obrigatórios para dinheiro (garantido em compilação e
+  schema)
+- `ExclusaoLogica` como padrão estrutural de entidade; Bean Validation
+  simples (`@NotBlank`/`@NotNull` em endereço, vendedor, datas de transição)
+  sem `isXxxValido()` próprio — framework já testado por quem o escreveu
+- Ausência de funcionalidade: cronograma de parcelas de estorno, liberação
+  do banco por medição lançada como movimento
+- Fora de escopo declarado: login/logout na auditoria, restauração de
+  exclusão lógica, `PessoaService`, `CategoriaDespesaService`
+- Decisão de design sem comportamento a testar: auditoria manual em vez de
+  Envers/AOP (ADR-042)
+
+## Lacunas conhecidas
+
+- Quitação antecipada do `PARCELAMENTO_COMPRA` seguida de
+  `FINANCIAMENTO_CONSTRUCAO` no mesmo imóvel, em `RelatorioService` — nenhum
+  teste combina os dois contratos no mesmo `mockar(...)`
+- `ImovelService.criar` audita `CRIACAO` com `estadoAnterior` nulo (o código
+  já faz isso), mas sem teste dedicado — só despesa, contrato e orçamento têm
+- Despesa de custo acessório vinculada a um `ContratoFinanceiro` **válido**
+  via FK opcional — só o caminho de contrato excluído está testado
+  (`contratoExcluidoEhTratadoComoNaoEncontrado`)
 
 ## Como montar os cenários
 
-- Um teste por cenário da lista, com o nome afirmando a regra
-  (`saldoDevedorNaoEntraNoCusto`)
-- Valores redondos e distintos entre si (100000 de compra, 2000 de despesa,
-  30 de juros) para que a soma esperada deixe óbvio o que entrou e o que
-  ficou de fora
+- Um teste por cenário, nome afirmando a regra; valores redondos e
+  distintos entre si para a soma deixar óbvio o que entrou e o que ficou de
+  fora
 - Reaproveite os construtores `imovel(...)`, `contrato(...)`, `parcela(...)`,
-  `cronograma(...)` já existentes na classe em vez de criar novos
+  `despesa(...)` já existentes na classe em vez de criar novos
 - Mudança em `RelatorioService` ou nas transições de `ImovelService` passa
-  por plan mode (ver `CLAUDE.md`), e o plano lista os cenários acima que ela
-  toca
+  por plan mode (`CLAUDE.md`), e o plano lista os cenários acima que toca
