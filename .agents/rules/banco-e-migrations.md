@@ -10,10 +10,12 @@ paths:
   migrations novas** nesse meio-tempo: mude o `Model.java` e deixe o
   Hibernate aplicar direto. Quando o Flyway for reativado, as regras abaixo
   voltam a valer e a `V1` baseline é **escrita do zero** a partir do modelo
-  final — as migrations históricas (V1, V3, V4 e V5) foram apagadas em Ago 2026
-  justamente porque descreviam um schema que o reescopo já tinha substituído.
-  Sobrou `V6__seed_usuario_admin.sql`, que não é schema e continua sendo o
-  registro do usuário admin inicial
+  final — as migrations históricas (V1, V3, V4, V5 e V6) foram apagadas ao
+  longo de Ago/Set 2026, justamente porque descreviam um schema ou seed que o
+  reescopo já tinha substituído. Não existe seed runner para `usuario` hoje —
+  o usuário inicial é inserido à mão no banco de dev; `PerfilSeedRunner`
+  (ADR-046) só garante o perfil "Administrador" e migra usuários sem perfil
+  pra ele
 - Nomes de tabela e coluna em `snake_case`
 - Foreign keys explícitas com `REFERENCES`; `ON DELETE RESTRICT` em relações
   financeiras (ex: `pagador_id` e `beneficiario_id` em `despesa`)

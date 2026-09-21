@@ -24,7 +24,8 @@ public class AuthService {
             throw new RegraDeNegocioException("Credenciais inválidas");
         }
 
-        String token = jwtService.gerarToken(usuario.getEmail(), usuario.getRole());
-        return new LoginResponseDTO(token, usuario.getNome(), usuario.getEmail(), usuario.getRole());
+        String token = jwtService.gerarToken(usuario.getEmail());
+        String perfilNome = usuario.getPerfil() != null ? usuario.getPerfil().getNome() : null;
+        return new LoginResponseDTO(token, usuario.getNome(), usuario.getEmail(), perfilNome);
     }
 }

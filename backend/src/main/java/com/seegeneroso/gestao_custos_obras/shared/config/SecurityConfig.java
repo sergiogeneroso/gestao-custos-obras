@@ -28,7 +28,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/error").permitAll()
                         .anyRequest().authenticated()
-                        // TODO (fase 2): regras .hasRole(...) por domínio quando os outros tipos de role forem definidos
+                        // RBAC por domínio (ADR-046) não usa hasRole()/hasAuthority() aqui — é resolvido
+                        // pelo PermissaoInterceptor contra a matriz de permissões do perfil do usuário.
                 )
                 .exceptionHandling(eh -> eh.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

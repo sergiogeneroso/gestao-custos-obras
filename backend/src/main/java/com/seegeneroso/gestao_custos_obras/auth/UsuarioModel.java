@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.auth;
 
+import com.seegeneroso.gestao_custos_obras.perfil.PerfilModel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,7 +24,10 @@ public class UsuarioModel {
     @Column(name = "senha_hash", nullable = false, length = 255)
     private String senhaHash;
 
-    @Column(nullable = false, length = 30)
-    @Builder.Default
-    private String role = "ADMIN";
+    // Substitui o antigo campo `role` (String solta) pela matriz configurável do RBAC (ADR-046).
+    // Nullable: PerfilSeedRunner garante que todo usuário existente seja migrado pro perfil
+    // "Administrador" na subida da aplicação.
+    @ManyToOne
+    @JoinColumn(name = "perfil_id")
+    private PerfilModel perfil;
 }

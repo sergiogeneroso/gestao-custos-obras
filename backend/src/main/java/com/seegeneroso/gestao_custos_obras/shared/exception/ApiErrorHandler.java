@@ -38,6 +38,11 @@ public class ApiErrorHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(corpoErro(ex.getMessage()));
     }
 
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<Map<String, Object>> handleAcessoNegado(AcessoNegadoException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(corpoErro(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidacao(MethodArgumentNotValidException ex) {
         // LinkedHashMap para a mensagem sair sempre na mesma ordem dos campos do DTO.

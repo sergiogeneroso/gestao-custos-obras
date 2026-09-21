@@ -1134,3 +1134,98 @@ Docker por outro motivo. Nesse momento: adicionar
 `application-test.properties` por `@ServiceConnection` nos testes, apagar o
 script manual e o perfil `test`. Registrado como item em
 `docs/PROXIMOS-PASSOS.md`.
+
+## ADR-046 — RBAC por domínio: matriz configurável (Perfil × Domínio × Ação) (Set 2026)
+
+Substitui o TODO deixado em `SecurityConfig` desde a introdução do JWT
+("fase 2: regras `.hasRole(...)` por domínio quando os outros tipos de role
+forem definidos") e fecha o RNF01. Decisão tomada em sessão de grilling
+(grill-with-docs), campo a campo — cadastro de usuários (CRUD de
+`UsuarioModel`) continua fora de escopo, fica para tarefa futura.
+
+**Matriz configurável em banco, não papéis fixos hardcoded.** Avaliadas duas
+opções: papéis fixos (enum no código, matriz de permissões hardcoded via
+`.hasRole()`/`@PreAuthorize`) contra uma matriz `perfil` × `perfil_permissao`
+consultada em runtime. A opção fixa custaria menos código agora, mas
+qualquer ajuste de permissão exigiria deploy — decisão foi pela matriz em
+banco, justamente pela flexibilidade de ajustar sem deploy.
+
+**`UsuarioModel.role` (String solta, default "ADMIN") vira
+`UsuarioModel.perfil` (FK para `PerfilModel`)** — perfil único por usuário,
+sem N:N. Sem essa troca a matriz configurável ficaria desconectada de quem
+loga.
+
+**`Perfil` nasce como domínio CRUD completo nesta decisão**, não só schema
+com seed manual — a própria vantagem de "ajustar sem deploy" não existiria
+na prática sem uma tela para editar a matriz. Segue o padrão
+`gerar-crud-dominio`/`gerar-crud-frontend` do projeto, endpoints e tela
+admin-only.
+
+**Bootstrap: `perfil` é só mais um domínio dentro da própria matriz**, sem
+caso especial hardcoded — a permissão de gerenciar perfis é controlada pela
+ação "alterar" no domínio "perfil", e o perfil `ADMIN` semeado nasce com
+todas as permissões, inclusive essa. Cogitado hardcodear a gestão de Perfil
+para `ROLE_ADMIN` fora da matriz, para evitar o risco de autobloqueio (zerar
+a própria permissão de mexer na matriz) — descartado por criar uma exceção
+no mecanismo genérico para um acidente raro e recuperável via SQL manual,
+mesmo padrão que o projeto já usa (ex. seed do admin). Não há trava de
+"último admin" no código: risco aceito deliberadamente.
+
+**Domínios: enum fixo no código**, um por pacote de negócio —
+`imovel`, `pessoa`, `despesa`, `contratoFinanceiro`, `categoriaDespesa`,
+`relatorio`, `auditoria` e `perfil`. Só a matriz perfil×domínio×ação é
+editável em runtime, não a lista de domínios em si — domínios de negócio
+raramente aparecem. `orcamentoCategoria` fica de fora por enquanto, módulo
+congelado (ADR-029). `auth` (login) não entra: continua `permitAll`, sem
+checagem de permissão.
+
+**Quatro ações, sem noção de dono do registro.** `acessar` (GET),
+`incluir` (POST), `alterar` (PUT/PATCH — inclui as transições de
+fase/situação do imóvel, ADR-020/043) e `deletar` (exclusão lógica). A
+regra é puramente por perfil/domínio: quem tem "alterar" em despesa edita
+qualquer despesa, não só as que lançou — nenhuma ADR/memória do projeto
+pedia restrição por dono do registro.
+
+**Validação: `acessar` é pré-requisito das outras três** no mesmo
+domínio/perfil — o serviço de `Perfil` recusa salvar a matriz se `incluir`,
+`alterar` ou `deletar` estiver marcado sem `acessar` também marcado, porque
+a combinação inversa não faz sentido prático (criar algo que não consegue
+nem listar).
+
+**Cascata de exclusão do imóvel exige só "deletar" em imóvel**, não nos
+domínios filhos (despesa, contratoFinanceiro) que ela apaga por dentro
+(ADR-040) — a cascata acontece no próprio service, não como chamadas HTTP
+separadas a esses domínios.
+
+**Enforcement: interceptor genérico deriva domínio e ação do path e do
+verbo HTTP**, em vez de anotação explícita por endpoint. Domínio vem do
+primeiro segmento após `/api/` (`/api/despesas/**` → despesa); ação vem do
+verbo (`GET`→acessar, `POST`→incluir, `PUT`/`PATCH`→alterar, `DELETE`→
+deletar). Cobre `PATCH /fase`/`PATCH /situacao` do imóvel sem caso
+especial, porque `PATCH`→alterar já bate semanticamente. Alternativa
+descartada: anotação por endpoint — mais explícita, mas exigiria marcar
+manualmente cada controller, incluindo os que já existem.
+
+**Frontend entra no escopo desta decisão.** Endpoint dedicado (ex.
+`GET /api/perfis/minhas-permissoes`), consultado após o login e guardado
+num service/signal — não embutido como claim no JWT, porque a matriz é
+editável em runtime e um claim ficaria defasado até o próximo login. Duas
+camadas de controle na UI: menu/rota inteira por `acessar`; botões
+individuais (Novo/Editar/Excluir) pelas outras três ações. A tela de
+administração de Perfil oculta as colunas sem efeito (alterar/incluir/
+deletar) para os domínios só-leitura (`relatorio`, `auditoria`).
+
+Registrado em `.agents/rules/seguranca.md`. Detalhes do vocabulário
+(Perfil, Domínio, Ação, Matriz de permissões) em `CONTEXT.md`.
+
+**Backend implementado (Set 2026):** domínio `Perfil` completo (`PerfilModel`/
+`PerfilPermissaoModel`, sem `ExclusaoLogica` na linha da matriz — editar um
+perfil limpa e reinsere a coleção inteira, sem histórico por linha a
+proteger), `PermissaoInterceptor` fazendo o enforcement, `UsuarioModel.role`
+migrado para `UsuarioModel.perfil` (nullable — `PerfilSeedRunner` cria o
+perfil "Administrador" com todas as permissões e migra usuário sem perfil pra
+ele, sem exigir script manual). Coluna `usuario.role` (não mais mapeada)
+removida via script manual `db/manual/2026-09-remover-coluna-role-usuario.sql`
+— não roda sozinha, é destrutiva. **Frontend ainda pendente** (telas de
+administração de Perfil, consumo de `/api/perfis/minhas-permissoes`, guards e
+diretivas de botão).

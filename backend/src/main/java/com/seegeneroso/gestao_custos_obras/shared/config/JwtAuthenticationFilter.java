@@ -2,7 +2,6 @@ package com.seegeneroso.gestao_custos_obras.shared.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -44,12 +43,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String email = jwtService.extrairEmail(token);
-        String role = jwtService.extrairRole(token);
 
+        // Sem GrantedAuthority: a autorização por domínio/ação é resolvida pelo PermissaoInterceptor
+        // contra a matriz de permissões (ADR-046), não pelo mecanismo hasRole/hasAuthority do Spring
+        // Security — aqui o filtro só estabelece QUEM está autenticado.
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 email,
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+                List.of());
         // ponytail: sem tratamento de revogação/blacklist — se for necessário, add um JwtInvalidacaoStore quando 2+ usuários ativos
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);

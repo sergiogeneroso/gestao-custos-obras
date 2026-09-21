@@ -68,6 +68,7 @@ Alvo do reescopo de Ago 2026 (ADR-019 a ADR-029):
 | OrcamentoCategoria | `/api/orcamentos-categoria` | Existe no código, **fora do MVP** (ADR-029); exclusão exige `{motivo}` (ADR-040) |
 | Auth               | `/api/auth`                 | POST /login emite JWT (RNF01)                  |
 | Auditoria          | `/api/auditoria`            | `GET ?entidade=X&entidadeId=Y` — histórico genérico de criação/edição/exclusão dos domínios de negócio (ADR-042) |
+| Perfil             | `/api/perfis`               | CRUD da matriz de permissões (RBAC por domínio, ADR-046) + `GET /minhas-permissoes` (permissões do usuário autenticado) |
 
 As invariantes financeiras e as do ciclo de vida do imóvel não vivem aqui: estão
 em `.agents/rules/regras-negocio-financeiras.md`, `ciclo-vida-imovel.md` e
@@ -78,15 +79,24 @@ correspondentes.
 
 `SecurityConfig` usa **JWT stateless** (jjwt), CSRF desabilitado.
 `/api/auth/login` é público; demais endpoints exigem `Authorization: Bearer
-<token>`. `JwtService` gera/valida o token (HMAC-SHA256) e
-`JwtAuthenticationFilter` extrai o `Authentication` (authorities
-`ROLE_<role>`). `JwtAuthenticationEntryPoint` devolve 401 adequado. Senha
-como hash BCrypt (`BCryptPasswordEncoder`).
+<token>`. `JwtService` gera/valida o token (HMAC-SHA256), carregando só a
+identidade (e-mail) — sem authorities. `JwtAuthenticationEntryPoint` devolve
+401 adequado. Senha como hash BCrypt (`BCryptPasswordEncoder`).
 
-A role viaja no token; **regras `.hasRole(...)` por domínio ficam pendentes
-para a fase 2**, quando os outros tipos de role forem definidos. Seed admin
-inicial via `SeedUsuarioAdminRunner` (idempotente) — admin@gestao.local /
-admin123 (role ADMIN). Regras detalhadas: `.agents/rules/seguranca.md`.
+**RBAC por domínio com matriz configurável (Perfil × Domínio × Ação,
+ADR-046).** Não usa `.hasRole()`/`.hasAuthority()` do Spring Security:
+`PermissaoInterceptor` (um `HandlerInterceptor`, registrado em
+`WebMvcConfig`) deriva o domínio do primeiro segmento de path após `/api/` e
+a ação do verbo HTTP, e consulta a matriz do perfil do usuário autenticado
+(`PerfilService.possuiPermissao`), lançando `AcessoNegadoException` (403,
+`ApiErrorHandler`) quando falta permissão. Domínios são um enum fixo no
+código (`DominioSistema`); só a matriz é editável em runtime, via
+`/api/perfis`. Detalhes: `.agents/rules/seguranca.md`.
+
+**RBAC por domínio com matriz configurável (Perfil × Domínio × Ação) —
+desenho fechado na ADR-046, implementação pendente em tarefa separada.**
+Seed admin inicial via `SeedUsuarioAdminRunner` (idempotente) —
+admin@gestao.local / admin123. Regras detalhadas: `.agents/rules/seguranca.md`.
 
 ## Modelo de dados
 

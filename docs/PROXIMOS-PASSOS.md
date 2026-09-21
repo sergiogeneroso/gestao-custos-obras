@@ -393,8 +393,14 @@ superado; sobrou o que continua valendo:
       (`Pessoa`, `CategoriaDespesa`, `OrcamentoCategoria`) são CRUD sem regra
       própria — teste ali só repetiria o Spring Data
 - [x] Lançamento de despesa mobile-friendly (uso no canteiro) — Etapa S
-- [ ] RF07 — tema configurável: endpoint de config (`ROLE_ADMIN`), 5 paletas
-      curadas (ADR-016/ADR-018) e painel para trocar
+- [ ] RF07 — tema configurável: endpoint de config (exigindo permissão
+      "alterar" num domínio próprio de configuração na matriz do RBAC,
+      ADR-046 — não mais `ROLE_ADMIN`), 5 paletas curadas (ADR-016/ADR-018) e
+      painel para trocar
+- [x] RBAC por domínio (RNF01): matriz configurável Perfil × Domínio × Ação,
+      CRUD de Perfil (backend), `PermissaoInterceptor` fazendo o enforcement.
+      Ver ADR-046. Frontend (telas + guards/diretivas de permissão) segue em
+      tarefa própria
 - [ ] Gráficos do dashboard (Custo Total, Orçado vs. Realizado — ADR-017/Chart.js)
 
 ## Módulos pós-MVP (ADR-029)

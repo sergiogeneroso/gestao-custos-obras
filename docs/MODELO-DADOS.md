@@ -16,7 +16,21 @@ erDiagram
         VARCHAR nome
         VARCHAR email UK
         VARCHAR senha_hash
-        VARCHAR role
+        BIGINT perfil_id FK "RBAC por domínio (ADR-046)"
+    }
+    PERFIL {
+        BIGSERIAL id PK
+        VARCHAR nome UK
+        BOOLEAN ativo "ExclusaoLogica (ADR-040)"
+        TEXT motivo_exclusao
+        TIMESTAMP excluido_em
+        BIGINT excluido_por_id FK
+    }
+    PERFIL_PERMISSAO {
+        BIGSERIAL id PK
+        BIGINT perfil_id FK
+        VARCHAR dominio "imovel, pessoa, despesa... (enum fixo, ADR-046)"
+        VARCHAR acao "acessar, incluir, alterar, deletar"
     }
     PESSOA {
         BIGSERIAL id PK
@@ -197,6 +211,9 @@ erDiagram
     USUARIO ||--o{ PARCELA_CONTRATO : "excluiu (ExclusaoLogica)"
     USUARIO ||--o{ ORCAMENTO_CATEGORIA : "excluiu (ExclusaoLogica)"
     USUARIO ||--o{ LOG_AUDITORIA : "fez"
+    USUARIO ||--o{ PERFIL : "excluiu (ExclusaoLogica)"
+    PERFIL ||--o{ USUARIO : "concede permissões a"
+    PERFIL ||--o{ PERFIL_PERMISSAO : "matriz de permissões"
 ```
 
 ## Regras que não estão óbvias só olhando o schema
@@ -239,9 +256,18 @@ erDiagram
 - **Exclusão lógica é a convenção geral do projeto** (ADR-040), via o
   `@Embeddable` compartilhado `ExclusaoLogica` (`ativo`, `motivo_exclusao`,
   `excluido_em`, `excluido_por_id`): `imovel`, `pessoa`, `despesa`,
-  `contrato_financeiro`, `parcela_contrato` e `orcamento_categoria`. Fotos,
-  documentos do imóvel, anexos de despesa e documentos de contrato continuam
-  com DELETE físico — são arquivo, sem resultado financeiro a proteger
+  `contrato_financeiro`, `parcela_contrato`, `orcamento_categoria` e `perfil`.
+  Fotos, documentos do imóvel, anexos de despesa e documentos de contrato
+  continuam com DELETE físico — são arquivo, sem resultado financeiro a
+  proteger
+- **`perfil_permissao` não tem `ExclusaoLogica` própria** (ADR-046): editar um
+  perfil limpa e reinsere a linha inteira da matriz — sem histórico por linha
+  a proteger, diferente das entidades financeiras. `dominio` é um enum fixo no
+  código (`DominioSistema`), não um catálogo administrável; só a combinação
+  perfil×domínio×ação é editável em runtime
+- **`usuario.perfil_id` é nullable**: `PerfilSeedRunner` garante o perfil
+  "Administrador" com todas as permissões e migra todo usuário sem perfil pra
+  ele na subida da aplicação — não existe cadastro de usuários ainda (ADR-046)
 - **`log_auditoria` é genérica e compartilhada** (ADR-042): toda mutação
   (`criar`/`atualizar`/`excluir`, e transições como `avancarFase`) de
   `Despesa`, `Imovel`, `Pessoa`, `ContratoFinanceiro`, `CategoriaDespesa` e

@@ -27,12 +27,14 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String gerarToken(String email, String role) {
+    // O token carrega só a identidade (e-mail) — a autorização não viaja nele: é resolvida a
+    // cada requisição contra a matriz de permissões (ADR-046), pra uma mudança de perfil feita
+    // em runtime valer imediatamente, sem esperar o token expirar.
+    public String gerarToken(String email) {
         Date agora = new Date();
         Date expira = new Date(agora.getTime() + Duration.ofMinutes(expiracaoMinutos).toMillis());
         return Jwts.builder()
                 .subject(email)
-                .claim("role", role)
                 .issuedAt(agora)
                 .expiration(expira)
                 .signWith(chave())
@@ -41,10 +43,6 @@ public class JwtService {
 
     public String extrairEmail(String token) {
         return parse(token).getSubject();
-    }
-
-    public String extrairRole(String token) {
-        return parse(token).get("role", String.class);
     }
 
     public boolean valido(String token) {
