@@ -3,6 +3,7 @@ import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { PermissaoDirective } from '../../core/auth/permissao.directive';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { ContratoDetalheDialog } from './contrato-detalhe-dialog/contrato-detalhe-dialog';
@@ -12,7 +13,7 @@ import { ContratosService } from './contratos.service';
 
 @Component({
   selector: 'app-contratos',
-  imports: [CurrencyPipe, MatButtonModule, MatPaginatorModule, BuscaToolbar],
+  imports: [CurrencyPipe, MatButtonModule, MatPaginatorModule, BuscaToolbar, PermissaoDirective],
   templateUrl: './contratos.html',
   styleUrl: './contratos.scss',
 })

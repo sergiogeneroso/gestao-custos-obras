@@ -5,6 +5,8 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
+import { DominioSistema } from '../../auth/permissoes.model';
+import { PermissoesService } from '../../auth/permissoes.service';
 
 const CHAVE_MENU_RECOLHIDO = 'gestao-custos-obras.menuRecolhido';
 
@@ -16,6 +18,7 @@ const CHAVE_MENU_RECOLHIDO = 'gestao-custos-obras.menuRecolhido';
 })
 export class Shell {
   private readonly authService = inject(AuthService);
+  private readonly permissoesService = inject(PermissoesService);
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
 
@@ -63,15 +66,22 @@ export class Shell {
       .join('');
   });
 
-  protected readonly links = [
+  // `dominio` ausente = sem checagem de permissão própria (dashboard agrega vários domínios).
+  // Cada outro item some do menu sem "acessar" no domínio correspondente (ADR-046).
+  private readonly todosOsLinks: { path: string; label: string; icone: string; dominio?: DominioSistema }[] = [
     { path: 'dashboard', label: 'Dashboard', icone: 'ph-squares-four' },
-    { path: 'imoveis', label: 'Imóveis', icone: 'ph-buildings' },
-    { path: 'despesas', label: 'Despesas', icone: 'ph-receipt' },
-    { path: 'pessoas', label: 'Pessoas', icone: 'ph-users-three' },
-    { path: 'contratos', label: 'Contratos financeiros', icone: 'ph-handshake' },
-    { path: 'categorias-despesa', label: 'Categorias de despesa', icone: 'ph-list-checks' },
-    { path: 'relatorios', label: 'Relatórios', icone: 'ph-chart-line-up' },
+    { path: 'imoveis', label: 'Imóveis', icone: 'ph-buildings', dominio: 'IMOVEL' },
+    { path: 'despesas', label: 'Despesas', icone: 'ph-receipt', dominio: 'DESPESA' },
+    { path: 'pessoas', label: 'Pessoas', icone: 'ph-users-three', dominio: 'PESSOA' },
+    { path: 'contratos', label: 'Contratos financeiros', icone: 'ph-handshake', dominio: 'CONTRATO_FINANCEIRO' },
+    { path: 'categorias-despesa', label: 'Categorias de despesa', icone: 'ph-list-checks', dominio: 'CATEGORIA_DESPESA' },
+    { path: 'relatorios', label: 'Relatórios', icone: 'ph-chart-line-up', dominio: 'RELATORIO' },
+    { path: 'perfis', label: 'Perfis', icone: 'ph-shield-check', dominio: 'PERFIL' },
   ];
+
+  protected readonly links = computed(() =>
+    this.todosOsLinks.filter((link) => !link.dominio || this.permissoesService.temAcesso(link.dominio)),
+  );
 
   protected sair(): void {
     this.authService.logout();

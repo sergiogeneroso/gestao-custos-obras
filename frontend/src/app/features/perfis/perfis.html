@@ -1,0 +1,47 @@
+<main class="perfis">
+  <header class="perfis__cabecalho">
+    <div>
+      <span class="perfis__kicker">Administração</span>
+      <h1>Perfis</h1>
+    </div>
+    <button *appPermissao="'PERFIL:INCLUIR'" mat-stroked-button color="primary" type="button" (click)="novo()">
+      <i class="ph ph-plus"></i>
+      Novo perfil
+    </button>
+  </header>
+
+  @if (carregando()) {
+    <p class="perfis__carregando">Carregando…</p>
+  } @else if (perfis().length === 0) {
+    <p class="perfis__vazio">Nenhum perfil cadastrado ainda.</p>
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Permissões</th>
+          <th class="table__acoes"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (perfil of perfis(); track perfil.id) {
+          <tr>
+            <td class="table__nome">{{ perfil.nome }}</td>
+            <td>{{ resumoPermissoes(perfil) }}</td>
+            <td class="table__acoes">
+              <div class="table__acoes-grupo">
+                <button *appPermissao="'PERFIL:ALTERAR'" mat-stroked-button type="button" (click)="editar(perfil)">Editar</button>
+                <button mat-icon-button type="button" (click)="verHistorico(perfil)" aria-label="Ver histórico">
+                  <i class="ph ph-clock-counter-clockwise icone-secundario"></i>
+                </button>
+                <button *appPermissao="'PERFIL:DELETAR'" mat-icon-button type="button" (click)="excluir(perfil)" aria-label="Excluir perfil">
+                  <i class="ph ph-trash icone-secundario"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

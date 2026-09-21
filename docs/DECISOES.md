@@ -1226,6 +1226,23 @@ migrado para `UsuarioModel.perfil` (nullable — `PerfilSeedRunner` cria o
 perfil "Administrador" com todas as permissões e migra usuário sem perfil pra
 ele, sem exigir script manual). Coluna `usuario.role` (não mais mapeada)
 removida via script manual `db/manual/2026-09-remover-coluna-role-usuario.sql`
-— não roda sozinha, é destrutiva. **Frontend ainda pendente** (telas de
-administração de Perfil, consumo de `/api/perfis/minhas-permissoes`, guards e
-diretivas de botão).
+— não roda sozinha, é destrutiva.
+
+**Frontend implementado (Set 2026):** `PermissoesService` consulta
+`/api/perfis/minhas-permissoes` logo após o login (e num F5, via `authGuard`)
+e guarda o resultado num signal; `permissaoGuard(dominio)` bloqueia navegação
+direta por URL a uma tela sem "acessar"; `*appPermissao="'DOMINIO:ACAO'"`
+esconde botão sem a permissão específica. Tela de administração de `Perfil`
+(`features/perfis/`) com a matriz domínio×ação em checkbox, escondendo as
+colunas sem efeito de `relatorio`/`auditoria`, e reforçando na própria UI o
+"acessar é pré-requisito das outras três" (marcar qualquer outra ação liga
+acessar; desmarcar acessar limpa o resto) — lógica pura extraída em
+`matriz-permissao.util.ts`, testada. Verificado de ponta a ponta no navegador
+com dois usuários de teste (perfil completo e perfil de um domínio só).
+**Escopo deliberadamente menor que "toda ação do sistema":** o `*appPermissao`
+só foi aplicado aos botões Novo/Editar/Excluir das seis telas de listagem
+principais (imóvel, pessoa, despesa, contrato, categoria de despesa, perfil).
+Ações secundárias dentro de diálogos aninhados (avançar fase, marcar venda,
+quitar parcela, etc.) **não** têm diretiva própria — o backend já as recusa
+com 403 do mesmo jeito, só falta a UI escondê-las preventivamente; fica para
+quando alguém notar o incômodo, não é lacuna de segurança.

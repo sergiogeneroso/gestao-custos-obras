@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { PermissaoDirective } from '../../core/auth/permissao.directive';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import { HistoricoDialog } from '../../shared/auditoria/historico-dialog/historico-dialog';
@@ -15,7 +16,7 @@ import { PessoasService } from './pessoas.service';
 
 @Component({
   selector: 'app-pessoas',
-  imports: [MatButtonModule, MatButtonToggleModule, MatPaginatorModule, BuscaToolbar],
+  imports: [MatButtonModule, MatButtonToggleModule, MatPaginatorModule, BuscaToolbar, PermissaoDirective],
   templateUrl: './pessoas.html',
   styleUrl: './pessoas.scss',
 })

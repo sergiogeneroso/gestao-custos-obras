@@ -4,7 +4,7 @@
       <span class="contratos__kicker">Cadastro</span>
       <h1>Contratos financeiros</h1>
     </div>
-    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+    <button *appPermissao="'CONTRATO_FINANCEIRO:INCLUIR'" mat-stroked-button color="primary" type="button" (click)="novo()">
       <i class="ph ph-plus"></i>
       Novo contrato
     </button>

@@ -12,7 +12,7 @@
     </div>
 
     <nav class="shell__nav">
-      @for (link of links; track link.path) {
+      @for (link of links(); track link.path) {
         <a [routerLink]="link.path" routerLinkActive="ativo" [title]="link.label" (click)="fecharGaveta()">
           <i class="ph {{ link.icone }}" aria-hidden="true"></i>
           <span class="shell__rotulo">{{ link.label }}</span>
@@ -25,7 +25,7 @@
       @if (usuario(); as u) {
         <div class="shell__usuario-info shell__rotulo">
           <p class="shell__usuario-nome">{{ u.nome }}</p>
-          <p class="shell__usuario-papel">{{ u.role }}</p>
+          <p class="shell__usuario-papel">{{ u.perfil ?? '—' }}</p>
         </div>
       }
       <button type="button" class="shell__sair" (click)="sair()" aria-label="Sair" title="Sair">

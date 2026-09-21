@@ -4,7 +4,7 @@
       <span class="categorias-despesa__kicker">Cadastro</span>
       <h1>Categorias de Despesa</h1>
     </div>
-    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+    <button *appPermissao="'CATEGORIA_DESPESA:INCLUIR'" mat-stroked-button color="primary" type="button" (click)="novo()">
       <i class="ph ph-plus"></i>
       Nova categoria
     </button>
@@ -40,11 +40,11 @@
             <td>{{ categoria.descricao || '—' }}</td>
             <td class="table__acoes">
               <div class="table__acoes-grupo">
-                <button mat-stroked-button type="button" (click)="editar(categoria)">Editar</button>
+                <button *appPermissao="'CATEGORIA_DESPESA:ALTERAR'" mat-stroked-button type="button" (click)="editar(categoria)">Editar</button>
                 <button mat-icon-button type="button" (click)="verHistorico(categoria)" aria-label="Ver histórico">
                   <i class="ph ph-clock-counter-clockwise icone-secundario"></i>
                 </button>
-                <button mat-icon-button type="button" (click)="excluir(categoria)" aria-label="Excluir categoria">
+                <button *appPermissao="'CATEGORIA_DESPESA:DELETAR'" mat-icon-button type="button" (click)="excluir(categoria)" aria-label="Excluir categoria">
                   <i class="ph ph-trash icone-secundario"></i>
                 </button>
               </div>

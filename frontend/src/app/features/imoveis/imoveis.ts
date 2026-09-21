@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
+import { PermissaoDirective } from '../../core/auth/permissao.directive';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
@@ -34,6 +35,7 @@ import { ImoveisService } from './imoveis.service';
     MatSelectModule,
     AuthImgDirective,
     BuscaToolbar,
+    PermissaoDirective,
   ],
   templateUrl: './imoveis.html',
   styleUrl: './imoveis.scss',

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { permissaoGuard } from './core/auth/permissao.guard';
 import { Shell } from './core/layout/shell/shell';
 
 export const routes: Routes = [
@@ -23,23 +24,28 @@ export const routes: Routes = [
       },
       {
         path: 'imoveis',
+        canActivate: [permissaoGuard('IMOVEL')],
         loadComponent: () => import('./features/imoveis/imoveis').then((m) => m.Imoveis),
       },
       {
         path: 'pessoas',
+        canActivate: [permissaoGuard('PESSOA')],
         loadComponent: () => import('./features/pessoas/pessoas').then((m) => m.Pessoas),
       },
       {
         path: 'categorias-despesa',
+        canActivate: [permissaoGuard('CATEGORIA_DESPESA')],
         loadComponent: () =>
           import('./features/categorias-despesa/categorias-despesa').then((m) => m.CategoriasDespesa),
       },
       {
         path: 'despesas',
+        canActivate: [permissaoGuard('DESPESA')],
         loadComponent: () => import('./features/despesas/despesas').then((m) => m.Despesas),
       },
       {
         path: 'contratos',
+        canActivate: [permissaoGuard('CONTRATO_FINANCEIRO')],
         loadComponent: () => import('./features/contratos/contratos').then((m) => m.Contratos),
       },
       {
@@ -49,8 +55,14 @@ export const routes: Routes = [
       },
       {
         path: 'relatorios',
+        canActivate: [permissaoGuard('RELATORIO')],
         loadComponent: () =>
           import('./features/relatorios/relatorios').then((m) => m.Relatorios),
+      },
+      {
+        path: 'perfis',
+        canActivate: [permissaoGuard('PERFIL')],
+        loadComponent: () => import('./features/perfis/perfis').then((m) => m.Perfis),
       },
     ],
   },

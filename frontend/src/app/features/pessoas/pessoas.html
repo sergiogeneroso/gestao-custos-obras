@@ -4,7 +4,7 @@
       <span class="pessoas__kicker">Cadastro</span>
       <h1>Pessoas</h1>
     </div>
-    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+    <button *appPermissao="'PESSOA:INCLUIR'" mat-stroked-button color="primary" type="button" (click)="novo()">
       <i class="ph ph-plus"></i>
       Nova pessoa
     </button>
@@ -56,11 +56,11 @@
             <td>{{ pessoa.email || formatarTelefone(pessoa.telefone) || '—' }}</td>
             <td class="table__acoes">
               <div class="table__acoes-grupo">
-                <button mat-stroked-button type="button" (click)="editar(pessoa)">Editar</button>
+                <button *appPermissao="'PESSOA:ALTERAR'" mat-stroked-button type="button" (click)="editar(pessoa)">Editar</button>
                 <button mat-icon-button type="button" (click)="verHistorico(pessoa)" aria-label="Ver histórico">
                   <i class="ph ph-clock-counter-clockwise icone-secundario"></i>
                 </button>
-                <button mat-icon-button type="button" (click)="excluir(pessoa)" aria-label="Excluir pessoa">
+                <button *appPermissao="'PESSOA:DELETAR'" mat-icon-button type="button" (click)="excluir(pessoa)" aria-label="Excluir pessoa">
                   <i class="ph ph-trash icone-secundario"></i>
                 </button>
               </div>

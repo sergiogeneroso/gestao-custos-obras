@@ -1,0 +1,52 @@
+<div class="dialogo-perfil">
+  <div class="dialogo-perfil__topo">
+    <h2 mat-dialog-title>{{ perfil ? 'Editar perfil' : 'Novo perfil' }}</h2>
+    <button mat-icon-button type="button" (click)="fechar()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <mat-dialog-content>
+      <mat-form-field appearance="outline" class="dialogo-perfil__campo-largo">
+        <mat-label>Nome</mat-label>
+        <input matInput maxlength="100" formControlName="nome" />
+      </mat-form-field>
+
+      <table class="matriz">
+        <thead>
+          <tr>
+            <th>Domínio</th>
+            @for (acao of acoes; track acao) {
+              <th class="matriz__acao">{{ acaoLabel[acao] }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (dominio of dominios; track dominio) {
+            <tr>
+              <td class="matriz__dominio">{{ dominioLabel[dominio] }}</td>
+              @for (acao of acoes; track acao) {
+                <td class="matriz__acao">
+                  @if (acaoAplicavel(dominio, acao)) {
+                    <mat-checkbox
+                      [checked]="marcado(dominio, acao)"
+                      (change)="alternar(dominio, acao)"
+                      [attr.aria-label]="dominioLabel[dominio] + ' - ' + acaoLabel[acao]"
+                    />
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button type="submit" color="primary" [disabled]="form.invalid || salvando()">
+        {{ salvando() ? 'Salvando...' : 'Salvar' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>

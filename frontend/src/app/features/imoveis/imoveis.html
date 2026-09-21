@@ -4,7 +4,7 @@
       <span class="imoveis__kicker">Cadastro</span>
       <h1>Imóveis e lotes</h1>
     </div>
-    <button mat-stroked-button color="primary" type="button" (click)="novo()">
+    <button *appPermissao="'IMOVEL:INCLUIR'" mat-stroked-button color="primary" type="button" (click)="novo()">
       <i class="ph ph-plus"></i>
       Novo imóvel
     </button>
@@ -84,8 +84,8 @@
             </td>
             <td class="table__acoes" (click)="$event.stopPropagation()">
               <div class="table__acoes-grupo">
-                <button mat-stroked-button type="button" (click)="editar(imovel)">Editar</button>
-                <button mat-icon-button type="button" (click)="excluir(imovel)" aria-label="Excluir imóvel">
+                <button *appPermissao="'IMOVEL:ALTERAR'" mat-stroked-button type="button" (click)="editar(imovel)">Editar</button>
+                <button *appPermissao="'IMOVEL:DELETAR'" mat-icon-button type="button" (click)="excluir(imovel)" aria-label="Excluir imóvel">
                   <i class="ph ph-trash icone-secundario"></i>
                 </button>
               </div>
@@ -135,8 +135,8 @@
             </div>
 
             <div class="card__acoes" (click)="$event.stopPropagation()">
-              <button mat-stroked-button type="button" (click)="editar(imovel)">Editar</button>
-              <button mat-icon-button type="button" (click)="excluir(imovel)" aria-label="Excluir imóvel">
+              <button *appPermissao="'IMOVEL:ALTERAR'" mat-stroked-button type="button" (click)="editar(imovel)">Editar</button>
+              <button *appPermissao="'IMOVEL:DELETAR'" mat-icon-button type="button" (click)="excluir(imovel)" aria-label="Excluir imóvel">
                 <i class="ph ph-trash icone-secundario"></i>
               </button>
             </div>

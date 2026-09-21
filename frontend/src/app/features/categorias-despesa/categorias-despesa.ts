@@ -2,6 +2,7 @@ import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { PermissaoDirective } from '../../core/auth/permissao.directive';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 import { HistoricoDialog } from '../../shared/auditoria/historico-dialog/historico-dialog';
@@ -12,7 +13,7 @@ import { CategoriasDespesaService } from './categorias-despesa.service';
 
 @Component({
   selector: 'app-categorias-despesa',
-  imports: [MatButtonModule, MatPaginatorModule, BuscaToolbar],
+  imports: [MatButtonModule, MatPaginatorModule, BuscaToolbar, PermissaoDirective],
   templateUrl: './categorias-despesa.html',
   styleUrl: './categorias-despesa.scss',
 })

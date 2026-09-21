@@ -169,9 +169,10 @@ frontend.
 - **RNF01 — Autenticação** ✅: JWT stateless (jjwt). Login em `/api/auth/login`
   emite token; `JwtAuthenticationFilter` valida `Authorization: Bearer`.
   Senha armazenada como hash BCrypt. RBAC por domínio com matriz
-  configurável (Perfil × Domínio × Ação, ADR-046) implementado no backend
-  (`PermissaoInterceptor` + CRUD de `Perfil`); frontend (telas + guards de
-  permissão) pendente.
+  configurável (Perfil × Domínio × Ação, ADR-046) implementado ponta a
+  ponta: backend (`PermissaoInterceptor` + CRUD de `Perfil`) e frontend
+  (`PermissoesService`, `permissaoGuard`, diretiva `*appPermissao`, tela de
+  administração de Perfil).
 - **RNF02 — Persistência** ✅: PostgreSQL, integridade referencial
   (`ON DELETE RESTRICT` em relações financeiras). Flyway pausado (ADR-013/029).
 - **RNF03 — Responsividade** ✅ (no fluxo de despesa): o lançamento de despesa —

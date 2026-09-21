@@ -40,9 +40,16 @@ paths:
   `orcamentos-categoria` ficam fora do RBAC (só autenticação). Qualquer
   usuário autenticado consulta `GET /api/perfis/minhas-permissoes` (as
   PRÓPRIAS permissões), rota excluída da checagem geral do domínio
-  "perfil" — é o que o frontend consulta pra montar a UI. Vocabulário
-  completo em `CONTEXT.md`; frontend (telas + guards/diretivas) ainda
-  pendente.
+  "perfil" — é o que o frontend (`PermissoesService`) consulta logo após o
+  login pra montar a UI. Vocabulário completo em `CONTEXT.md`.
+- **Frontend (`frontend/src/app/core/auth/`):** `PermissoesService` guarda a
+  resposta de `/minhas-permissoes` num signal; `permissaoGuard(dominio)`
+  bloqueia navegação direta por URL a uma rota sem "acessar" (o menu do
+  `Shell` já a esconde); diretiva estrutural `*appPermissao="'DOMINIO:ACAO'"`
+  esconde um botão sem a permissão específica. Aplicada nos botões
+  Novo/Editar/Excluir das telas de listagem principais — ações secundárias
+  em diálogos aninhados (avançar fase, marcar venda, quitar parcela) ainda
+  não têm diretiva própria, só a recusa 403 do backend.
 - Erros padronizados via `ApiErrorHandler`:
   `RecursoNaoEncontradoException` → 404, `RegraDeNegocioException` → 422,
   `MethodArgumentNotValidException` → 400; ausência/invalidade de

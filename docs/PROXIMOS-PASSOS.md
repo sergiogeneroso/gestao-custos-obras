@@ -398,9 +398,12 @@ superado; sobrou o que continua valendo:
       ADR-046 — não mais `ROLE_ADMIN`), 5 paletas curadas (ADR-016/ADR-018) e
       painel para trocar
 - [x] RBAC por domínio (RNF01): matriz configurável Perfil × Domínio × Ação,
-      CRUD de Perfil (backend), `PermissaoInterceptor` fazendo o enforcement.
-      Ver ADR-046. Frontend (telas + guards/diretivas de permissão) segue em
-      tarefa própria
+      CRUD de Perfil (backend + tela), `PermissaoInterceptor` fazendo o
+      enforcement, `PermissoesService`/`permissaoGuard`/`*appPermissao` no
+      frontend. Ver ADR-046. Pendente, deliberadamente fora deste escopo:
+      diretiva de permissão nas ações secundárias de diálogos aninhados
+      (avançar fase, marcar venda, quitar parcela) — só os botões
+      Novo/Editar/Excluir das telas de listagem principais foram cobertos
 - [ ] Gráficos do dashboard (Custo Total, Orçado vs. Realizado — ADR-017/Chart.js)
 
 ## Módulos pós-MVP (ADR-029)

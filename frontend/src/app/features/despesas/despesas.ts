@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { PermissaoDirective } from '../../core/auth/permissao.directive';
 import { BuscaToolbar } from '../../shared/busca-toolbar/busca-toolbar';
 import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/confirm-exclusao-dialog';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
@@ -21,6 +22,7 @@ import { DespesasService } from './despesas.service';
     MatButtonToggleModule,
     MatPaginatorModule,
     BuscaToolbar,
+    PermissaoDirective,
   ],
   templateUrl: './despesas.html',
   styleUrl: './despesas.scss',
