@@ -65,6 +65,20 @@
           </mat-button-toggle-group>
         </div>
 
+        @if (perguntarContratoCompartilhado()) {
+          <div class="dialogo-imovel__campo-largo">
+            <p class="dialogo-imovel__rotulo">Esse parcelamento cobre</p>
+            <mat-button-toggle-group
+              [value]="form.controls.contratoCompartilhado.value"
+              (change)="form.controls.contratoCompartilhado.setValue($event.value)"
+              aria-label="Alcance do contrato de parcelamento"
+            >
+              <mat-button-toggle [value]="false">Só este lote</mat-button-toggle>
+              <mat-button-toggle [value]="true">Outros lotes também, ainda não cadastrados</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        }
+
         @if (mostrarValorCompra()) {
           <mat-form-field appearance="outline">
             <mat-label>{{ form.controls.compraParcelada.value ? 'Valor do lote (à vista)' : 'Valor de compra' }}</mat-label>
@@ -74,6 +88,11 @@
               <mat-hint>Cronograma do contrato: {{ totalCronogramaContrato() | currency: 'BRL' }}</mat-hint>
             }
           </mat-form-field>
+        } @else if (form.controls.contratoCompartilhado.value) {
+          <p class="dialogo-imovel__nota dialogo-imovel__campo-largo">
+            O valor do lote vem do contrato de parcelamento — cadastre os outros lotes e crie o
+            contrato compartilhado depois, em Contratos financeiros.
+          </p>
         } @else {
           <p class="dialogo-imovel__nota dialogo-imovel__campo-largo">
             O valor do lote vem do contrato de parcelamento, que será aberto ao salvar.

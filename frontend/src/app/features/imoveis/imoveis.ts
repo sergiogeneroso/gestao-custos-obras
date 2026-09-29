@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { PermissaoDirective } from '../../core/auth/permissao.directive';
 import { AuthImgDirective } from '../../shared/auth-img/auth-img.directive';
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
@@ -43,6 +44,7 @@ import { ImoveisService } from './imoveis.service';
 export class Imoveis {
   private readonly service = inject(ImoveisService);
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
   protected readonly situacaoLabel = SITUACAO_IMOVEL_LABEL;
@@ -129,6 +131,12 @@ export class Imoveis {
         this.lista.carregar();
         if (resultado?.contratoCompra) {
           this.abrirContratoDaCompra(resultado.contratoCompra);
+        } else if (resultado?.loteCompartilhado) {
+          this.snackBar.open(
+            'Lote salvo. Cadastre os outros lotes e depois crie o contrato compartilhado em Contratos financeiros.',
+            'Fechar',
+            { duration: 6000 },
+          );
         }
       });
   }

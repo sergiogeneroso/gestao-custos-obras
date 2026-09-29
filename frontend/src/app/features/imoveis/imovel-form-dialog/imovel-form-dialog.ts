@@ -33,15 +33,19 @@ export interface ImovelFormDialogData {
 
 /**
  * Resultado do diálogo. Quando a compra é parcelada, o cadastro do contrato é pedido a quem
- * abriu este formulário em vez de aberto daqui de dentro (ver o método finalizar).
+ * abriu este formulário em vez de aberto daqui de dentro (ver o método finalizar) — exceto
+ * quando o lote é declarado como parte de um contrato compartilhado com outros lotes ainda não
+ * cadastrados (`loteCompartilhado`): abrir o diálogo de contrato agora criaria um contrato preso
+ * a um lote só, sem chance de incluir os outros depois (ADR-047, vínculo fixado na criação).
  */
 export interface ImovelFormResultado {
   salvo: true;
-  contratoCompra: {
+  contratoCompra?: {
     imovelId: number;
     contraparteId: number | null;
     dataCompra: string | null;
   };
+  loteCompartilhado?: boolean;
 }
 
 @Component({
@@ -138,6 +142,11 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     compraData: [paraData(this.imovel?.compraData) ?? new Date(), Validators.required],
     compraVendedorId: [this.imovel?.compraVendedorId ?? null, Validators.required],
     compraParcelada: [this.imovel?.compraParcelada ?? false],
+    // Só existe na criação parcelada — decide se o diálogo de contrato abre sozinho ao salvar
+    // (um lote só) ou se fica para depois, quando os outros lotes do mesmo contrato também
+    // existirem (ADR-047: o vínculo lote↔contrato é fixado na criação, não dá para completar
+    // depois). Não é persistido: é só um sinal de fluxo de cadastro, não um dado do imóvel.
+    contratoCompartilhado: [false],
     vendaValorPretendido: [this.imovel?.vendaValorPretendido ?? null],
     descricao: [this.imovel?.descricao ?? ''],
   });
@@ -149,6 +158,9 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
     initialValue: this.form.controls.compraParcelada.value,
   });
   protected readonly mostrarValorCompra = computed(() => !!this.imovel || !this.parceladaSelecionada());
+
+  // A pergunta só faz sentido na criação de um lote parcelado — na edição o contrato já existe.
+  protected readonly perguntarContratoCompartilhado = computed(() => !this.imovel && this.parceladaSelecionada());
 
   protected readonly totalCronogramaContrato = signal(0);
 
@@ -320,6 +332,14 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
 
     if (this.imovel || !parcelada) {
       this.dialogRef.close(true);
+      return;
+    }
+
+    // Contrato compartilhado com lotes que ainda não existem: abrir o diálogo de contrato agora
+    // criaria um contrato preso a este lote só, sem chance de incluir os outros depois — melhor
+    // deixar para quando todos os lotes já estiverem cadastrados (ver ImovelFormResultado).
+    if (this.form.controls.contratoCompartilhado.value) {
+      this.dialogRef.close({ salvo: true, loteCompartilhado: true } satisfies ImovelFormResultado);
       return;
     }
 
