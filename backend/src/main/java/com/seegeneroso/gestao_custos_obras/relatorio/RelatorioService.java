@@ -2,6 +2,7 @@ package com.seegeneroso.gestao_custos_obras.relatorio;
 
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoImovelModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ParcelaContratoModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
@@ -153,8 +154,8 @@ public class RelatorioService {
                 .collect(Collectors.groupingBy(DespesaModel::getEtapaConstrucao,
                         Collectors.reducing(BigDecimal.ZERO, DespesaModel::getValor, BigDecimal::add)));
         BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal jurosPagos = jurosPagos(contratos);
-        BigDecimal ajusteQuitacao = ajusteQuitacao(contratos);
+        BigDecimal jurosPagos = jurosPagos(contratos, imovelId);
+        BigDecimal ajusteQuitacao = ajusteQuitacao(contratos, imovelId);
         BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos, ajusteQuitacao);
         BigDecimal custoSemCompra = custoSemCompra(totalDespesas, jurosPagos);
 
@@ -194,11 +195,11 @@ public class RelatorioService {
                 despesasPorFase.getOrDefault(FaseImovel.CONSTRUCAO, BigDecimal.ZERO),
                 despesasPorEtapa,
                 ajusteQuitacao,
-                totalDesembolsado(imovel, totalDespesas, contratos),
-                saldoAPagar(contratos),
+                totalDesembolsado(imovel, totalDespesas, contratos, imovelId),
+                saldoAPagar(contratos, imovelId),
                 imovel.getVenda().getValor(), imovel.getVenda().getValorPretendido(), imovel.getVenda().getData(),
                 lucro, margem, diasEmCarteira, tempoPorFase(imovel), rentabilidadeAnualizada, resultadoProvisorio,
-                contratos.stream().map(this::posicaoContrato).toList()
+                contratos.stream().map(c -> posicaoContrato(c, imovelId)).toList()
         );
     }
 
@@ -227,8 +228,8 @@ public class RelatorioService {
             List<DespesaModel> despesas = despesaRepository.findByImovelIdAndAtivoTrue(imovel.getId());
             BigDecimal totalDespesas = despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add);
             List<ContratoFinanceiroModel> contratos = contratoFinanceiroRepository.findByImovelId(imovel.getId());
-            BigDecimal jurosPagos = jurosPagos(contratos);
-            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos, ajusteQuitacao(contratos));
+            BigDecimal jurosPagos = jurosPagos(contratos, imovel.getId());
+            BigDecimal custoTotal = custoTotal(imovel, totalDespesas, jurosPagos, ajusteQuitacao(contratos, imovel.getId()));
             totalInvestido = totalInvestido.add(custoTotal);
             // Mesmo indicador de apresentação do resultado por imóvel, somado na carteira: não
             // participa de totalVendido nem de lucroRealizado, que continuam saindo do custoTotal.
@@ -238,19 +239,24 @@ public class RelatorioService {
                 totalVendido = totalVendido.add(imovel.getVenda().getValor());
                 lucroRealizado = lucroRealizado.add(imovel.getVenda().getValor().subtract(custoTotal));
             }
+        }
 
-            for (ContratoFinanceiroModel contrato : contratos) {
-                // Venda desfeita: contrato cancelado não é mais dívida nem a receber, é estorno
-                // pendente — contá-lo nos outros dois mentiria (ADR-043).
-                if (contrato.getSituacao() == SituacaoContrato.CANCELADO) {
-                    saldoAEstornarTotal = saldoAEstornarTotal.add(saldoAEstornar(contrato));
-                } else if (ehDivida(contrato)) {
-                    saldoDevedorTotal = saldoDevedorTotal.add(saldoEmAberto(contrato));
-                    parcelasAVencer += contarParcelasEmAberto(contrato, hoje, limite30);
-                } else {
-                    saldoAReceberTotal = saldoAReceberTotal.add(saldoEmAberto(contrato));
-                    parcelasAReceber += contarParcelasEmAberto(contrato, hoje, limite30);
-                }
+        // Saldo devedor/a receber/a estornar e contagem de parcelas são posição do CONTRATO, não do
+        // lote (ADR-047): um contrato compartilhado soma a mesma parcela uma vez só aqui, em vez de
+        // repeti-la a cada lote vinculado como o loop por imóvel acima faria. As frações por lote já
+        // somam de volta o valor inteiro do contrato (jurosPagos/custoTotal acima), então não há
+        // necessidade de fracionar de novo nestes totais — eles são do contrato como um todo.
+        for (ContratoFinanceiroModel contrato : contratoFinanceiroRepository.findAllAtivos()) {
+            // Venda desfeita: contrato cancelado não é mais dívida nem a receber, é estorno
+            // pendente — contá-lo nos outros dois mentiria (ADR-043).
+            if (contrato.getSituacao() == SituacaoContrato.CANCELADO) {
+                saldoAEstornarTotal = saldoAEstornarTotal.add(saldoAEstornar(contrato));
+            } else if (ehDivida(contrato)) {
+                saldoDevedorTotal = saldoDevedorTotal.add(saldoEmAberto(contrato));
+                parcelasAVencer += contarParcelasEmAberto(contrato, hoje, limite30);
+            } else {
+                saldoAReceberTotal = saldoAReceberTotal.add(saldoEmAberto(contrato));
+                parcelasAReceber += contarParcelasEmAberto(contrato, hoje, limite30);
             }
         }
 
@@ -283,13 +289,31 @@ public class RelatorioService {
         return contrato.getTipo() != TipoContratoFinanceiro.PARCELAMENTO_VENDA;
     }
 
-    private BigDecimal jurosPagos(List<ContratoFinanceiroModel> contratos) {
+    // Fatia do imóvel num contrato (ADR-047): valorAlocado ÷ valorContratado. Para contrato de um
+    // lote só, a fatia é sempre 1 — os números batem exatamente com antes da ADR-047.
+    private BigDecimal fracaoImovel(ContratoFinanceiroModel contrato, Long imovelId) {
+        BigDecimal valorAlocado = contrato.getImoveis().stream()
+                .filter(ci -> ci.getImovel().getId().equals(imovelId))
+                .map(ContratoImovelModel::getValorAlocado)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+        if (contrato.getValorContratado().compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return valorAlocado.divide(contrato.getValorContratado(), 10, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal jurosPagos(List<ContratoFinanceiroModel> contratos, Long imovelId) {
         return contratos.stream()
                 .filter(this::ehDivida)
-                .flatMap(c -> c.getParcelas().stream())
-                .filter(p -> p.getDataPagamento() != null)
-                .map(ParcelaContratoModel::getValorJuros)
-                .filter(Objects::nonNull)
+                .map(c -> {
+                    BigDecimal jurosContrato = c.getParcelas().stream()
+                            .filter(p -> p.getDataPagamento() != null)
+                            .map(ParcelaContratoModel::getValorJuros)
+                            .filter(Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return jurosContrato.multiply(fracaoImovel(c, imovelId)).setScale(2, RoundingMode.HALF_UP);
+                })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -306,12 +330,13 @@ public class RelatorioService {
      *
      * As parcelas originais não são tocadas (ADR-025) — o ajuste é calculado, nunca gravado.
      */
-    private BigDecimal ajusteQuitacao(List<ContratoFinanceiroModel> contratos) {
+    private BigDecimal ajusteQuitacao(List<ContratoFinanceiroModel> contratos, Long imovelId) {
         return contratos.stream()
                 .filter(c -> c.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
                 .filter(c -> c.getSituacao() == SituacaoContrato.QUITADO)
                 .filter(c -> c.getValorQuitacao() != null)
-                .map(c -> c.getValorQuitacao().subtract(principalEmAberto(c)))
+                .map(c -> c.getValorQuitacao().subtract(principalEmAberto(c)).multiply(fracaoImovel(c, imovelId))
+                        .setScale(2, RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -325,7 +350,7 @@ public class RelatorioService {
     // Posição de caixa: quanto já saiu do bolso. Nunca somar ao custoTotal (ADR-025/037). Na compra
     // parcelada o valor de compra não é desembolso na data da compra — ele flui pelas parcelas.
     private BigDecimal totalDesembolsado(ImovelModel imovel, BigDecimal totalDespesas,
-                                         List<ContratoFinanceiroModel> contratos) {
+                                         List<ContratoFinanceiroModel> contratos, Long imovelId) {
         BigDecimal compra = !Boolean.TRUE.equals(imovel.getCompra().getParcelada())
                 && imovel.getCompra().getValor() != null
                 ? imovel.getCompra().getValor()
@@ -339,19 +364,20 @@ public class RelatorioService {
                             .map(ParcelaContratoModel::getValorPago)
                             .filter(Objects::nonNull)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    return c.getSituacao() == SituacaoContrato.QUITADO && c.getValorQuitacao() != null
+                    BigDecimal totalContrato = c.getSituacao() == SituacaoContrato.QUITADO && c.getValorQuitacao() != null
                             ? parcelasPagas.add(c.getValorQuitacao())
                             : parcelasPagas;
+                    return totalContrato.multiply(fracaoImovel(c, imovelId)).setScale(2, RoundingMode.HALF_UP);
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return compra.add(totalDespesas).add(pagoEmContratos);
     }
 
-    private BigDecimal saldoAPagar(List<ContratoFinanceiroModel> contratos) {
+    private BigDecimal saldoAPagar(List<ContratoFinanceiroModel> contratos, Long imovelId) {
         return contratos.stream()
                 .filter(this::ehDivida)
-                .map(this::saldoEmAberto)
+                .map(c -> saldoEmAberto(c).multiply(fracaoImovel(c, imovelId)).setScale(2, RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -401,7 +427,16 @@ public class RelatorioService {
                 .count();
     }
 
-    private PosicaoContratoDTO posicaoContrato(ContratoFinanceiroModel contrato) {
+    // Cada lote mostra a própria fatia, nunca o contrato inteiro (ADR-047) — valorAlocado,
+    // totalPago e saldoDevedor já proporcionais, com indicação de quantos lotes o contrato cobre.
+    private PosicaoContratoDTO posicaoContrato(ContratoFinanceiroModel contrato, Long imovelId) {
+        BigDecimal fracao = fracaoImovel(contrato, imovelId);
+        BigDecimal valorAlocado = contrato.getImoveis().stream()
+                .filter(ci -> ci.getImovel().getId().equals(imovelId))
+                .map(ContratoImovelModel::getValorAlocado)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+
         BigDecimal totalPagoParcelas = contrato.getParcelas().stream()
                 .filter(p -> p.getDataPagamento() != null)
                 .map(ParcelaContratoModel::getValorPago)
@@ -415,7 +450,10 @@ public class RelatorioService {
         return new PosicaoContratoDTO(
                 contrato.getId(), contrato.getTipo(),
                 contrato.getContraparte() != null ? contrato.getContraparte().getNome() : null,
-                contrato.getSituacao(), contrato.getValorContratado(), totalPago, saldoEmAberto(contrato));
+                contrato.getSituacao(), valorAlocado,
+                totalPago.multiply(fracao).setScale(2, RoundingMode.HALF_UP),
+                saldoEmAberto(contrato).multiply(fracao).setScale(2, RoundingMode.HALF_UP),
+                contrato.getImoveis().size() > 1, contrato.getImoveis().size());
     }
 
     private Map<FaseImovel, Long> tempoPorFase(ImovelModel imovel) {

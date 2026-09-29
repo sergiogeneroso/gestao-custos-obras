@@ -3,6 +3,7 @@ package com.seegeneroso.gestao_custos_obras.relatorio;
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoImovelModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ParcelaContratoModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
@@ -91,6 +92,36 @@ class RelatorioServiceTest {
 
         assertThat(resultado.custoTotal()).isEqualByComparingTo("100000");
         assertThat(resultado.contratos().get(0).saldoDevedor()).isEqualByComparingTo("2000");
+    }
+
+    // ADR-047: contrato compartilhado entre dois lotes — juros pagos, saldo devedor e a posição do
+    // contrato são proporcionais à fatia de CADA lote (valorAlocado ÷ valorContratado), nunca o
+    // contrato inteiro. Lote A tem 60% (30.000/50.000), lote B tem 40%.
+    @Test
+    void contratoCompartilhadoAtribuiJurosESaldoProporcionalACadaLote() {
+        ImovelModel loteA = imovel(1L, new BigDecimal("30000"));
+        ParcelaContratoModel paga = parcela(new BigDecimal("10000"), new BigDecimal("500"), LocalDate.now(), new BigDecimal("10000"));
+        ParcelaContratoModel aberta = parcela(new BigDecimal("10000"), new BigDecimal("500"), null, null);
+        ContratoFinanceiroModel contrato = contrato(TipoContratoFinanceiro.PARCELAMENTO_COMPRA,
+                SituacaoContrato.ATIVO, new BigDecimal("50000"), null, null, paga, aberta);
+        contrato.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(contrato).imovel(loteA).valorAlocado(new BigDecimal("30000")).build());
+        ImovelModel loteB = imovel(2L, new BigDecimal("20000"));
+        contrato.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(contrato).imovel(loteB).valorAlocado(new BigDecimal("20000")).build());
+
+        mockar(loteA, List.of(), List.of(contrato));
+
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+
+        // Juros pagos do contrato inteiro = 500; fatia do lote A (60%) = 300.
+        assertThat(resultado.jurosPagos()).isEqualByComparingTo("300");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("30300");
+        // Saldo em aberto do contrato inteiro = 10.000; fatia do lote A (60%) = 6.000.
+        assertThat(resultado.contratos().get(0).saldoDevedor()).isEqualByComparingTo("6000");
+        assertThat(resultado.contratos().get(0).valorAlocado()).isEqualByComparingTo("30000");
+        assertThat(resultado.contratos().get(0).compartilhado()).isTrue();
+        assertThat(resultado.contratos().get(0).quantidadeLotes()).isEqualTo(2);
     }
 
     @Test
@@ -352,9 +383,14 @@ class RelatorioServiceTest {
         ContratoFinanceiroModel contratoCompra = contrato(TipoContratoFinanceiro.PARCELAMENTO_COMPRA,
                 SituacaoContrato.ATIVO, new BigDecimal("60000"), null, null, aPagar);
 
+        vincularImovelSeNecessario(contratoVenda, imovel);
+        vincularImovelSeNecessario(contratoCompra, imovel);
         when(imovelRepository.findByAtivoTrue()).thenReturn(List.of(imovel));
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(List.of());
         when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of(contratoVenda, contratoCompra));
+        // saldoDevedor/saldoAReceber e contagem de parcelas somam pelo contrato, deduplicado, não
+        // pelo loop por imóvel (ADR-047) — ver RelatorioService.carteira.
+        when(contratoFinanceiroRepository.findAllAtivos()).thenReturn(List.of(contratoVenda, contratoCompra));
         when(despesaRepository.findByImovelIsNullAndAtivoTrue()).thenReturn(List.of());
 
         CarteiraDTO carteira = relatorioService.carteira(null, null);
@@ -376,10 +412,13 @@ class RelatorioServiceTest {
         ContratoFinanceiroModel contratoCancelado = contrato(TipoContratoFinanceiro.PARCELAMENTO_VENDA,
                 SituacaoContrato.CANCELADO, new BigDecimal("160000"), null, null, paga);
         contratoCancelado.setValorEstornado(new BigDecimal("3000"));
+        vincularImovelSeNecessario(contratoCancelado, imovel);
 
         when(imovelRepository.findByAtivoTrue()).thenReturn(List.of(imovel));
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(List.of());
         when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of(contratoCancelado));
+        // saldoAEstornar soma pelo contrato, deduplicado, não pelo loop por imóvel (ADR-047).
+        when(contratoFinanceiroRepository.findAllAtivos()).thenReturn(List.of(contratoCancelado));
         when(despesaRepository.findByImovelIsNullAndAtivoTrue()).thenReturn(List.of());
 
         CarteiraDTO carteira = relatorioService.carteira(null, null);
@@ -658,7 +697,20 @@ class RelatorioServiceTest {
     private void mockar(ImovelModel imovel, List<DespesaModel> despesas, List<ContratoFinanceiroModel> contratos) {
         when(imovelRepository.findByIdAndAtivoTrue(anyLong())).thenReturn(java.util.Optional.of(imovel));
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(despesas);
+        contratos.forEach(c -> vincularImovelSeNecessario(c, imovel));
         when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(contratos);
+    }
+
+    // ADR-047: jurosPagos/ajusteQuitacao/totalDesembolsado/saldoAPagar são proporcionais à fatia do
+    // imóvel no contrato (valorAlocado ÷ valorContratado). Todo fixture deste arquivo testa contrato
+    // de um lote só, então a fatia é sempre o valor contratado inteiro — os números continuam
+    // batendo exatamente com antes da ADR-047.
+    private void vincularImovelSeNecessario(ContratoFinanceiroModel contrato, ImovelModel imovel) {
+        if (!contrato.getImoveis().isEmpty()) {
+            return;
+        }
+        contrato.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(contrato).imovel(imovel).valorAlocado(contrato.getValorContratado()).build());
     }
 
     private ImovelModel imovel(Long id, BigDecimal valorCompra) {

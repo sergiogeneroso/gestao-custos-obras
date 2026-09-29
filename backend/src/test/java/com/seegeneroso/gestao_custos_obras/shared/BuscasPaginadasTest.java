@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaMode
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaRepository;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
@@ -67,13 +68,14 @@ class BuscasPaginadasTest {
     void contratoBuscaPorTermoDeImovelOuContraparte() {
         ImovelModel imovel = imovelRepository.save(imovel("LOTE-90"));
         PessoaModel banco = pessoaRepository.save(pessoa("Banco Caixa", false));
-        ContratoFinanceiroModel contrato = contratoFinanceiroRepository.save(
-                ContratoFinanceiroModel.builder()
-                        .imovel(imovel)
-                        .tipo(TipoContratoFinanceiro.FINANCIAMENTO_CONSTRUCAO)
-                        .contraparte(banco)
-                        .valorContratado(new BigDecimal("200000.00"))
-                        .build());
+        ContratoFinanceiroModel contratoNaoSalvo = ContratoFinanceiroModel.builder()
+                .tipo(TipoContratoFinanceiro.FINANCIAMENTO_CONSTRUCAO)
+                .contraparte(banco)
+                .valorContratado(new BigDecimal("200000.00"))
+                .build();
+        contratoNaoSalvo.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(contratoNaoSalvo).imovel(imovel).valorAlocado(new BigDecimal("200000.00")).build());
+        ContratoFinanceiroModel contrato = contratoFinanceiroRepository.save(contratoNaoSalvo);
 
         assertThat(contratoFinanceiroRepository.buscar("", PAGINA).getContent())
                 .extracting(ContratoFinanceiroModel::getId).contains(contrato.getId());

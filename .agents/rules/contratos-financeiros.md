@@ -78,6 +78,50 @@ um prejuízo inexistente de 133k.
   "pagar de novo"), contrato `QUITADO` e contrato `CANCELADO` — mesma trava,
   em espírito, da edição e da exclusão avulsa logo abaixo.
 
+## Contrato compartilhado entre vários lotes (ADR-047) — só compra e venda
+
+`PARCELAMENTO_COMPRA` e `PARCELAMENTO_VENDA` podem cobrir mais de um lote ao
+mesmo tempo — ex.: comprar dois lotes do mesmo vendedor num único
+parcelamento, com uma entrada e um cronograma de parcelas só.
+`FINANCIAMENTO_CONSTRUCAO` **nunca** é compartilhado: o banco financia um
+imóvel individual, dado em garantia.
+
+- **A fatia de cada lote é declarada à mão** (`valorAlocado`, valor absoluto
+  em R$) ao vincular o lote ao contrato — o sistema nunca infere ou divide
+  automaticamente, mesmo princípio de "sem rateio automático" da despesa
+  compartilhada. A soma das alocações **é validada** contra
+  `valorContratado` (diferente da soma de parcela-vs-contratado, que tolera
+  diferença por juros — aqui não há ambiguidade que justifique folga)
+- **Vínculo só na criação do contrato.** Não existe "adicionar lote depois"
+  a um contrato já existente — um lote que precisar entrar depois vira um
+  contrato novo, nunca reabre um cronograma de parcelas em andamento
+- **Editar `valorContratado` depois não revalida nem recalcula as
+  alocações.** Elas são valores absolutos declarados uma vez; a fração de
+  cada lote (`valorAlocado ÷ valorContratado`) só se recalcula na leitura,
+  então editar o total simplesmente desloca a fração de todo mundo — mesmo
+  espírito de "não validar parcela contra valorContratado", só que aqui
+  nem juros justificam a folga, é edição corrigindo um número já lançado
+- **As parcelas continuam inteiras no contrato** — pagar uma parcela paga
+  todos os lotes vinculados ao mesmo tempo, e a quitação antecipada encerra
+  todos de uma vez. Só a fatia de **custo** que cada lote reconhece é
+  proporcional (`valorAlocado ÷ valorContratado`): `jurosPagos`,
+  `ajusteQuitacao`, `saldoDevedor`/`saldoAReceber`,
+  `totalDesembolsado`/`saldoAPagar`
+- **`venda.valor` não muda** — continua digitado direto no imóvel na venda,
+  nunca derivado do contrato (diferente de `compraValor`, que
+  `aplicarValorDoLote` grava a partir do `PARCELAMENTO_COMPRA`). Um
+  `PARCELAMENTO_VENDA` compartilhado só afeta a atribuição proporcional de
+  juros/saldo, igual à compra
+- **Excluir um lote desfaz só o vínculo dele**, nunca o contrato inteiro —
+  a linha de alocação some, contrato e parcelas continuam intactos para os
+  lotes que sobraram. O contrato só é cascateado/excluído quando o
+  **último** lote vinculado for removido
+- **Cada lote mostra a própria fatia**, nunca o contrato inteiro:
+  `PosicaoContratoDTO` no detalhe/resultado do imóvel expõe `valorAlocado`
+  e `totalPago`/`saldoEmAberto` proporcionais a essa fatia, com indicação
+  de que o contrato é compartilhado — nunca o valor da fatia dos outros
+  lotes
+
 ## Custos acessórios do financiamento
 
 Vistoria de engenharia a cada medição, avaliação, tarifas, seguro e registro da

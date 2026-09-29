@@ -1,11 +1,20 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.AlocacaoLoteResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ParcelaContratoResponseDTO;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ContratoFinanceiroMapper {
+
+    public AlocacaoLoteResponseDTO toAlocacaoResponseDTO(ContratoImovelModel alocacao) {
+        return new AlocacaoLoteResponseDTO(
+                alocacao.getImovel().getId(),
+                alocacao.getImovel().getIdentificador(),
+                alocacao.getValorAlocado()
+        );
+    }
 
     public ParcelaContratoResponseDTO toParcelaResponseDTO(ParcelaContratoModel parcela) {
         return new ParcelaContratoResponseDTO(
@@ -22,8 +31,7 @@ public class ContratoFinanceiroMapper {
     public ContratoFinanceiroResponseDTO toResponseDTO(ContratoFinanceiroModel contrato) {
         return new ContratoFinanceiroResponseDTO(
                 contrato.getId(),
-                contrato.getImovel() != null ? contrato.getImovel().getId() : null,
-                contrato.getImovel() != null ? contrato.getImovel().getIdentificador() : null,
+                contrato.getImoveis().stream().map(this::toAlocacaoResponseDTO).toList(),
                 contrato.getTipo(),
                 contrato.getContraparte() != null ? contrato.getContraparte().getId() : null,
                 contrato.getContraparte() != null ? contrato.getContraparte().getNome() : null,

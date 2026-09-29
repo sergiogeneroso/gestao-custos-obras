@@ -1246,3 +1246,66 @@ Ações secundárias dentro de diálogos aninhados (avançar fase, marcar venda,
 quitar parcela, etc.) **não** têm diretiva própria — o backend já as recusa
 com 403 do mesmo jeito, só falta a UI escondê-las preventivamente; fica para
 quando alguém notar o incômodo, não é lacuna de segurança.
+
+## ADR-047 — Contrato financeiro compartilhado entre vários lotes (Set 2026)
+
+Decisão tomada em sessão de grilling (grill-with-docs), campo a campo, ao
+identificar durante o cadastro real que um único contrato pode cobrir mais de
+um lote — ex.: comprar dois ou três lotes do mesmo vendedor num único
+parcelamento, com uma única entrada e um único cronograma de parcelas. O
+modelo anterior (`ContratoFinanceiroModel.imovel` como `@ManyToOne`
+obrigatório, um contrato pertence a exatamente um imóvel) não comporta isso, e
+a regra de `PARCELAMENTO_COMPRA` (ADR-037) assumia que o valor inteiro do
+contrato era o preço de um único lote.
+
+**Instrumento único, não contratos paralelos.** Avaliadas duas opções: (a)
+cadastrar um `ContratoFinanceiro` por lote, dividindo o valor à mão — mesmo
+espírito da despesa compartilhada (sem rateio automático) — ou (b) um
+contrato só, vinculado a vários lotes. Decisão por (b): confirmado que pagar
+uma parcela desse contrato paga todos os lotes envolvidos ao mesmo tempo, e
+uma quitação antecipada encerraria todos de uma vez — pagamento
+indivisível por lote, o que (a) não conseguiria representar sem inventar um
+cronograma de parcelas fictício e duplicado por lote.
+
+**Escopo: `PARCELAMENTO_COMPRA` e `PARCELAMENTO_VENDA`, nunca
+`FINANCIAMENTO_CONSTRUCAO`** — confirmado que financiamento de banco é
+sempre individual por imóvel (o banco toma o imóvel em garantia).
+
+**Alocação por lote é declarada à mão, não calculada.** Mesmo princípio da
+despesa compartilhada: ao vincular um lote a um contrato compartilhado, o
+usuário informa `valorAlocado` (valor absoluto em R$, não percentual) — o
+sistema nunca infere a fatia de cada lote. A soma das alocações é validada
+contra `valorContratado` na hora de vincular (diferente da soma de
+parcela-vs-contratado, que tolera diferença por causa de juros — aqui não há
+ambiguidade que justifique folga).
+
+**Números hoje 100% atribuídos a um imóvel passam a ser proporcionais à
+fatia dele** (`valorAlocado ÷ valorContratado`): `jurosPagos`,
+`ajusteQuitacao` (quitação antecipada da compra), `saldoDevedor`/
+`saldoAReceber` e `totalDesembolsado`/`saldoAPagar`. As parcelas continuam
+inteiras no contrato — só a fatia de custo que cada lote reconhece se
+divide. `venda.valor` continua sendo digitado direto no imóvel na venda
+(não vem do contrato), então `PARCELAMENTO_VENDA` compartilhado não precisa
+de um `aplicarValorDoLote` equivalente — só a atribuição proporcional de
+juros/saldo.
+
+**Vínculo só na criação do contrato.** Os lotes cobertos por um contrato
+compartilhado são escolhidos todos juntos ao cadastrar o contrato (seletor
+múltiplo de imóvel); não há operação de "adicionar lote depois" a um
+contrato já existente — se um lote precisar entrar depois, é mais seguro
+modelar como um contrato novo do que reabrir um cronograma de parcelas em
+andamento.
+
+**Excluir um lote desfaz só o vínculo dele, nunca o contrato inteiro.**
+`ImovelExclusaoService` cascateava o contrato inteiro na exclusão do imóvel;
+com contrato compartilhado isso quebraria o histórico dos outros lotes. A
+exclusão de um lote agora remove só a linha de alocação dele; o contrato e
+as parcelas continuam intactos para os lotes que sobraram. O contrato só é
+cascateado/excluído de verdade quando o **último** lote vinculado a ele for
+removido.
+
+**Cada lote mostra sua própria fatia, não o contrato inteiro.**
+`PosicaoContratoDTO` (contratos listados no detalhe/resultado do imóvel)
+passa a expor o `valorAlocado` do lote e `totalPago`/`saldoEmAberto`
+proporcionais a essa fatia, com uma indicação de que o contrato é
+compartilhado — nunca o valor da fatia dos outros lotes.

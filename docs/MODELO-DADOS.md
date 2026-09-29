@@ -99,7 +99,6 @@ erDiagram
     }
     CONTRATO_FINANCEIRO {
         BIGSERIAL id PK
-        BIGINT imovel_id FK
         BIGINT contraparte_id FK
         VARCHAR tipo "PARCELAMENTO_COMPRA, FINANCIAMENTO_CONSTRUCAO, PARCELAMENTO_VENDA"
         NUMERIC valor_contratado "14,2"
@@ -110,6 +109,12 @@ erDiagram
         TEXT motivo_exclusao
         TIMESTAMP excluido_em
         BIGINT excluido_por_id FK
+    }
+    CONTRATO_IMOVEL {
+        BIGSERIAL id PK
+        BIGINT contrato_id FK
+        BIGINT imovel_id FK
+        NUMERIC valor_alocado "14,2 — fatia do lote no contrato (ADR-047)"
     }
     PARCELA_CONTRATO {
         BIGSERIAL id PK
@@ -196,8 +201,9 @@ erDiagram
     IMOVEL ||--o{ DESPESA : "possui"
     IMOVEL ||--o{ IMOVEL_FOTO : "galeria"
     IMOVEL ||--o{ IMOVEL_DOCUMENTO : "documentos"
-    IMOVEL ||--o{ CONTRATO_FINANCEIRO : "encadeia"
+    IMOVEL ||--o{ CONTRATO_IMOVEL : "é alocado em"
     IMOVEL ||--o{ ORCAMENTO_CATEGORIA : "orça por categoria"
+    CONTRATO_FINANCEIRO ||--o{ CONTRATO_IMOVEL : "aloca lote(s) (ADR-047)"
     CONTRATO_FINANCEIRO ||--o{ PARCELA_CONTRATO : "cronograma"
     CONTRATO_FINANCEIRO ||--o{ CONTRATO_DOCUMENTO : "documentos"
     CONTRATO_FINANCEIRO ||--o{ DESPESA : "custos acessórios"
@@ -252,6 +258,15 @@ erDiagram
   os valores originais das parcelas (ADR-025)
 - A soma das parcelas **pode exceder** `valor_contratado` legitimamente (juros);
   não existe validação disso
+- `contrato_imovel` é o vínculo N:N entre `contrato_financeiro` e `imovel`
+  (ADR-047) — normalmente uma linha só, mas `PARCELAMENTO_COMPRA` e
+  `PARCELAMENTO_VENDA` podem cobrir vários lotes ao mesmo tempo.
+  `valor_alocado` é declarado à mão (sem rateio automático) e **a soma das
+  linhas de um contrato é validada contra `valor_contratado` só na
+  criação** — editar `valor_contratado` depois não recalcula nem revalida
+  as alocações já existentes. O vínculo em si nunca é editado, só
+  criado (na criação do contrato) ou removido (uma linha por vez, quando o
+  lote é excluído)
 - FKs para `pessoa` em relações financeiras: `ON DELETE RESTRICT`
 - **Exclusão lógica é a convenção geral do projeto** (ADR-040), via o
   `@Embeddable` compartilhado `ExclusaoLogica` (`ativo`, `motivo_exclusao`,

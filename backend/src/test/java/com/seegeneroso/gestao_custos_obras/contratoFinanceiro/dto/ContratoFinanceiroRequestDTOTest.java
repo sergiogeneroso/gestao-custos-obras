@@ -13,9 +13,30 @@ class ContratoFinanceiroRequestDTOTest {
 
     private ContratoFinanceiroRequestDTO dto(List<ParcelaContratoRequestDTO> parcelas, BigDecimal entradaValor) {
         return new ContratoFinanceiroRequestDTO(
-                1L, TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 2L, new BigDecimal("100000"),
-                parcelas, entradaValor, entradaValor != null ? LocalDate.now() : null, null
+                List.of(new AlocacaoLoteRequestDTO(1L, null)), TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 2L,
+                new BigDecimal("100000"), parcelas, entradaValor, entradaValor != null ? LocalDate.now() : null, null
         );
+    }
+
+    // ADR-047: com mais de um lote, cada um precisa declarar sua fatia — sem rateio automático.
+    @Test
+    void recusaMaisDeUmImovelSemValorAlocadoDeclarado() {
+        ContratoFinanceiroRequestDTO dto = new ContratoFinanceiroRequestDTO(
+                List.of(new AlocacaoLoteRequestDTO(1L, new BigDecimal("60000")), new AlocacaoLoteRequestDTO(2L, null)),
+                TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 3L, new BigDecimal("100000"),
+                List.of(new ParcelaContratoRequestDTO(1, LocalDate.now(), new BigDecimal("100000"), null)),
+                null, null, null);
+        assertThat(dto.isValorAlocadoObrigatorioQuandoCompartilhado()).isFalse();
+    }
+
+    @Test
+    void aceitaMaisDeUmImovelComValorAlocadoEmTodos() {
+        ContratoFinanceiroRequestDTO dto = new ContratoFinanceiroRequestDTO(
+                List.of(new AlocacaoLoteRequestDTO(1L, new BigDecimal("60000")), new AlocacaoLoteRequestDTO(2L, new BigDecimal("40000"))),
+                TipoContratoFinanceiro.PARCELAMENTO_COMPRA, 3L, new BigDecimal("100000"),
+                List.of(new ParcelaContratoRequestDTO(1, LocalDate.now(), new BigDecimal("100000"), null)),
+                null, null, null);
+        assertThat(dto.isValorAlocadoObrigatorioQuandoCompartilhado()).isTrue();
     }
 
     @Test

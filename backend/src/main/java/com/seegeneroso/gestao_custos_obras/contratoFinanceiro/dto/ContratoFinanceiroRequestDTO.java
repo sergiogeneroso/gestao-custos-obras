@@ -3,6 +3,7 @@ package com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -13,8 +14,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record ContratoFinanceiroRequestDTO(
-        @NotNull(message = "Imóvel é obrigatório")
-        Long imovelId,
+        // Lotes cobertos pelo contrato (ADR-047) — normalmente um só; mais de um só em
+        // PARCELAMENTO_COMPRA/PARCELAMENTO_VENDA, quando o mesmo negócio cobre vários lotes de
+        // uma vez. Só usado na criação: o vínculo lote↔contrato não é editável depois.
+        @NotEmpty(message = "Ao menos um imóvel é obrigatório")
+        List<@Valid AlocacaoLoteRequestDTO> imoveis,
 
         @NotNull(message = "Tipo do contrato é obrigatório")
         TipoContratoFinanceiro tipo,
@@ -33,8 +37,10 @@ public record ContratoFinanceiroRequestDTO(
         BigDecimal entradaValor,
         LocalDate entradaData,
 
-        // Entrada de cálculo, não gravada no contrato: quando informado, é o preço à vista do lote e
-        // a diferença para o cronograma são juros. Em branco, o preço do lote é o próprio total.
+        // Entrada de cálculo, não gravada no contrato: preço à vista do negócio inteiro (todos os
+        // lotes somados) quando informado, a diferença para o cronograma são juros. Em branco, o
+        // preço é o próprio total do cronograma. Cada lote reconhece a fatia proporcional à sua
+        // alocação (ContratoFinanceiroService.aplicarValorDoLote).
         @Positive(message = "Preço à vista do lote deve ser maior que zero")
         BigDecimal precoAVistaLote
 ) {
@@ -46,5 +52,13 @@ public record ContratoFinanceiroRequestDTO(
         boolean temParcelas = parcelas != null && !parcelas.isEmpty();
         boolean temEntrada = entradaValor != null && entradaValor.compareTo(BigDecimal.ZERO) > 0;
         return temParcelas || temEntrada;
+    }
+
+    // Sem rateio automático (ADR-047): com mais de um lote, cada um precisa declarar sua fatia —
+    // não há como o sistema inferir a divisão.
+    @AssertTrue(message = "Com mais de um imóvel, o valor alocado de cada um é obrigatório")
+    public boolean isValorAlocadoObrigatorioQuandoCompartilhado() {
+        return imoveis == null || imoveis.size() <= 1
+                || imoveis.stream().allMatch(a -> a.valorAlocado() != null);
     }
 }

@@ -9,8 +9,7 @@ import java.util.List;
 
 public record ContratoFinanceiroResponseDTO(
         Long id,
-        Long imovelId,
-        String imovelIdentificador,
+        List<AlocacaoLoteResponseDTO> imoveis,
         TipoContratoFinanceiro tipo,
         Long contraparteId,
         String contraparteNome,

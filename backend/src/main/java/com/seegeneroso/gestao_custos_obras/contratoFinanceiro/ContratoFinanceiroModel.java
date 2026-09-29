@@ -1,6 +1,5 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
-import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.SituacaoContrato;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoContratoFinanceiro;
@@ -24,9 +23,13 @@ public class ContratoFinanceiroModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "imovel_id")
-    private ImovelModel imovel;
+    // Lotes cobertos pelo contrato (ADR-047) — normalmente um só, mas PARCELAMENTO_COMPRA e
+    // PARCELAMENTO_VENDA podem cobrir vários ao mesmo tempo (mesma entrada, mesmo cronograma,
+    // pagamento indivisível). O vínculo é fixado na criação e nunca editado depois — ver
+    // .agents/rules/contratos-financeiros.md.
+    @Builder.Default
+    @OneToMany(mappedBy = "contrato", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ContratoImovelModel> imoveis = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

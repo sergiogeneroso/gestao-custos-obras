@@ -35,3 +35,20 @@ domínio.
 A relação perfil × domínio × ação que decide o que cada perfil pode fazer.
 É a peça configurável do sistema — perfis e a matriz são editados via CRUD
 próprio; domínios e ações continuam fixos no código.
+
+**Contrato compartilhado** (ADR-047):
+Um `PARCELAMENTO_COMPRA` ou `PARCELAMENTO_VENDA` que cobre mais de um lote de
+uma vez — mesma entrada, mesmo cronograma de parcelas, pagamento indivisível
+por lote. Cada lote vinculado tem sua própria **alocação** (fatia declarada à
+mão do valor do contrato); os números do relatório (juros, saldo, quitação)
+são proporcionais à fatia de cada lote, nunca ao contrato inteiro.
+`FINANCIAMENTO_CONSTRUCAO` nunca é compartilhado — é sempre individual por
+imóvel.
+_Avoid_: Contrato coletivo, contrato múltiplo
+
+**Alocação** (de um lote num contrato compartilhado):
+O valor absoluto, em R$, que um lote específico responde dentro de um
+contrato compartilhado — declarado à mão pelo usuário ao vincular o lote,
+nunca calculado ou dividido automaticamente pelo sistema (mesmo princípio da
+despesa compartilhada: sem rateio automático entre imóveis).
+_Avoid_: Rateio, divisão, cota

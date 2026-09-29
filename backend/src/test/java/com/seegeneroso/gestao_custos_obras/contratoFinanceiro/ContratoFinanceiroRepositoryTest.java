@@ -47,16 +47,46 @@ class ContratoFinanceiroRepositoryTest {
         assertThat(ids).contains(ativo.getId()).doesNotContain(inativo.getId());
     }
 
+    // ADR-047: contrato compartilhado aparece em findByImovelId para CADA lote vinculado, uma vez
+    // só (distinct), não uma vez por linha de alocação.
+    @Test
+    void findByImovelIdTrazContratoCompartilhadoParaCadaLoteVinculado() {
+        ImovelModel loteA = imovelRepository.save(imovel("LOTE-60"));
+        ImovelModel loteB = imovelRepository.save(imovel("LOTE-61"));
+        PessoaModel vendedor = pessoaRepository.save(pessoa("Vendedor dos dois lotes"));
+
+        ContratoFinanceiroModel compartilhado = ContratoFinanceiroModel.builder()
+                .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
+                .contraparte(vendedor)
+                .valorContratado(new BigDecimal("150000.00"))
+                .build();
+        compartilhado.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(compartilhado).imovel(loteA).valorAlocado(new BigDecimal("90000.00")).build());
+        compartilhado.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(compartilhado).imovel(loteB).valorAlocado(new BigDecimal("60000.00")).build());
+        ContratoFinanceiroModel salvo = contratoFinanceiroRepository.save(compartilhado);
+
+        List<Long> idsParaA = contratoFinanceiroRepository.findByImovelId(loteA.getId())
+                .stream().map(ContratoFinanceiroModel::getId).toList();
+        List<Long> idsParaB = contratoFinanceiroRepository.findByImovelId(loteB.getId())
+                .stream().map(ContratoFinanceiroModel::getId).toList();
+
+        assertThat(idsParaA).containsExactly(salvo.getId());
+        assertThat(idsParaB).containsExactly(salvo.getId());
+    }
+
     private ContratoFinanceiroModel contrato(ImovelModel imovel, PessoaModel contraparte, boolean ativo) {
         ContratoFinanceiroModel.ContratoFinanceiroModelBuilder builder = ContratoFinanceiroModel.builder()
-                .imovel(imovel)
                 .tipo(TipoContratoFinanceiro.PARCELAMENTO_COMPRA)
                 .contraparte(contraparte)
                 .valorContratado(new BigDecimal("100000.00"));
         if (!ativo) {
             builder.exclusao(ExclusaoLogica.builder().ativo(false).motivoExclusao("Excluído para teste").build());
         }
-        return builder.build();
+        ContratoFinanceiroModel contrato = builder.build();
+        contrato.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(contrato).imovel(imovel).valorAlocado(new BigDecimal("100000.00")).build());
+        return contrato;
     }
 
     private PessoaModel pessoa(String nome) {

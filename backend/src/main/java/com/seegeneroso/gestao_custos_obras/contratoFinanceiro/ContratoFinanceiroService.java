@@ -1,5 +1,6 @@
 package com.seegeneroso.gestao_custos_obras.contratoFinanceiro;
 
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.AlocacaoLoteRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoDocumentoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoEstornoRequestDTO;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.dto.ContratoFinanceiroRequestDTO;
@@ -35,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -57,18 +59,28 @@ public class ContratoFinanceiroService {
 
     @Transactional
     public ContratoFinanceiroResponseDTO criar(ContratoFinanceiroRequestDTO dto) {
-        ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(dto.imovelId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + dto.imovelId()));
+        List<ImovelModel> imoveis = buscarImoveisAtivos(dto.imoveis());
         PessoaModel contraparte = pessoaRepository.findByIdAndAtivoTrue(dto.contraparteId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Contraparte não encontrada com id: " + dto.contraparteId()));
 
         ContratoFinanceiroModel contrato = ContratoFinanceiroModel.builder()
-                .imovel(imovel)
                 .tipo(dto.tipo())
                 .contraparte(contraparte)
                 .valorContratado(dto.valorContratado())
                 .parcelas(new ArrayList<>())
+                .imoveis(new ArrayList<>())
                 .build();
+
+        for (int i = 0; i < imoveis.size(); i++) {
+            AlocacaoLoteRequestDTO alocacaoDto = dto.imoveis().get(i);
+            BigDecimal valorAlocado = alocacaoDto.valorAlocado() != null ? alocacaoDto.valorAlocado() : dto.valorContratado();
+            contrato.getImoveis().add(ContratoImovelModel.builder()
+                    .contrato(contrato)
+                    .imovel(imoveis.get(i))
+                    .valorAlocado(valorAlocado)
+                    .build());
+        }
+        validarAlocacoesFecham(contrato);
 
         if (dto.entradaValor() != null && dto.entradaValor().compareTo(BigDecimal.ZERO) > 0) {
             contrato.getParcelas().add(montarEntrada(contrato, dto));
@@ -87,16 +99,39 @@ public class ContratoFinanceiroService {
         }
 
         ContratoFinanceiroModel salvo = contratoFinanceiroRepository.save(contrato);
-        aplicarValorDoLote(imovel, salvo, dto);
+        aplicarValorDoLote(salvo, dto);
         ContratoFinanceiroResponseDTO responseDto = contratoFinanceiroMapper.toResponseDTO(salvo);
         auditoriaService.registrar("ContratoFinanceiro", salvo.getId(), OperacaoAuditoria.CRIACAO, null, responseDto);
         return responseDto;
     }
 
+    private List<ImovelModel> buscarImoveisAtivos(List<AlocacaoLoteRequestDTO> alocacoes) {
+        return alocacoes.stream()
+                .map(a -> imovelRepository.findByIdAndAtivoTrue(a.imovelId())
+                        .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + a.imovelId())))
+                .toList();
+    }
+
+    // Sem rateio automático (ADR-047): a soma das alocações precisa fechar exatamente com o valor
+    // contratado — diferente da soma de parcela-vs-contratado, aqui não há juros que justifiquem
+    // folga.
+    private void validarAlocacoesFecham(ContratoFinanceiroModel contrato) {
+        BigDecimal somaAlocacoes = contrato.getImoveis().stream()
+                .map(ContratoImovelModel::getValorAlocado)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (somaAlocacoes.compareTo(contrato.getValorContratado()) != 0) {
+            throw new RegraDeNegocioException(
+                    "A soma do valor alocado dos imóveis (" + somaAlocacoes
+                            + ") precisa ser igual ao valor contratado (" + contrato.getValorContratado() + ").");
+        }
+    }
+
     // A entrada é fato consumado no momento da compra, não evento futuro: nasce como parcela nº 0 já
     // baixada, reaproveitando total pago e saldo devedor sem caso especial (ADR-037).
     private ParcelaContratoModel montarEntrada(ContratoFinanceiroModel contrato, ContratoFinanceiroRequestDTO dto) {
-        LocalDate data = dto.entradaData() != null ? dto.entradaData() : contrato.getImovel().getCompra().getData();
+        LocalDate data = dto.entradaData() != null
+                ? dto.entradaData()
+                : contrato.getImoveis().get(0).getImovel().getCompra().getData();
         return ParcelaContratoModel.builder()
                 .contrato(contrato)
                 .numero(0)
@@ -110,27 +145,34 @@ public class ContratoFinanceiroService {
     /**
      * Na compra parcelada o formulário do imóvel não pede o valor do lote, justamente para não pedir
      * um número que precisa espelhar um cronograma que ainda não existe (ADR-037). Quem grava é aqui:
-     * o preço à vista informado, ou o total do cronograma quando não houver — que é o caso normal,
-     * porque o parcelamento do lote costuma ser sem juros.
+     * o preço à vista informado (do negócio inteiro, todos os lotes somados), ou o total do
+     * cronograma quando não houver — que é o caso normal, porque o parcelamento do lote costuma ser
+     * sem juros. Contrato compartilhado (ADR-047): cada lote reconhece a fatia proporcional à sua
+     * alocação — para um único lote a fatia é sempre 1, então o valor gravado é idêntico ao de antes
+     * da ADR-047.
      *
      * Só na criação, e só se estiver vazio: reescrever o valor ao editar o cronograma mudaria em
      * silêncio o custo de um imóvel já apurado.
      */
-    private void aplicarValorDoLote(ImovelModel imovel, ContratoFinanceiroModel contrato,
-                                    ContratoFinanceiroRequestDTO dto) {
-        if (contrato.getTipo() != TipoContratoFinanceiro.PARCELAMENTO_COMPRA
-                || imovel.getCompra().getValor() != null) {
+    private void aplicarValorDoLote(ContratoFinanceiroModel contrato, ContratoFinanceiroRequestDTO dto) {
+        if (contrato.getTipo() != TipoContratoFinanceiro.PARCELAMENTO_COMPRA) {
             return;
         }
 
-        BigDecimal valor = dto.precoAVistaLote() != null
-                ? dto.precoAVistaLote()
-                : contrato.getParcelas().stream()
-                        .map(ParcelaContratoModel::getValor)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCronograma = contrato.getParcelas().stream()
+                .map(ParcelaContratoModel::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal precoAVistaTotal = dto.precoAVistaLote() != null ? dto.precoAVistaLote() : totalCronograma;
 
-        imovel.getCompra().setValor(valor);
-        imovelRepository.save(imovel);
+        for (ContratoImovelModel alocacao : contrato.getImoveis()) {
+            ImovelModel imovel = alocacao.getImovel();
+            if (imovel.getCompra().getValor() != null) {
+                continue;
+            }
+            BigDecimal fracao = alocacao.getValorAlocado().divide(contrato.getValorContratado(), 10, RoundingMode.HALF_UP);
+            imovel.getCompra().setValor(precoAVistaTotal.multiply(fracao).setScale(2, RoundingMode.HALF_UP));
+            imovelRepository.save(imovel);
+        }
     }
 
     /**
@@ -141,6 +183,13 @@ public class ContratoFinanceiroService {
      *   porque o valorJuros dela já entrou em jurosPagos/custoTotal do relatório.
      * Não validar a soma das parcelas contra valorContratado: juros fazem a soma exceder o principal
      * legitimamente.
+     *
+     * O vínculo com os imóveis (ADR-047) é fixado na criação e não é editável aqui — {@code
+     * dto.imoveis()} é ignorado. Editar valorContratado depois não recalcula nem revalida as
+     * alocações já existentes: elas são valores absolutos declarados uma vez, e a fração de cada
+     * lote (valorAlocado ÷ valorContratado) simplesmente se ajusta ao novo total — mesmo espírito
+     * de "não validar parcela contra valorContratado" logo abaixo, só que aqui não há nem juros
+     * para justificar a folga, é só edição corrigindo um número já lançado.
      */
     @Transactional
     public ContratoFinanceiroResponseDTO atualizar(Long id, ContratoFinanceiroRequestDTO dto) {
@@ -151,12 +200,9 @@ public class ContratoFinanceiroService {
             throw new RegraDeNegocioException("Contrato quitado não pode ser editado.");
         }
 
-        ImovelModel imovel = imovelRepository.findByIdAndAtivoTrue(dto.imovelId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não encontrado com id: " + dto.imovelId()));
         PessoaModel contraparte = pessoaRepository.findByIdAndAtivoTrue(dto.contraparteId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Contraparte não encontrada com id: " + dto.contraparteId()));
 
-        contrato.setImovel(imovel);
         contrato.setTipo(dto.tipo());
         contrato.setContraparte(contraparte);
         contrato.setValorContratado(dto.valorContratado());
@@ -441,8 +487,9 @@ public class ContratoFinanceiroService {
 
     /**
      * Cascata "pura", sem a trava de QUITADO/parcela paga acima — usada pelo endpoint avulso
-     * (depois de validar) e por ImovelExclusaoService, onde a exclusão do imóvel inteiro é
-     * sempre permitida (ADR-040), mesmo com contrato quitado ou com parcela já paga.
+     * (depois de validar) e por {@link #desvincularImovel}, quando o lote excluído é o último do
+     * contrato. A exclusão do imóvel inteiro é sempre permitida (ADR-040), mesmo com contrato
+     * quitado ou com parcela já paga.
      */
     @Transactional
     public void cascatearExclusao(ContratoFinanceiroModel contrato, String motivo, UsuarioModel usuario) {
@@ -458,21 +505,60 @@ public class ContratoFinanceiroService {
         despesasVinculadas.forEach(d -> d.setContratoFinanceiro(null));
         despesaRepository.saveAll(despesasVinculadas);
 
+        List<ImovelModel> imoveisVinculados = contrato.getImoveis().stream().map(ContratoImovelModel::getImovel).toList();
+
         contrato.getExclusao().excluir(motivo, usuario);
         contratoFinanceiroRepository.save(contrato);
 
-        // PARCELAMENTO_COMPRA grava imovel.compra.valor na criação (aplicarValorDoLote). Se não
-        // sobrar nenhum outro PARCELAMENTO_COMPRA ativo no imóvel, limpar — evita conservar um
-        // preço que veio do contrato que acabou de ser excluído.
+        // PARCELAMENTO_COMPRA grava imovel.compra.valor na criação (aplicarValorDoLote). Para cada
+        // lote deste contrato (ADR-047), se não sobrar nenhum outro PARCELAMENTO_COMPRA ativo nele,
+        // limpar — evita conservar um preço que veio do contrato que acabou de ser excluído.
         if (contrato.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA) {
-            boolean restaOutroParcelamentoCompra = contratoFinanceiroRepository.findByImovelId(contrato.getImovel().getId())
-                    .stream()
-                    .anyMatch(c -> !c.getId().equals(contrato.getId()) && c.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA);
-            if (!restaOutroParcelamentoCompra) {
-                ImovelModel imovel = contrato.getImovel();
-                imovel.getCompra().setValor(null);
-                imovelRepository.save(imovel);
+            for (ImovelModel imovel : imoveisVinculados) {
+                limparValorDoLoteSeUltimoParcelamento(imovel, contrato.getId());
             }
+        }
+    }
+
+    /**
+     * Desfaz o vínculo de UM lote com o contrato (ADR-047), acionado por
+     * {@code ImovelExclusaoService} ao excluir esse imóvel. Se for o único lote do contrato,
+     * cascateia a exclusão do contrato inteiro ({@link #cascatearExclusao}, sempre permitida,
+     * mesmo QUITADO ou com parcela paga); senão, remove só a linha de alocação dele — contrato e
+     * parcelas continuam intactos para os lotes que sobraram, porque o pagamento é indivisível
+     * entre eles.
+     */
+    @Transactional
+    public void desvincularImovel(ContratoFinanceiroModel contrato, Long imovelId, String motivo, UsuarioModel usuario) {
+        if (contrato.getImoveis().size() <= 1) {
+            cascatearExclusao(contrato, motivo, usuario);
+            return;
+        }
+
+        ImovelModel imovel = contrato.getImoveis().stream()
+                .filter(ci -> ci.getImovel().getId().equals(imovelId))
+                .map(ContratoImovelModel::getImovel)
+                .findFirst()
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Imóvel não vinculado a este contrato: " + imovelId));
+
+        contrato.getImoveis().removeIf(ci -> ci.getImovel().getId().equals(imovelId));
+        contratoFinanceiroRepository.save(contrato);
+
+        if (contrato.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA) {
+            limparValorDoLoteSeUltimoParcelamento(imovel, contrato.getId());
+        }
+    }
+
+    // contratoExcluidoId é sempre filtrado fora do resultado de findByImovelId, mesmo já não
+    // devendo mais aparecer ali (contrato inativo ou vínculo já removido) — defesa contra o
+    // mock de teste devolver uma lista estática que não reflete a mutação que acabou de acontecer.
+    private void limparValorDoLoteSeUltimoParcelamento(ImovelModel imovel, Long contratoExcluidoId) {
+        boolean restaOutroParcelamentoCompra = contratoFinanceiroRepository.findByImovelId(imovel.getId())
+                .stream()
+                .anyMatch(c -> !c.getId().equals(contratoExcluidoId) && c.getTipo() == TipoContratoFinanceiro.PARCELAMENTO_COMPRA);
+        if (!restaOutroParcelamentoCompra) {
+            imovel.getCompra().setValor(null);
+            imovelRepository.save(imovel);
         }
     }
 }

@@ -4,6 +4,7 @@ import com.seegeneroso.gestao_custos_obras.auth.UsuarioModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroService;
+import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoImovelModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaModel;
 import com.seegeneroso.gestao_custos_obras.despesa.DespesaRepository;
 import com.seegeneroso.gestao_custos_obras.imovel.dto.ImpactoExclusaoImovelResponseDTO;
@@ -68,8 +69,10 @@ class ImovelExclusaoServiceTest {
     void excluirCascateiaContratoQuitadoDespesaOrcamentoFotosEDocumentos() {
         ImovelModel imovel = ImovelModel.builder().id(1L).identificador("LOTE-01").build();
         ContratoFinanceiroModel contratoQuitado = ContratoFinanceiroModel.builder()
-                .id(2L).imovel(imovel).tipo(TipoContratoFinanceiro.FINANCIAMENTO_CONSTRUCAO)
+                .id(2L).tipo(TipoContratoFinanceiro.FINANCIAMENTO_CONSTRUCAO)
                 .situacao(SituacaoContrato.QUITADO).build();
+        contratoQuitado.getImoveis().add(ContratoImovelModel.builder()
+                .contrato(contratoQuitado).imovel(imovel).valorAlocado(java.math.BigDecimal.TEN).build());
         DespesaModel despesa = DespesaModel.builder().id(3L).imovel(imovel).build();
         OrcamentoCategoriaModel orcamento = OrcamentoCategoriaModel.builder().id(4L).imovel(imovel).build();
         ImovelFotoModel foto = ImovelFotoModel.builder().id(5L).imovel(imovel).url("imoveis/1/foto.jpg").build();
@@ -86,8 +89,9 @@ class ImovelExclusaoServiceTest {
         service.excluir(1L, "excluir lote inteiro");
 
         // Contrato quitado é cascateado mesmo assim — sem checar a trava que só vale para o
-        // endpoint avulso (ContratoFinanceiroService.excluir).
-        verify(contratoFinanceiroService).cascatearExclusao(contratoQuitado, "excluir lote inteiro", imovel.getExclusao().getExcluidoPor());
+        // endpoint avulso (ContratoFinanceiroService.excluir). ADR-047: a cascata do imóvel passa
+        // por desvincularImovel, que cascateia o contrato inteiro quando este é o único lote dele.
+        verify(contratoFinanceiroService).desvincularImovel(contratoQuitado, 1L, "excluir lote inteiro", imovel.getExclusao().getExcluidoPor());
         assertThat(despesa.getExclusao().getAtivo()).isFalse();
         assertThat(orcamento.getExclusao().getAtivo()).isFalse();
         assertThat(imovel.getExclusao().getAtivo()).isFalse();

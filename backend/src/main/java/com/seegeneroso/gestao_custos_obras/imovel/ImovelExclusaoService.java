@@ -53,11 +53,12 @@ public class ImovelExclusaoService {
         ImovelResponseDTO estadoAnterior = imovelMapper.toResponseDTO(imovel, null);
         UsuarioModel usuario = usuarioAutenticadoService.usuarioAtual();
 
-        // Contratos antes de despesas: cascatearExclusao desvincula despesa de custo acessório
-        // do contrato, então o contrato precisa estar presente para isso acontecer antes da
-        // despesa ser inativada logo abaixo.
+        // Contratos antes de despesas: cascatearExclusao (via desvincularImovel) desvincula despesa
+        // de custo acessório do contrato, então o contrato precisa estar presente para isso
+        // acontecer antes da despesa ser inativada logo abaixo. Contrato compartilhado (ADR-047):
+        // só desvincula este lote se sobrar outro vinculado; senão cascateia o contrato inteiro.
         for (ContratoFinanceiroModel contrato : contratoFinanceiroRepository.findByImovelId(imovelId)) {
-            contratoFinanceiroService.cascatearExclusao(contrato, motivo, usuario);
+            contratoFinanceiroService.desvincularImovel(contrato, imovelId, motivo, usuario);
         }
 
         for (DespesaModel despesa : despesaRepository.findByImovelIdAndAtivoTrue(imovelId)) {

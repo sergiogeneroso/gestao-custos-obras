@@ -185,6 +185,9 @@ class RelatorioCarteiraServiceTest {
         when(imovelRepository.findByAtivoTrue()).thenReturn(List.of(imovel));
         when(despesaRepository.findByImovelIdAndAtivoTrue(anyLong())).thenReturn(List.of());
         when(contratoFinanceiroRepository.findByImovelId(anyLong())).thenReturn(List.of(cancelado));
+        // saldoDevedor/saldoAReceber/saldoAEstornar e contagem de parcelas somam pelo contrato,
+        // deduplicado, não pelo loop por imóvel (ADR-047) — ver RelatorioService.carteira.
+        when(contratoFinanceiroRepository.findAllAtivos()).thenReturn(List.of(cancelado));
         when(despesaRepository.findByImovelIsNullAndAtivoTrue()).thenReturn(List.of());
 
         CarteiraDTO carteira = relatorioService.carteira(null, null);
