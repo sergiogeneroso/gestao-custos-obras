@@ -19,6 +19,7 @@ import { ImoveisService } from '../../imoveis/imoveis.service';
 import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import {
+  AlocacaoLoteRequestDTO,
   ContratoFinanceiroRequestDTO,
   ContratoFinanceiroResponseDTO,
   TIPO_CONTRATO_LABEL,
@@ -87,7 +88,6 @@ export class ContratoFormDialog implements OnInit {
   protected readonly salvando = signal(false);
 
   protected readonly form = this.fb.group({
-    imovelId: [this.contrato?.imovelId ?? this.data?.imovelId ?? (null as number | null), Validators.required],
     tipo: [this.contrato?.tipo ?? this.data?.tipo ?? (null as TipoContratoFinanceiro | null), Validators.required],
     contraparteId: [
       this.contrato?.contraparteId ?? this.data?.contraparteId ?? (null as number | null),
@@ -95,6 +95,37 @@ export class ContratoFormDialog implements OnInit {
     ],
     valorContratado: [this.contrato?.valorContratado ?? (null as number | null), Validators.required],
   });
+
+  // Lotes cobertos pelo contrato (ADR-047) — vínculo fixado na criação, por isso o campo fica
+  // desabilitado na edição (mostra os lotes já vinculados, mas não deixa trocar).
+  protected readonly imoveisSelecionados = this.fb.control<number[]>(
+    {
+      value: this.contrato
+        ? this.contrato.imoveis.map((a) => a.imovelId)
+        : this.data?.imovelId != null
+          ? [this.data.imovelId]
+          : [],
+      disabled: !!this.contrato,
+    },
+    Validators.required,
+  );
+
+  // Fatia de cada lote (valorAlocado), só relevante quando mais de um lote está selecionado — sem
+  // rateio automático, o usuário declara à mão (ADR-047). Controles nascem/somem conforme a seleção.
+  protected readonly alocacoes = new FormGroup<{ [imovelId: string]: FormControl<number | null> }>({});
+
+  private readonly idsSelecionados = toSignal(this.imoveisSelecionados.valueChanges, {
+    initialValue: this.imoveisSelecionados.value,
+  });
+  private readonly valoresAlocacoes = toSignal(this.alocacoes.valueChanges, {
+    initialValue: this.alocacoes.getRawValue(),
+  });
+
+  protected readonly maisDeUmLote = computed(() => (this.idsSelecionados()?.length ?? 0) > 1);
+
+  protected readonly somaAlocacoes = computed(() =>
+    Object.values(this.valoresAlocacoes() ?? {}).reduce((soma: number, v) => soma + (v ?? 0), 0),
+  );
 
   // Só na compra do lote: a entrada e o preço à vista não fazem sentido nos outros tipos (ADR-037).
   protected readonly compra = this.fb.group({
@@ -175,6 +206,26 @@ export class ContratoFormDialog implements OnInit {
         this.form.controls.valorContratado.setValue(total, { emitEvent: false });
       }
     });
+
+    // Mantém um controle de valorAlocado por lote selecionado — nasce quando o lote entra na
+    // seleção, some quando sai. Alocação inicial (edição) vem do que já está gravado no contrato.
+    // Angular não tipa bem addControl/removeControl num FormGroup dinâmico (índice de string) —
+    // cast pontual para a API não-tipada, só nestas duas chamadas.
+    const alocacoesDinamico = this.alocacoes as FormGroup;
+    effect(() => {
+      const ids = this.idsSelecionados() ?? [];
+      Object.keys(this.alocacoes.controls).forEach((chave) => {
+        if (!ids.includes(Number(chave))) {
+          alocacoesDinamico.removeControl(chave, { emitEvent: false });
+        }
+      });
+      ids.forEach((id) => {
+        if (!this.alocacoes.contains(String(id))) {
+          const valorExistente = this.contrato?.imoveis.find((a) => a.imovelId === id)?.valorAlocado ?? null;
+          alocacoesDinamico.addControl(String(id), this.fb.control<number | null>(valorExistente), { emitEvent: false });
+        }
+      });
+    });
   }
 
   ngOnInit(): void {
@@ -251,8 +302,12 @@ export class ContratoFormDialog implements OnInit {
     return this.parcelas.controls.map((linha) => linha.controls.numero.value ?? 0);
   }
 
+  protected imovelIdentificador(id: number): string {
+    return this.imoveis().find((i) => i.id === id)?.identificador ?? `Imóvel ${id}`;
+  }
+
   protected salvar(): void {
-    if (this.form.invalid || this.parcelas.invalid) {
+    if (this.form.invalid || this.parcelas.invalid || this.imoveisSelecionados.invalid || this.alocacoes.invalid) {
       return;
     }
 
@@ -264,12 +319,27 @@ export class ContratoFormDialog implements OnInit {
       return;
     }
 
+    const idsSelecionados = this.imoveisSelecionados.getRawValue() ?? [];
+    if (!this.contrato && idsSelecionados.length > 1 && Object.values(this.alocacoes.getRawValue()).some((v) => v == null)) {
+      this.snackBar.open('Informe o valor alocado de cada lote.', 'Fechar', { duration: 5000 });
+      return;
+    }
+
     this.salvando.set(true);
 
     const bruto = this.form.getRawValue();
 
+    // Vínculo com os imóveis (ADR-047) só é definido na criação; na edição reenvia o que já está
+    // gravado (o backend ignora e mantém o vínculo original).
+    const imoveisDto: AlocacaoLoteRequestDTO[] = this.contrato
+      ? this.contrato.imoveis.map((a) => ({ imovelId: a.imovelId, valorAlocado: a.valorAlocado }))
+      : idsSelecionados.map((id) => ({
+          imovelId: id,
+          valorAlocado: idsSelecionados.length > 1 ? (this.alocacoes.getRawValue()[String(id)] ?? null) : null,
+        }));
+
     const dto: ContratoFinanceiroRequestDTO = {
-      imovelId: bruto.imovelId!,
+      imoveis: imoveisDto,
       tipo: bruto.tipo!,
       contraparteId: bruto.contraparteId!,
       valorContratado: bruto.valorContratado!,

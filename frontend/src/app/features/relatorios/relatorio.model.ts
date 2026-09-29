@@ -3,14 +3,18 @@ import { EtapaConstrucao } from '../despesas/despesa.model';
 import { FaseImovel, SituacaoImovel } from '../imoveis/imovel.model';
 
 // Posição de caixa do contrato: totalPago e saldo nunca entram no custo do imóvel (ADR-025).
+// valorAlocado, totalPago e saldoDevedor são a fatia deste lote, não o contrato inteiro (ADR-047);
+// compartilhado/quantidadeLotes avisam quando o contrato cobre mais de um lote.
 export interface PosicaoContratoDTO {
   contratoId: number;
   tipo: TipoContratoFinanceiro;
   contraparteNome: string | null;
   situacao: SituacaoContrato;
-  valorContratado: number;
+  valorAlocado: number;
   totalPago: number;
   saldoDevedor: number;
+  compartilhado: boolean;
+  quantidadeLotes: number;
 }
 
 // margem e rentabilidadeAnualizada chegam como fração (0.3333 = 33,33%).

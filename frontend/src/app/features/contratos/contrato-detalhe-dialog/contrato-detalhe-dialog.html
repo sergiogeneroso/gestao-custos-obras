@@ -18,8 +18,12 @@
 
     <section class="detalhe-contrato__info">
       <div>
-        <p class="detalhe-contrato__label">Imóvel</p>
-        <p class="detalhe-contrato__valor">{{ contrato().imovelIdentificador }}</p>
+        <p class="detalhe-contrato__label">{{ contrato().imoveis.length > 1 ? 'Imóveis' : 'Imóvel' }}</p>
+        <p class="detalhe-contrato__valor">
+          @for (alocacao of contrato().imoveis; track alocacao.imovelId) {
+            {{ alocacao.imovelIdentificador }}{{ contrato().imoveis.length > 1 ? ' (' + (alocacao.valorAlocado | currency: 'BRL') + ')' : '' }}{{ !$last ? ', ' : '' }}
+          }
+        </p>
       </div>
       <div>
         <p class="detalhe-contrato__label">Contraparte</p>

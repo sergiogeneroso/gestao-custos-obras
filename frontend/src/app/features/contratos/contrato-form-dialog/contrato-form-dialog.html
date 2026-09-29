@@ -14,13 +14,29 @@
 
       <div class="dialogo-contrato__grade">
         <mat-form-field appearance="outline" class="dialogo-contrato__campo-largo">
-          <mat-label>Imóvel</mat-label>
-          <mat-select formControlName="imovelId">
+          <mat-label>{{ imoveisSelecionados.disabled ? 'Imóvel' : 'Imóveis (selecione mais de um se o contrato for compartilhado)' }}</mat-label>
+          <mat-select [formControl]="imoveisSelecionados" multiple>
             @for (imovel of imoveis(); track imovel.id) {
               <mat-option [value]="imovel.id">{{ imovel.identificador }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
+
+        @if (maisDeUmLote() && !contrato) {
+          <div class="dialogo-contrato__campo-largo dialogo-contrato__alocacoes" [formGroup]="alocacoes">
+            <p class="dialogo-contrato__nota">
+              Contrato compartilhado — declare a fatia de cada lote (a soma precisa fechar com o
+              valor contratado). Soma atual: {{ somaAlocacoes() | currency: 'BRL' }}
+            </p>
+            @for (id of imoveisSelecionados.value ?? []; track id) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>{{ imovelIdentificador(id) }}</mat-label>
+                <span matTextPrefix>R$&nbsp;</span>
+                <input matInput appMoeda [formControlName]="id.toString()" />
+              </mat-form-field>
+            }
+          </div>
+        }
 
         <mat-form-field appearance="outline">
           <mat-label>Tipo</mat-label>
@@ -188,7 +204,7 @@
         mat-stroked-button
         type="submit"
         color="primary"
-        [disabled]="form.invalid || parcelas.invalid || salvando()"
+        [disabled]="form.invalid || parcelas.invalid || imoveisSelecionados.invalid || alocacoes.invalid || salvando()"
       >
         {{ salvando() ? 'Salvando...' : contrato ? 'Salvar' : 'Criar contrato' }}
       </button>

@@ -38,7 +38,12 @@
       <tbody>
         @for (contrato of lista.itens(); track contrato.id) {
           <tr class="table__linha" (click)="verDetalhe(contrato)">
-            <td class="table__nome">{{ contrato.imovelIdentificador }}</td>
+            <td class="table__nome">
+              {{ contrato.imoveis[0].imovelIdentificador }}
+              @if (contrato.imoveis.length > 1) {
+                <span class="table__complemento">+ {{ contrato.imoveis.length - 1 }}</span>
+              }
+            </td>
             <td>{{ tipoLabel[contrato.tipo] }}</td>
             <td>{{ contrato.contraparteNome }}</td>
             <td class="table__num">{{ contrato.valorContratado | currency: 'BRL' }}</td>

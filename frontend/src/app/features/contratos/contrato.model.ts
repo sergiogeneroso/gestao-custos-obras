@@ -31,8 +31,24 @@ export interface ParcelaContratoResponseDTO {
   valorPago: number | null;
 }
 
-export interface ContratoFinanceiroRequestDTO {
+// Fatia de um lote dentro de um contrato compartilhado (ADR-047). valorAlocado é opcional só
+// quando o contrato cobre um único lote — nesse caso vale o contrato inteiro; com mais de um lote
+// é obrigatório, declarado à mão (sem rateio automático).
+export interface AlocacaoLoteRequestDTO {
   imovelId: number;
+  valorAlocado: number | null;
+}
+
+export interface AlocacaoLoteResponseDTO {
+  imovelId: number;
+  imovelIdentificador: string;
+  valorAlocado: number;
+}
+
+export interface ContratoFinanceiroRequestDTO {
+  // Lotes cobertos pelo contrato (ADR-047) — normalmente um só. Só usado na criação: o vínculo
+  // lote↔contrato não é editável depois.
+  imoveis: AlocacaoLoteRequestDTO[];
   tipo: TipoContratoFinanceiro;
   contraparteId: number;
   valorContratado: number;
@@ -46,8 +62,7 @@ export interface ContratoFinanceiroRequestDTO {
 
 export interface ContratoFinanceiroResponseDTO {
   id: number;
-  imovelId: number;
-  imovelIdentificador: string;
+  imoveis: AlocacaoLoteResponseDTO[];
   tipo: TipoContratoFinanceiro;
   contraparteId: number;
   contraparteNome: string;

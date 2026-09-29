@@ -45,8 +45,7 @@ function parcelaNaoPaga(valor: number): ParcelaContratoResponseDTO {
 function contrato(parcelas: ParcelaContratoResponseDTO[], valorEstornado: number): ContratoFinanceiroResponseDTO {
   return {
     id: 1,
-    imovelId: 1,
-    imovelIdentificador: 'Lote 1',
+    imoveis: [{ imovelId: 1, imovelIdentificador: 'Lote 1', valorAlocado: 100000 }],
     tipo: 'PARCELAMENTO_VENDA',
     contraparteId: 1,
     contraparteNome: 'Comprador',

@@ -236,7 +236,7 @@
               <th>Tipo</th>
               <th>Contraparte</th>
               <th>Situação</th>
-              <th class="table__num">Contratado</th>
+              <th class="table__num">Fatia alocada</th>
               <th class="table__num">Total pago</th>
               <th class="table__num">Saldo</th>
             </tr>
@@ -244,14 +244,22 @@
           <tbody>
             @for (contrato of r.contratos; track contrato.contratoId) {
               <tr>
-                <td>{{ tipoContratoLabel[contrato.tipo] }}</td>
+                <td>
+                  {{ tipoContratoLabel[contrato.tipo] }}
+                  @if (contrato.compartilhado) {
+                    <span class="resultado__rotulo-saldo" title="Contrato compartilhado com outros lotes">
+                      · compartilhado com mais {{ contrato.quantidadeLotes - 1 }}
+                      {{ contrato.quantidadeLotes - 1 === 1 ? 'lote' : 'lotes' }}
+                    </span>
+                  }
+                </td>
                 <td>{{ contrato.contraparteNome || '—' }}</td>
                 <td>
                   <span class="tag" [class]="'tag--' + contrato.situacao">
                     {{ situacaoContratoLabel[contrato.situacao] }}
                   </span>
                 </td>
-                <td class="table__num">{{ contrato.valorContratado | currency: 'BRL' }}</td>
+                <td class="table__num">{{ contrato.valorAlocado | currency: 'BRL' }}</td>
                 <td class="table__num">{{ contrato.totalPago | currency: 'BRL' }}</td>
                 <td class="table__num">
                   {{ contrato.saldoDevedor | currency: 'BRL' }}

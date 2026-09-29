@@ -472,6 +472,10 @@
                         {{ tipoContratoLabel[contrato.tipo] }}
                         <span class="detalhe-imovel__complemento">
                           {{ contrato.contraparteNome || '—' }} · {{ situacaoContratoLabel[contrato.situacao] }}
+                          @if (contrato.compartilhado) {
+                            · compartilhado com mais {{ contrato.quantidadeLotes - 1 }}
+                            {{ contrato.quantidadeLotes - 1 === 1 ? 'lote' : 'lotes' }}
+                          }
                         </span>
                       </td>
                       <td class="detalhe-imovel__num">
