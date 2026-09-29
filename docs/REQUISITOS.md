@@ -13,7 +13,7 @@ para não invalidar referências; vários tiveram o conteúdo reescrito.
 
 ## Requisitos Funcionais (RF)
 
-### RF01 — Imóveis e ciclo de vida 🔄 Em reformulação
+### RF01 — Imóveis e ciclo de vida ✅
 Campos gerais: identificador, descrição e endereço completo — logradouro,
 número, bairro, cidade, UF, CEP e observação do endereço.
 
@@ -54,7 +54,7 @@ Desembolso do resultado.
 Ações: criar, listar, editar, inativar (soft delete), avançar fase, mudar
 situação. `/api/imoveis`
 
-### RF02 — Pessoas 🔄 Em reformulação
+### RF02 — Pessoas ✅
 Substitui "Aportantes" (ADR-021). Pessoas físicas ou jurídicas que se relacionam
 com despesas e negociações. Campos: nome, tipo (Física/Jurídica), documento
 (CPF/CNPJ, único), e-mail, telefone. Os papéis de pagadora, beneficiária,
@@ -68,13 +68,13 @@ de existir despesa, para a pessoa ser encontrada na hora de lançar. A listagem
 tem filtro "Só fornecedores". Ações: criar, listar, editar, inativar.
 `/api/pessoas`
 
-### RF03 — Categorias de Despesa 🔄 Em reformulação
+### RF03 — Categorias de Despesa ✅
 Substitui "Etapas do Projeto" (ADR-026). Catálogo global reutilizável que
 responde pela **natureza do gasto**: Aquisição, ITBI/Escritura, Documentação,
 IPTU, Material, Mão de obra, Custos de financiamento, Corretagem, Impostos sobre
 a venda. Ações: criar, listar, editar, excluir. `/api/categorias-despesa`
 
-### RF04 — Despesas 🔄 Em reformulação
+### RF04 — Despesas ✅
 Valor, data de pagamento, descrição, categoria, pagador (obrigatório),
 beneficiário (opcional), fase em que foi incorrida e vínculo opcional com um
 contrato financeiro. **Sem rateio** (ADR-023): um pagador por despesa.
@@ -88,7 +88,7 @@ combustível, ferramentas) e não entra no custo de nenhum imóvel. Mão de obra
 despesa avulsa, uma por diária ou medição. Soft delete (ADR-028).
 `/api/despesas`
 
-### RF05 — Relatórios 🔄 Em reformulação
+### RF05 — Relatórios ✅
 - **Resultado por imóvel** (principal): custo de compra, despesas quebradas por
   fase, juros pagos, custo total, valor de venda, lucro, margem, tempo em cada
   fase, dias em carteira, rentabilidade anualizada e posição dos contratos.
@@ -101,7 +101,7 @@ despesa avulsa, uma por diária ou medição. Soft delete (ADR-028).
 Filtros: imóvel, período, categoria, pessoa. Exportação CSV via `?format=csv`
 (delimitador `;`, compatível com Excel pt-BR). `/api/relatorios`
 
-### RF06 — Anexos 🔄 Em reformulação
+### RF06 — Anexos ✅
 - Galeria de fotos do imóvel (`/api/imoveis/{id}/fotos`) ✅
 - **Documentos do imóvel** (`/api/imoveis/{id}/documentos`): matrícula,
   escritura, contrato, IPTU, alvará, projeto, ART, habite-se, com o tipo e a fase
@@ -130,6 +130,16 @@ Um imóvel encadeia vários contratos ao longo da vida (ADR-025): parcelamento d
 compra com o vendedor, financiamento de construção com o banco, parcelamento da
 venda. Campos: tipo, contraparte, número, valor contratado, data, situação
 (Ativo/Quitado/Cancelado) e, na quitação antecipada, data e valor negociados.
+
+**Contrato compartilhado entre vários lotes** (ADR-047, só `PARCELAMENTO_COMPRA`
+e `PARCELAMENTO_VENDA` — financiamento de construção é sempre individual):
+um contrato pode cobrir mais de um lote ao mesmo tempo (ex.: dois lotes
+comprados do mesmo vendedor num único parcelamento). Cada lote vinculado tem
+uma alocação própria — valor absoluto declarado à mão, nunca calculado —, e
+juros pagos, ajuste de quitação, saldo devedor/a receber e desembolso do
+relatório de cada lote são proporcionais à fatia dele. O cronograma de
+parcelas é único e indivisível: pagar uma parcela paga todos os lotes
+vinculados de uma vez. O vínculo é definido só na criação do contrato.
 
 **Cancelamento por venda desfeita** (ADR-043, só `PARCELAMENTO_VENDA`): quando
 o imóvel deixa de estar `VENDIDO`, o contrato vinculado é resolvido

@@ -2,6 +2,11 @@
 
 Consultar e atualizar ao final de cada sessão de trabalho.
 
+**MVP considerado pronto para lançamento (Set 2026)**: núcleo da ADR-029
+completo (Etapas A a S). RF07 (tema configurável) e os gráficos do dashboard
+ficam adiados para depois do lançamento — ver "Pendências antigas ainda
+válidas".
+
 ## Feito
 
 - Base: Spring Boot 4.1 (Java 25), Flyway, Security, Bean Validation
