@@ -9,4 +9,4 @@
 SELECT COUNT(*) AS usuarios_sem_perfil FROM usuario WHERE perfil_id IS NULL;
 
 -- 2) Só depois de conferir que o passo 1 deu zero
--- ALTER TABLE usuario DROP COLUMN role;
+ALTER TABLE usuario DROP COLUMN role;
