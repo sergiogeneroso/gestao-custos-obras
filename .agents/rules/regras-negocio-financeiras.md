@@ -95,16 +95,21 @@ Convenção geral do projeto, não só destas seis: `Imovel`, `Pessoa`, `Despesa
 ## Indicadores de apresentação (ADR-039)
 
 Alguns números do relatório existem só para responder uma pergunta do usuário e
-**nunca podem ser somados ao custo**. Já são dois:
+**nunca podem ser somados ao custo**. Já são três:
 
 - `despesasPorEtapa` — agrega por trecho da obra o mesmo dinheiro que já entra
   por fase (ADR-035)
+- Despesas por categoria (`/api/relatorios/despesas-por-categoria`) — agrega
+  por natureza as despesas do imóvel, com período opcional pela data de
+  pagamento (sem período = vida inteira). Compra, juros e ajuste de quitação
+  não são despesa e ficam de fora; o período vale só para essa seção, nunca
+  para o resultado
 - `custoSemCompra` — `totalDespesas + jurosPagos`: quanto o imóvel consumiu
   **depois de adquirido**, em qualquer fase. Ficam de fora `valorCompra` **e**
   `ajusteQuitacao`, porque os dois são preço do lote. Na carteira o agregado
   equivalente é `totalGastoSemCompras`
 
-Nenhum dos dois participa de `custoTotal`, `lucro`, `margem`,
+Nenhum deles participa de `custoTotal`, `lucro`, `margem`,
 `rentabilidadeAnualizada`, `totalInvestido` ou `lucroRealizado` — incluí-los
 contaria as mesmas despesas duas vezes e faria o resultado mentir.
 

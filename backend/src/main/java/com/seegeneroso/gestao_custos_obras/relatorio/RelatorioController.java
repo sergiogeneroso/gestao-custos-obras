@@ -3,6 +3,7 @@ package com.seegeneroso.gestao_custos_obras.relatorio;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.DespesaPorCategoriaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoPessoaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.OrcadoVsRealizadoDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
@@ -88,6 +89,14 @@ public class RelatorioController {
             return csvResponse(sb, "orcado-vs-realizado.csv");
         }
         return ResponseEntity.ok(dado);
+    }
+
+    @GetMapping("/despesas-por-categoria")
+    public List<DespesaPorCategoriaDTO> despesasPorCategoria(
+            @RequestParam Long imovelId,
+            @RequestParam(required = false) LocalDate dataInicio,
+            @RequestParam(required = false) LocalDate dataFim) {
+        return relatorioService.despesasPorCategoria(imovelId, dataInicio, dataFim);
     }
 
     @GetMapping("/resultado-imovel")

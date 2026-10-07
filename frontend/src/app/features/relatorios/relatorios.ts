@@ -1,8 +1,12 @@
 import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { mensagemErro } from '../../shared/erro/erro.util';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, WritableSignal, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { Subscription } from 'rxjs';
+import { paraIso } from '../../shared/data/data.util';
+import { MascaraDataDirective } from '../../shared/data/mascara-data.directive';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -15,7 +19,7 @@ import {
   SITUACAO_IMOVEL_LABEL,
 } from '../imoveis/imovel.model';
 import { ImoveisService } from '../imoveis/imoveis.service';
-import { PosicaoContratoDTO, ResultadoImovelDTO } from './relatorio.model';
+import { DespesaPorCategoriaDTO, PosicaoContratoDTO, ResultadoImovelDTO } from './relatorio.model';
 import { RelatoriosService } from './relatorios.service';
 
 @Component({
@@ -25,7 +29,9 @@ import { RelatoriosService } from './relatorios.service';
     DatePipe,
     DecimalPipe,
     PercentPipe,
+    MascaraDataDirective,
     MatButtonModule,
+    MatDatepickerModule,
     MatFormFieldModule,
     MatSelectModule,
   ],
@@ -50,6 +56,15 @@ export class Relatorios implements OnInit {
   protected readonly resultado = signal<ResultadoImovelDTO | null>(null);
   protected readonly carregando = signal(true);
 
+  // Filtro de "Despesas por categoria"; vazio = vida toda do imóvel. Vale só para essa seção.
+  protected readonly periodoInicio = signal<Date | null>(null);
+  protected readonly periodoFim = signal<Date | null>(null);
+  private cargaDespesasPorCategoria?: Subscription;
+  protected readonly despesasPorCategoria = signal<DespesaPorCategoriaDTO[]>([]);
+  protected readonly totalDespesasPorCategoria = computed(() =>
+    this.despesasPorCategoria().reduce((soma, d) => soma + d.total, 0),
+  );
+
   protected readonly hoje = new Date();
 
   // Só há bloco de obra quando existe estimativa ou despesa de construção lançada.
@@ -73,6 +88,9 @@ export class Relatorios implements OnInit {
   protected selecionar(imovelId: number): void {
     this.imovelSelecionadoId.set(imovelId);
     this.carregando.set(true);
+    this.periodoInicio.set(null);
+    this.periodoFim.set(null);
+    this.carregarDespesasPorCategoria();
     this.service.resultado(imovelId).subscribe({
       next: (resultado) => {
         this.resultado.set(resultado);
@@ -85,6 +103,39 @@ export class Relatorios implements OnInit {
         });
       },
     });
+  }
+
+  protected alterarPeriodo(campo: WritableSignal<Date | null>, valor: Date | null): void {
+    campo.set(valor);
+    this.carregarDespesasPorCategoria();
+  }
+
+  protected limparPeriodo(): void {
+    this.periodoInicio.set(null);
+    this.periodoFim.set(null);
+    this.carregarDespesasPorCategoria();
+  }
+
+  private carregarDespesasPorCategoria(): void {
+    const imovelId = this.imovelSelecionadoId();
+    if (imovelId === null) {
+      return;
+    }
+    // Troca rápida de datas: a resposta antiga não pode sobrescrever a do período atual.
+    this.cargaDespesasPorCategoria?.unsubscribe();
+    this.cargaDespesasPorCategoria = this.service
+      .despesasPorCategoria(imovelId, paraIso(this.periodoInicio()), paraIso(this.periodoFim()))
+      .subscribe({
+        next: (lista) => this.despesasPorCategoria.set(lista),
+        error: (erro: HttpErrorResponse) => {
+          this.despesasPorCategoria.set([]);
+          this.snackBar.open(
+            mensagemErro(erro, 'Não foi possível carregar as despesas por categoria.'),
+            'Fechar',
+            { duration: 6000 },
+          );
+        },
+      });
   }
 
   protected exportarCsv(): void {

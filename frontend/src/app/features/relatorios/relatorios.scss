@@ -111,6 +111,49 @@
   }
 }
 
+.resultado__bloco-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.resultado__filtro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #9397ab;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  input {
+    font: inherit;
+    color: var(--mat-sys-on-surface, #e9e9ed);
+    background: transparent;
+    border: 1px solid rgba(233, 233, 237, 0.32);
+    border-radius: 6px;
+    padding: 6px 8px;
+    width: 110px;
+  }
+}
+
+.resultado__data {
+  display: flex;
+  align-items: center;
+}
+
 .resultado__nota {
   font-size: 13px;
   line-height: 20px;
@@ -219,7 +262,8 @@
   }
 
   .resultado__cabecalho,
-  .resultado__acoes {
+  .resultado__acoes,
+  .resultado__filtro {
     display: none;
   }
 

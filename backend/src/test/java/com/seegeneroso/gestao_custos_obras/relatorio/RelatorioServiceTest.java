@@ -19,6 +19,7 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.DespesaPorCategoriaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ResultadoImovelDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
@@ -523,6 +524,55 @@ class RelatorioServiceTest {
         // maoDeObraImovel1 (categoria 20) fica de fora do custo do imóvel 1.
         assertThat(resultado.get(0).custoTotal()).isEqualByComparingTo("2000");
         assertThat(resultado.get(1).custoTotal()).isEqualByComparingTo("1000");
+    }
+
+    // ---- Despesas por categoria: recorte de apresentação, nunca somado ao custoTotal ----------
+
+    @Test
+    void despesasPorCategoriaSomaPorCategoriaOrdenaPorValorEFechaComTotalDespesas() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        CategoriaDespesaModel material = categoria(10L);
+        CategoriaDespesaModel maoDeObra = categoria(20L);
+        List<DespesaModel> despesas = List.of(
+                despesaComCategoria(imovel, material, new BigDecimal("2000")),
+                despesaComCategoria(imovel, maoDeObra, new BigDecimal("1500")),
+                despesaComCategoria(imovel, maoDeObra, new BigDecimal("1500")));
+        mockar(imovel, despesas, List.of());
+
+        List<DespesaPorCategoriaDTO> porCategoria = relatorioService.despesasPorCategoria(1L, null, null);
+
+        assertThat(porCategoria).extracting(DespesaPorCategoriaDTO::categoriaDespesaId).containsExactly(20L, 10L);
+        assertThat(porCategoria.get(0).total()).isEqualByComparingTo("3000");
+        assertThat(porCategoria.get(0).categoriaDespesaNome()).isEqualTo("Categoria 20");
+        // Sem período, as categorias fecham com o totalDespesas (2000 + 3000) e não tocam no custoTotal.
+        assertThat(porCategoria.get(1).total()).isEqualByComparingTo("2000");
+        ResultadoImovelDTO resultado = relatorioService.resultadoImovel(1L);
+        assertThat(resultado.totalDespesas()).isEqualByComparingTo("5000");
+        assertThat(resultado.custoTotal()).isEqualByComparingTo("105000");
+    }
+
+    @Test
+    void despesasPorCategoriaFiltraPelaDataDePagamentoAceitandoPeriodoAberto() {
+        ImovelModel imovel = imovel(1L, new BigDecimal("100000"));
+        CategoriaDespesaModel material = categoria(10L);
+        DespesaModel antiga = despesaComCategoria(imovel, material, new BigDecimal("1000"));
+        antiga.setDataPagamento(LocalDate.of(2026, 1, 10));
+        DespesaModel recente = despesaComCategoria(imovel, material, new BigDecimal("400"));
+        recente.setDataPagamento(LocalDate.of(2026, 6, 10));
+        mockarSemContratos(imovel, List.of(antiga, recente));
+
+        assertThat(relatorioService.despesasPorCategoria(1L, LocalDate.of(2026, 6, 1), null).get(0).total())
+                .isEqualByComparingTo("400");
+        assertThat(relatorioService.despesasPorCategoria(1L, null, LocalDate.of(2026, 1, 31)).get(0).total())
+                .isEqualByComparingTo("1000");
+        assertThat(relatorioService.despesasPorCategoria(1L, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 5, 31)))
+                .isEmpty();
+    }
+
+    @Test
+    void despesasPorCategoriaRecusaInicioDepoisDoFim() {
+        assertThatThrownBy(() -> relatorioService.despesasPorCategoria(1L, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 1, 1)))
+                .isInstanceOf(RegraDeNegocioException.class);
     }
 
     // custoPorM2 não consulta contratos — stubar findByImovelId aqui viraria UnnecessaryStubbing.

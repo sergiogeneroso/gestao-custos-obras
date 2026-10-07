@@ -15,6 +15,7 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CarteiraDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorImovelDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.CustoPorM2DTO;
+import com.seegeneroso.gestao_custos_obras.relatorio.dto.DespesaPorCategoriaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.ExtratoPessoaDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.OrcadoVsRealizadoDTO;
 import com.seegeneroso.gestao_custos_obras.relatorio.dto.PosicaoContratoDTO;
@@ -34,6 +35,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -126,6 +128,31 @@ public class RelatorioService {
                 imovelId, imovel.getIdentificador(),
                 valorOrcadoTotal, valorRealizadoTotal, diferenca, categorias
         );
+    }
+
+    // Recorte só de apresentação, como despesasPorEtapa: agrupa por natureza as despesas que já
+    // entram no custoTotal, então não pode ser somado a ele. Compra, juros e ajuste de quitação não
+    // são despesa e ficam de fora. Sem período = vida inteira do imóvel; o período filtra pela data
+    // de pagamento e vale só para esta seção, nunca para o resultado.
+    @Transactional(readOnly = true)
+    public List<DespesaPorCategoriaDTO> despesasPorCategoria(Long imovelId, LocalDate dataInicio, LocalDate dataFim) {
+        if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
+            throw new RegraDeNegocioException("A data de início não pode ser posterior à data de fim.");
+        }
+        buscarImovelAtivo(imovelId);
+
+        Map<Long, List<DespesaModel>> porCategoria = despesaRepository.findByImovelIdAndAtivoTrue(imovelId).stream()
+                .filter(d -> despesaAtendeFiltros(d, imovelId, null, dataInicio, dataFim))
+                .collect(Collectors.groupingBy(d -> d.getCategoriaDespesa().getId()));
+
+        return porCategoria.values().stream()
+                .map(despesas -> new DespesaPorCategoriaDTO(
+                        despesas.get(0).getCategoriaDespesa().getId(),
+                        despesas.get(0).getCategoriaDespesa().getNome(),
+                        despesas.stream().map(DespesaModel::getValor).reduce(BigDecimal.ZERO, BigDecimal::add)))
+                // Categoria sem despesa nunca chega aqui (despesa é sempre positiva), então não há zerada a esconder.
+                .sorted(Comparator.comparing(DespesaPorCategoriaDTO::total).reversed())
+                .toList();
     }
 
     // A regra de custo (ADR-025, .agents/rules/regras-negocio-financeiras.md e contratos-financeiros.md):

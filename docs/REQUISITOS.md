@@ -93,6 +93,10 @@ despesa avulsa, uma por diária ou medição. Soft delete (ADR-028).
   fase, juros pagos, custo total, valor de venda, lucro, margem, tempo em cada
   fase, dias em carteira, rentabilidade anualizada e posição dos contratos.
   Marca o resultado como provisório quando o imóvel foi vendido com obra pendente.
+  Inclui a seção **Despesas por categoria** (total por natureza do gasto, maior
+  primeiro), com período opcional pela data de pagamento — padrão é a vida toda
+  do imóvel, e o período não altera o resto do resultado.
+  `/api/relatorios/despesas-por-categoria`
 - **Histórico por fornecedor**: quanto já foi pago a cada beneficiário.
 - **Extrato por pessoa**: total pago por pessoa (só quem tem valor > 0).
 - **Carteira**: total investido, total vendido, lucro realizado, imóveis por fase

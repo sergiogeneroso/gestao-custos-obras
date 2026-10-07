@@ -49,3 +49,10 @@ export interface ResultadoImovelDTO {
   resultadoProvisorio: boolean;
   contratos: PosicaoContratoDTO[];
 }
+
+// Já sem categorias zeradas e ordenado por total decrescente.
+export interface DespesaPorCategoriaDTO {
+  categoriaDespesaId: number;
+  categoriaDespesaNome: string;
+  total: number;
+}

@@ -32,7 +32,7 @@ ficam, mas ele fica fora do critério — ausência de teste ali não é lacuna.
 (`semContratoCustoEApenasCompraMaisDespesas`); gasto geral fora do custo
 (`gastoGeralNaoEntraNoCustoDoImovel`); indicadores de apresentação nunca
 somam ao custo (`custoSemCompraSomaDespesas...`,
-`despesasPorEtapaNuncaEntraNoCusto...`); compra parcelada sem/com juros,
+`despesasPorEtapaNuncaEntraNoCusto...`, `despesasPorCategoriaSomaPorCategoria...`); compra parcelada sem/com juros,
 quitação com desconto ou juros embutidos (`loteParceladoSemJuros...`,
 `descontoNaQuitacaoDoLote...`, `quitacaoComJurosEmbutidos...`);
 `PARCELAMENTO_COMPRA` quitado antecipadamente encadeado com

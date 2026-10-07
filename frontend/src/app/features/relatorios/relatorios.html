@@ -150,6 +150,48 @@
       }
     </section>
 
+    <section class="resultado__bloco">
+      <div class="resultado__bloco-cabecalho">
+        <h2>Despesas por categoria</h2>
+        <div class="resultado__filtro">
+          <label>
+            Início
+            <span class="resultado__data">
+              <input [matDatepicker]="inicioPicker" appMascaraData placeholder="dd/mm/aaaa" [value]="periodoInicio()" (dateChange)="alterarPeriodo(periodoInicio, $event.value)" />
+              <mat-datepicker-toggle [for]="inicioPicker" />
+              <mat-datepicker #inicioPicker />
+            </span>
+          </label>
+          <label>
+            Fim
+            <span class="resultado__data">
+              <input [matDatepicker]="fimPicker" appMascaraData placeholder="dd/mm/aaaa" [value]="periodoFim()" (dateChange)="alterarPeriodo(periodoFim, $event.value)" />
+              <mat-datepicker-toggle [for]="fimPicker" />
+              <mat-datepicker #fimPicker />
+            </span>
+          </label>
+          <button mat-stroked-button type="button" (click)="limparPeriodo()">Limpar</button>
+        </div>
+      </div>
+      @if (despesasPorCategoria().length === 0) {
+        <p class="resultado__nota">Nenhuma despesa no período.</p>
+      } @else {
+        <table class="table">
+          <tbody>
+            @for (d of despesasPorCategoria(); track d.categoriaDespesaId) {
+              <tr>
+                <td>{{ d.categoriaDespesaNome }}</td>
+                <td class="table__num">{{ d.total | currency: 'BRL' }}</td>
+              </tr>
+            }
+            <tr class="table__total">
+              <td>Total</td>
+              <td class="table__num">{{ totalDespesasPorCategoria() | currency: 'BRL' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      }
+    </section>
 
     <section class="resultado__bloco">
       <h2>Desembolso</h2>
