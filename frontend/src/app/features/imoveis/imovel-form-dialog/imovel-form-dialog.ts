@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Autocomplete } from '../../../shared/autocomplete/autocomplete';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
 import { forkJoin, of } from 'rxjs';
@@ -22,7 +23,7 @@ import { MascaraDataDirective } from '../../../shared/data/mascara-data.directiv
 import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { UF_PADRAO, UFS } from '../../../shared/uf';
-import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
+import { opcaoPessoa, PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { ImovelFotoResponseDTO, ImovelRequestDTO, ImovelResponseDTO } from '../imovel.model';
 import { ImoveisService } from '../imoveis.service';
@@ -51,6 +52,7 @@ export interface ImovelFormResultado {
 @Component({
   selector: 'app-imovel-form-dialog',
   imports: [
+    Autocomplete,
     CurrencyPipe,
     ReactiveFormsModule,
     MatButtonModule,
@@ -86,6 +88,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   protected readonly mostrarVenda = !!this.imovel && this.imovel.situacao !== 'ADQUIRIDO';
 
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
+  protected readonly opcoesPessoa = computed(() => this.pessoas().map(opcaoPessoa));
   protected readonly salvando = signal(false);
   protected readonly fotos = signal<ImovelFotoResponseDTO[]>([]);
   protected readonly urlsFotos = signal<Record<number, string>>({});
@@ -177,7 +180,7 @@ export class ImovelFormDialog implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas));
 
     if (this.imovel?.compraParcelada) {
       this.contratosService.listar(this.imovel.id).subscribe((contratos) => {

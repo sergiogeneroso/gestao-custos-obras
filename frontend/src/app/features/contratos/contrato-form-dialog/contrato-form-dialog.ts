@@ -2,6 +2,7 @@ import { CurrencyPipe } from '@angular/common';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Autocomplete } from '../../../shared/autocomplete/autocomplete';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,7 +17,7 @@ import { MascaraDataDirective } from '../../../shared/data/mascara-data.directiv
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
 import { ImovelResponseDTO } from '../../imoveis/imovel.model';
 import { ImoveisService } from '../../imoveis/imoveis.service';
-import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
+import { opcaoPessoa, PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import {
   AlocacaoLoteRequestDTO,
@@ -50,6 +51,7 @@ export interface ContratoFormDialogData {
 @Component({
   selector: 'app-contrato-form-dialog',
   imports: [
+    Autocomplete,
     CurrencyPipe,
     ReactiveFormsModule,
     MatButtonModule,
@@ -85,6 +87,7 @@ export class ContratoFormDialog implements OnInit {
 
   protected readonly imoveis = signal<ImovelResponseDTO[]>([]);
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
+  protected readonly opcoesPessoa = computed(() => this.pessoas().map(opcaoPessoa));
   protected readonly salvando = signal(false);
 
   protected readonly form = this.fb.group({
@@ -230,7 +233,7 @@ export class ContratoFormDialog implements OnInit {
 
   ngOnInit(): void {
     this.imoveisService.listar().subscribe((imoveis) => this.imoveis.set(imoveis.filter((i) => i.ativo)));
-    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas));
 
     if (this.contrato) {
       this.contrato.parcelas.forEach((parcela) =>

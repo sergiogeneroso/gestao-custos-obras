@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { arquivoDentroDoLimite, MENSAGEM_ARQUIVO_GRANDE } from '../../../shared/arquivo/tamanho-arquivo.util';
@@ -12,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Autocomplete } from '../../../shared/autocomplete/autocomplete';
 import { ConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { paraData, paraIso } from '../../../shared/data/data.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
@@ -20,9 +21,9 @@ import { CategoriaDespesaResponseDTO } from '../../categorias-despesa/categoria-
 import { CategoriasDespesaService } from '../../categorias-despesa/categorias-despesa.service';
 import { ContratoFinanceiroResponseDTO, TIPO_CONTRATO_LABEL } from '../../contratos/contrato.model';
 import { ContratosService } from '../../contratos/contratos.service';
-import { FASE_IMOVEL_LABEL, FaseImovel, ImovelResponseDTO } from '../../imoveis/imovel.model';
+import { FASE_IMOVEL_LABEL, FaseImovel, ImovelResponseDTO, opcaoImovel } from '../../imoveis/imovel.model';
 import { ImoveisService } from '../../imoveis/imoveis.service';
-import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
+import { opcaoPessoa, PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import {
   DespesaAnexoResponseDTO,
@@ -46,6 +47,7 @@ export interface DespesaFormDialogData {
   selector: 'app-despesa-form-dialog',
   imports: [
     ReactiveFormsModule,
+    Autocomplete,
     MatButtonModule,
     MatDatepickerModule,
     MatDialogModule,
@@ -82,6 +84,8 @@ export class DespesaFormDialog implements OnInit {
   protected readonly imoveis = signal<ImovelResponseDTO[]>([]);
   protected readonly categorias = signal<CategoriaDespesaResponseDTO[]>([]);
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
+  protected readonly opcoesPessoa = computed(() => this.pessoas().map(opcaoPessoa));
+  protected readonly opcoesImovel = computed(() => this.imoveis().map(opcaoImovel));
   protected readonly contratos = signal<ContratoFinanceiroResponseDTO[]>([]);
   protected readonly salvando = signal(false);
 
@@ -110,12 +114,14 @@ export class DespesaFormDialog implements OnInit {
 
   ngOnInit(): void {
     this.imoveisService.listar().subscribe((imoveis) => {
-      this.imoveis.set(imoveis.filter((i) => i.ativo));
+      // Lista inteira: o autocompletar esconde os inativos das sugestões, mas ainda precisa deles
+      // para exibir o vínculo já gravado de uma despesa antiga.
+      this.imoveis.set(imoveis);
       this.preencherFaseDoImovel();
       this.atualizarMostrarEtapa();
     });
     this.categoriasService.listar().subscribe((categorias) => this.categorias.set(categorias));
-    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas));
 
     this.carregarContratos(this.form.controls.imovelId.value);
     this.form.controls.imovelId.valueChanges.subscribe((imovelId) => {

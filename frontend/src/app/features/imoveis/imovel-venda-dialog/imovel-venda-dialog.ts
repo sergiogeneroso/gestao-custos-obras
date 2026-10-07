@@ -1,5 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { computed, Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Autocomplete } from '../../../shared/autocomplete/autocomplete';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,12 +8,11 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { paraIso } from '../../../shared/data/data.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
-import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
+import { opcaoPessoa, PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { ImovelResponseDTO } from '../imovel.model';
 import { ImoveisService } from '../imoveis.service';
@@ -24,13 +24,13 @@ export interface ImovelVendaDialogData {
 @Component({
   selector: 'app-imovel-venda-dialog',
   imports: [
+    Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
     MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MascaraDataDirective,
     MoedaDirective,
   ],
@@ -47,6 +47,7 @@ export class ImovelVendaDialog implements OnInit {
 
   protected readonly imovel = this.data.imovel;
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
+  protected readonly opcoesPessoa = computed(() => this.pessoas().map(opcaoPessoa));
   protected readonly salvando = signal(false);
 
   protected readonly form = this.fb.group({
@@ -56,7 +57,7 @@ export class ImovelVendaDialog implements OnInit {
   });
 
   ngOnInit(): void {
-    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas));
   }
 
   protected salvar(): void {

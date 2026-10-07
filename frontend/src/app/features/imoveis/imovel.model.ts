@@ -1,3 +1,5 @@
+import { OpcaoAutocomplete } from '../../shared/autocomplete/autocomplete';
+
 export type FaseImovel = 'LOTE' | 'CONSTRUCAO' | 'CASA';
 export type SituacaoImovel = 'ADQUIRIDO' | 'A_VENDA' | 'VENDIDO';
 
@@ -184,4 +186,13 @@ export interface EnvioDocumento {
   descricao: string | null;
   dataEmissao: string | null;
   dataValidade: string | null;
+}
+
+export function opcaoImovel(imovel: ImovelResponseDTO): OpcaoAutocomplete {
+  return {
+    id: imovel.id,
+    rotulo: imovel.identificador,
+    termos: [imovel.endereco, imovel.numero, imovel.bairro, imovel.cidade].filter(Boolean).join(' '),
+    inativo: !imovel.ativo,
+  };
 }

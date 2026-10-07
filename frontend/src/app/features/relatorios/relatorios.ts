@@ -1,14 +1,14 @@
 import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { mensagemErro } from '../../shared/erro/erro.util';
+import { FormsModule } from '@angular/forms';
+import { Autocomplete } from '../../shared/autocomplete/autocomplete';
 import { Component, OnInit, WritableSignal, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { Subscription } from 'rxjs';
 import { paraIso } from '../../shared/data/data.util';
 import { MascaraDataDirective } from '../../shared/data/mascara-data.directive';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SITUACAO_CONTRATO_LABEL, TIPO_CONTRATO_LABEL } from '../contratos/contrato.model';
 import { ETAPA_CONSTRUCAO_LABEL, ETAPAS_CONSTRUCAO } from '../despesas/despesa.model';
@@ -17,6 +17,7 @@ import {
   FaseImovel,
   ImovelResponseDTO,
   SITUACAO_IMOVEL_LABEL,
+  opcaoImovel,
 } from '../imoveis/imovel.model';
 import { ImoveisService } from '../imoveis/imoveis.service';
 import { DespesaPorCategoriaDTO, PosicaoContratoDTO, ResultadoImovelDTO } from './relatorio.model';
@@ -32,8 +33,8 @@ import { RelatoriosService } from './relatorios.service';
     MascaraDataDirective,
     MatButtonModule,
     MatDatepickerModule,
-    MatFormFieldModule,
-    MatSelectModule,
+    FormsModule,
+    Autocomplete,
   ],
   templateUrl: './relatorios.html',
   styleUrl: './relatorios.scss',
@@ -52,6 +53,7 @@ export class Relatorios implements OnInit {
   protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
 
   protected readonly imoveis = signal<ImovelResponseDTO[]>([]);
+  protected readonly opcoesImovel = computed(() => this.imoveis().map(opcaoImovel));
   protected readonly imovelSelecionadoId = signal<number | null>(null);
   protected readonly resultado = signal<ResultadoImovelDTO | null>(null);
   protected readonly carregando = signal(true);

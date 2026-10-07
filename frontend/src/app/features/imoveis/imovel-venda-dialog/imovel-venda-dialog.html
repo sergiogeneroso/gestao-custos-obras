@@ -23,14 +23,7 @@
         <mat-datepicker #dataVendaPicker />
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Comprador</mat-label>
-        <mat-select formControlName="compradorId">
-          @for (pessoa of pessoas(); track pessoa.id) {
-            <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <app-autocomplete formControlName="compradorId" rotulo="Comprador" [opcoes]="opcoesPessoa()" />
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">

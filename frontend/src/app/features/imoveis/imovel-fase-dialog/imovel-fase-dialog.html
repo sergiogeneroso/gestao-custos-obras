@@ -69,15 +69,7 @@
             <input matInput maxlength="50" formControlName="artNumero" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Responsável técnico</mat-label>
-            <mat-select formControlName="responsavelTecnicoId">
-              <mat-option [value]="null">—</mat-option>
-              @for (pessoa of pessoas(); track pessoa.id) {
-                <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <app-autocomplete formControlName="responsavelTecnicoId" rotulo="Responsável técnico" [opcoes]="opcoesPessoa()" />
 
           <mat-form-field appearance="outline">
             <mat-label>CNO (matrícula da obra)</mat-label>

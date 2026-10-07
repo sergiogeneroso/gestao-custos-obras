@@ -9,15 +9,13 @@
   <form [formGroup]="form" (ngSubmit)="salvar()">
     <mat-dialog-content>
       <div class="dialogo-despesa__grade">
-        <mat-form-field appearance="outline" class="dialogo-despesa__campo-largo">
-          <mat-label>Imóvel</mat-label>
-          <mat-select formControlName="imovelId">
-            <mat-option [value]="null">— (gasto geral)</mat-option>
-            @for (imovel of imoveis(); track imovel.id) {
-              <mat-option [value]="imovel.id">{{ imovel.identificador }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <app-autocomplete
+          class="dialogo-despesa__campo-largo"
+          formControlName="imovelId"
+          rotulo="Imóvel"
+          placeholder="Vazio = gasto geral"
+          [opcoes]="opcoesImovel()"
+        />
 
         <mat-form-field appearance="outline">
           <mat-label>Categoria</mat-label>
@@ -50,24 +48,9 @@
           </mat-form-field>
         }
 
-        <mat-form-field appearance="outline">
-          <mat-label>Pagador</mat-label>
-          <mat-select formControlName="pagadorId">
-            @for (pessoa of pessoas(); track pessoa.id) {
-              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <app-autocomplete formControlName="pagadorId" rotulo="Pagador" [opcoes]="opcoesPessoa()" />
 
-        <mat-form-field appearance="outline">
-          <mat-label>Beneficiário</mat-label>
-          <mat-select formControlName="beneficiarioId">
-            <mat-option [value]="null">—</mat-option>
-            @for (pessoa of pessoas(); track pessoa.id) {
-              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <app-autocomplete formControlName="beneficiarioId" rotulo="Beneficiário" [opcoes]="opcoesPessoa()" />
 
         <mat-form-field appearance="outline" class="dialogo-despesa__campo-largo">
           <mat-label>Contrato financeiro</mat-label>

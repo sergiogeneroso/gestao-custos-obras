@@ -6,18 +6,14 @@
     </div>
 
     <div class="resultado__acoes">
-      <mat-form-field appearance="outline" class="resultado__seletor" subscriptSizing="dynamic">
-        <mat-label>Imóvel</mat-label>
-        <mat-select
-          [value]="imovelSelecionadoId()"
-          (selectionChange)="selecionar($event.value)"
-          [disabled]="imoveis().length === 0"
-        >
-          @for (imovel of imoveis(); track imovel.id) {
-            <mat-option [value]="imovel.id">{{ imovel.identificador }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <app-autocomplete
+        class="resultado__seletor"
+        rotulo="Imóvel"
+        [opcoes]="opcoesImovel()"
+        [ngModel]="imovelSelecionadoId()"
+        (ngModelChange)="$event !== null && selecionar($event)"
+        [disabled]="imoveis().length === 0"
+      />
 
       <button mat-stroked-button type="button" [disabled]="!resultado()" (click)="exportarCsv()">
         <i class="ph ph-file-csv"></i>

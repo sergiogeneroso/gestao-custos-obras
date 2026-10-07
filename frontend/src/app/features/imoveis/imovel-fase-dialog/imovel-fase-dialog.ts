@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { computed, Component, OnInit, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Autocomplete } from '../../../shared/autocomplete/autocomplete';
 import { mensagemErro } from '../../../shared/erro/erro.util';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,13 +8,12 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { paraIso } from '../../../shared/data/data.util';
 import { MascaraDataDirective } from '../../../shared/data/mascara-data.directive';
 import { MascaraDirective } from '../../../shared/mascara/mascara.directive';
 import { MoedaDirective } from '../../../shared/moeda/moeda.directive';
-import { PessoaResponseDTO } from '../../pessoas/pessoa.model';
+import { opcaoPessoa, PessoaResponseDTO } from '../../pessoas/pessoa.model';
 import { PessoasService } from '../../pessoas/pessoas.service';
 import { FASE_IMOVEL_LABEL, ImovelResponseDTO, PROXIMA_FASE } from '../imovel.model';
 import { ImoveisService } from '../imoveis.service';
@@ -25,13 +25,13 @@ export interface ImovelFaseDialogData {
 @Component({
   selector: 'app-imovel-fase-dialog',
   imports: [
+    Autocomplete,
     ReactiveFormsModule,
     MatButtonModule,
     MatDatepickerModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MascaraDataDirective,
     MascaraDirective,
     MoedaDirective,
@@ -52,6 +52,7 @@ export class ImovelFaseDialog implements OnInit {
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
 
   protected readonly pessoas = signal<PessoaResponseDTO[]>([]);
+  protected readonly opcoesPessoa = computed(() => this.pessoas().map(opcaoPessoa));
   protected readonly salvando = signal(false);
 
   // Os dados da fase de destino são preenchidos na própria transição (ADR-033), todos opcionais:
@@ -80,7 +81,7 @@ export class ImovelFaseDialog implements OnInit {
 
   ngOnInit(): void {
     if (this.proximaFase === 'CONSTRUCAO') {
-      this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas.filter((p) => p.ativo)));
+      this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas));
     }
   }
 

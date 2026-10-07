@@ -47,14 +47,7 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Contraparte</mat-label>
-          <mat-select formControlName="contraparteId">
-            @for (pessoa of pessoas(); track pessoa.id) {
-              <mat-option [value]="pessoa.id">{{ pessoa.nome }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <app-autocomplete formControlName="contraparteId" rotulo="Contraparte" [opcoes]="opcoesPessoa()" />
 
         <mat-form-field appearance="outline" class="dialogo-contrato__campo-largo">
           <mat-label>Valor contratado</mat-label>
