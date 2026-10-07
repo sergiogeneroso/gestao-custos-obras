@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +91,7 @@ public class DespesaService {
     public DespesaResponseDTO atualizar(Long id, DespesaRequestDTO dto) {
         DespesaModel despesa = despesaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+        recusarSeConferida(despesa);
         DespesaResponseDTO estadoAnterior = despesaMapper.toResponseDTO(despesa);
 
         ImovelModel imovel = buscarImovelOpcional(dto.imovelId());
@@ -204,10 +206,38 @@ public class DespesaService {
     public void excluir(Long id, String motivo) {
         DespesaModel despesa = despesaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+        recusarSeConferida(despesa);
         DespesaResponseDTO estadoAnterior = despesaMapper.toResponseDTO(despesa);
         despesa.getExclusao().excluir(motivo, usuarioAutenticadoService.usuarioAtual());
         DespesaModel despesaExcluida = despesaRepository.save(despesa);
         auditoriaService.registrar("Despesa", id, OperacaoAuditoria.EXCLUSAO, estadoAnterior, despesaMapper.toResponseDTO(despesaExcluida));
+    }
+
+    /**
+     * Marca a despesa como conferida pelos associados ou desfaz a conferência (ADR-048). Pedir o
+     * estado em que ela já está não muda nada nem audita: um segundo clique não troca a data.
+     */
+    @Transactional
+    public DespesaResponseDTO alterarConferencia(Long id, boolean conferida) {
+        DespesaModel despesa = despesaRepository.findByIdAndAtivoTrue(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Despesa não encontrada com id: " + id));
+        DespesaResponseDTO estadoAnterior = despesaMapper.toResponseDTO(despesa);
+        if (conferida == (despesa.getConferidaEm() != null)) {
+            return estadoAnterior;
+        }
+
+        despesa.setConferidaEm(conferida ? LocalDateTime.now() : null);
+        DespesaResponseDTO estadoNovo = despesaMapper.toResponseDTO(despesaRepository.save(despesa));
+        auditoriaService.registrar("Despesa", id, OperacaoAuditoria.EDICAO, estadoAnterior, estadoNovo);
+        return estadoNovo;
+    }
+
+    // A conferência atesta valor, data, pagador e categoria (ADR-048): editar ou excluir sem
+    // desfazê-la antes faria o "conferida" mentir. As cascatas de imóvel/contrato não passam aqui.
+    private void recusarSeConferida(DespesaModel despesa) {
+        if (despesa.getConferidaEm() != null) {
+            throw new RegraDeNegocioException("Despesa já conferida. Desfaça a conferência antes de editar ou excluir.");
+        }
     }
 
     private ImovelModel buscarImovelOpcional(Long imovelId) {

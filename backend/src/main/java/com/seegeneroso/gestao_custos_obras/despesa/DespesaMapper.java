@@ -30,6 +30,7 @@ public class DespesaMapper {
                 despesa.getDescricao(),
                 despesa.getObservacao(),
                 despesa.getExclusao().getAtivo(),
+                despesa.getConferidaEm(),
                 quantidadeAnexos,
                 temComprovante
         );

@@ -85,7 +85,15 @@ duplicidade de orçamento ignora registro excluído — bug corrigido
 (`orcamentoExcluidoNaoBloqueiaCriarOutroParaMesmaCategoria`); despesa de
 custo acessório vinculada a contrato válido grava o vínculo sem alterar o
 contrato (`despesaDeCustoAcessorioVinculadaAContratoAtivoGravaOVinculoSemAlterarOContrato`);
-auditoria de criar/atualizar/excluir nos dois domínios.
+auditoria de criar/atualizar/excluir nos dois domínios. Conferência (ADR-048):
+marcar/desfazer audita `EDICAO` e repetir o estado não troca a data
+(`conferirGravaDataEAuditaEdicao`, `conferirDespesaJaConferidaNaoTrocaDataNemAudita`,
+`desfazerConferenciaVoltaAPendente`); conferida trava edição/exclusão avulsas
+(`atualizarDespesaConferidaEhRecusado`, `excluirDespesaConferidaEhRecusado`) mas
+não anexos (`anexarComprovanteEmDespesaConferidaEhPermitido`); as cascatas de
+imóvel e contrato usam despesa conferida de propósito
+(`excluirCascateiaContratoQuitado...`, `excluirDesvinculaDespesaDeCustoAcessorioSemExcluiLa`);
+filtro pendentes/conferidas em `DespesaRepositoryTest`.
 
 **`ImovelServiceTest`/`ImovelExclusaoServiceTest`** — `criar` audita
 `CRIACAO` com `estadoAnterior` nulo (`criarAuditaCriacaoComEstadoAnteriorNulo`);

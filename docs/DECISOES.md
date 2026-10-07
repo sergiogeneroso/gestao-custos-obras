@@ -1309,3 +1309,57 @@ removido.
 passa a expor o `valorAlocado` do lote e `totalPago`/`saldoEmAberto`
 proporcionais a essa fatia, com uma indicação de que o contrato é
 compartilhado — nunca o valor da fatia dos outros lotes.
+
+## ADR-048 — Conferência de despesas: estado permanente com trava de edição (Out 2026)
+
+Decisão tomada em sessão de grilling (grill-with-docs), campo a campo. Vários
+associados lançam despesas do empreendimento; de tempos em tempos eles se
+reúnem e conferem, despesa por despesa (normalmente filtrando uma categoria,
+como mão de obra, de um imóvel), se o valor bate. O que estiver errado é
+corrigido na hora e marcado como conferido. Uma vez conferida, a despesa não
+precisa ser revista nunca mais.
+
+**Atributo da despesa, não "sessão de conferência".** Avaliadas duas opções:
+(a) estado na própria despesa ou (b) uma entidade de sessão (data da reunião,
+participantes, despesas conferidas nela). Decisão por (a): a pergunta é "esta
+despesa já foi conferida?", não "o que conferimos na reunião X". Quem marcou
+e quando já ficam no log de auditoria (ADR-042). `despesa.conferidaEm`
+(timestamp) vazio significa *pendente* e preenchido significa *conferida*. Só
+dois estados: divergência que não se resolve na reunião vira anotação em
+`observacao` e a despesa continua pendente. Vale para qualquer despesa,
+inclusive gasto geral (sem imóvel): conferir não depende do imóvel.
+
+**Conferida trava edição e exclusão avulsas.** Avaliadas três opções para a
+edição posterior: (a) bloquear até desfazer a conferência explicitamente,
+(b) editar e voltar a pendente automaticamente, (c) editar e continuar
+conferida. A opção (c) faz o "conferida" mentir. A (b) é silenciosa, porque
+corrigir um erro de digitação na observação apagaria a conferência sem
+ninguém notar. Decisão por (a). Desfazer a conferência é uma ação explícita,
+auditada e **sem motivo obrigatório**: diferente da exclusão lógica, é
+desfazer um clique. Na reunião não há atrito, porque ali a despesa é
+corrigida *antes* de ser marcada.
+
+**Fora da trava:** anexos (anexar ou remover, inclusive `COMPROVANTE`), porque
+a conferência atesta o valor e não o arquivo, e o comprovante às vezes chega
+depois. Conferir também **não exige** comprovante: a falta dele segue sendo
+aviso, nunca bloqueio (ADR-023). As cascatas também ficam fora: a exclusão do
+imóvel (`ImovelExclusaoService`, "sempre permitida", ADR-040) e a exclusão de
+contrato que desvincula o custo acessório
+(`ContratoFinanceiroService.cascatearExclusao`) ignoram a trava. A primeira
+segue a regra da ADR-040; a segunda não altera valor, data, pagador nem
+categoria, que são o que a conferência atesta. **Ponto marcado pelo usuário
+para revisão** após a implementação, por serem os fluxos mais críticos do
+sistema (ver `docs/PROXIMOS-PASSOS.md`).
+
+**Toda despesa nasce pendente**, inclusive as já existentes quando o recurso
+entrar no ar: conferir é ato da reunião, separado de lançar, e marcar
+retroativamente declararia algo que o sistema não viu.
+
+**Na tela:** uma coluna nova na listagem de despesas existente, sem tela nem
+pacote próprio. O ícone da coluna é o botão: um clique marca sem confirmação
+(numa reunião são dezenas seguidas) e o tooltip mostra a data; clicar numa
+conferida pede confirmação para desfazer. Não há marcação em lote, que
+convidaria a "conferir" sem olhar. Há também um filtro novo "Conferência:
+pendentes / conferidas / todas"; com imóvel e categoria, o total da listagem
+já responde "quanto falta conferir", então nenhum indicador novo no relatório.
+A conferência não participa de nenhum cálculo de custo.

@@ -5,6 +5,7 @@ import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record DespesaResponseDTO(
         Long id,
@@ -24,6 +25,8 @@ public record DespesaResponseDTO(
         String descricao,
         String observacao,
         Boolean ativo,
+        /** Quando a despesa foi conferida pelos associados; nulo = pendente (ADR-048). */
+        LocalDateTime conferidaEm,
         /**
          * Quantos anexos a despesa tem, de qualquer tipo. Só a busca paginada preenche este campo —
          * nos demais caminhos vem nulo ("não calculado", nunca "sem anexo").

@@ -1,6 +1,7 @@
 package com.seegeneroso.gestao_custos_obras.despesa;
 
 import com.seegeneroso.gestao_custos_obras.despesa.dto.BuscaDespesaDTO;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.ConferenciaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaAnexoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
@@ -74,6 +75,14 @@ public class DespesaController {
     public ResponseEntity<Void> excluir(@PathVariable Long id, @Valid @RequestBody ExclusaoRequestDTO dto) {
         despesaService.excluir(id, dto.motivo());
         return ResponseEntity.noContent().build();
+    }
+
+    // Marca ou desfaz a conferência (ADR-048). PATCH cai em "alterar" no RBAC nos dois sentidos.
+    @PatchMapping("/{id}/conferencia")
+    public ResponseEntity<DespesaResponseDTO> alterarConferencia(
+            @PathVariable Long id,
+            @Valid @RequestBody ConferenciaRequestDTO dto) {
+        return ResponseEntity.ok(despesaService.alterarConferencia(id, dto.conferida()));
     }
 
     @PostMapping(value = "/{id}/anexos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)

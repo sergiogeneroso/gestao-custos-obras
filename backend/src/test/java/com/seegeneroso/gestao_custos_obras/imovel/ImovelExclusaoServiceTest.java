@@ -73,7 +73,9 @@ class ImovelExclusaoServiceTest {
                 .situacao(SituacaoContrato.QUITADO).build();
         contratoQuitado.getImoveis().add(ContratoImovelModel.builder()
                 .contrato(contratoQuitado).imovel(imovel).valorAlocado(java.math.BigDecimal.TEN).build());
-        DespesaModel despesa = DespesaModel.builder().id(3L).imovel(imovel).build();
+        // Conferida de propósito: a cascata ignora a trava de despesa conferida (ADR-048).
+        DespesaModel despesa = DespesaModel.builder().id(3L).imovel(imovel)
+                .conferidaEm(java.time.LocalDateTime.of(2026, 9, 12, 20, 0)).build();
         OrcamentoCategoriaModel orcamento = OrcamentoCategoriaModel.builder().id(4L).imovel(imovel).build();
         ImovelFotoModel foto = ImovelFotoModel.builder().id(5L).imovel(imovel).url("imoveis/1/foto.jpg").build();
         ImovelDocumentoModel documento = ImovelDocumentoModel.builder().id(6L).imovel(imovel).url("imoveis/1/documentos/doc.pdf").build();

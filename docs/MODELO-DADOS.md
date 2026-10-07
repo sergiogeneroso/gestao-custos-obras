@@ -153,6 +153,7 @@ erDiagram
         VARCHAR etapa_construcao "só na fase CONSTRUCAO (ADR-035)"
         NUMERIC valor "14,2"
         DATE data_pagamento
+        TIMESTAMP conferida_em "nulo = pendente de conferência (ADR-048)"
         BOOLEAN ativo "ExclusaoLogica (ADR-040)"
         TEXT motivo_exclusao
         TIMESTAMP excluido_em
@@ -234,6 +235,9 @@ erDiagram
 
 - `despesa.imovel_id` **nulo é intencional**: gasto geral (contador, combustível,
   ferramentas) que não entra no custo de nenhum imóvel (ADR-023)
+- **`despesa.conferida_em` preenchido = despesa conferida** pelos associados
+  (ADR-048): trava a edição e a exclusão avulsas até alguém desfazer a
+  conferência. Não participa de nenhum cálculo de custo
 - `despesa.fase_imovel` guarda a fase **em que a despesa foi incorrida**, não a
   fase atual do imóvel — é o que faz lançamento retroativo cair no lugar certo
 - `imovel.fase` só avança; as datas de transição são **informadas pelo usuário**

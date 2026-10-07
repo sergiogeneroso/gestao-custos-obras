@@ -548,6 +548,28 @@ testes com mock). Corrigido com
 `.agents/rules/banco-e-migrations.md` como lacuna geral do
 `ddl-auto=update`, não só deste caso.
 
+## Conferência de despesas (Out 2026) — ADR-048
+
+Decisão fechada em sessão de grilling, campo a campo. Ver
+`.agents/rules/regras-negocio-financeiras.md` (seção "Conferência de despesa").
+
+- [x] Backend: `DespesaModel.conferidaEm` (`LocalDateTime`, nulo = pendente),
+      exposto no `DespesaResponseDTO`
+- [x] Backend: ações marcar/desfazer conferência no `DespesaService`
+      (`PATCH /api/despesas/{id}/conferencia` com `{ "conferida": true|false }`,
+      auditoria `EDICAO`); `atualizar`/`excluir` recusam despesa conferida
+- [x] Backend: `FiltroDespesaDTO` ganha filtro de conferência
+      (`conferida=true|false`, ausente = todas)
+- [ ] Frontend: coluna de conferência na listagem de despesas (clique marca,
+      clique em conferida pede confirmação para desfazer, tooltip com a
+      data); filtro novo; editar/excluir desabilitados em conferida
+- [ ] **Revisar depois de implementar (pedido do usuário):** as cascatas de
+      exclusão do imóvel (`ImovelExclusaoService`) e de contrato
+      (`ContratoFinanceiroService.cascatearExclusao`) ignoram a trava de
+      despesa conferida. Exclusão de imóvel e de contrato são pontos críticos
+      do sistema; reavaliar se excluir um imóvel/contrato com despesas
+      conferidas deveria ao menos avisar ou pedir confirmação extra
+
 ## Cobertura de testes do domínio financeiro (Set 2026) ✅
 
 Sessão de grilling fechou o critério "cada regra das quatro rules

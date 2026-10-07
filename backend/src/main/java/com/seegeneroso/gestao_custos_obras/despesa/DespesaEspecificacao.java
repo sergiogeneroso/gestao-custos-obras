@@ -55,6 +55,11 @@ final class DespesaEspecificacao {
             if (filtro.dataFim() != null) {
                 condicoes.add(cb.lessThanOrEqualTo(root.get("dataPagamento"), filtro.dataFim()));
             }
+            if (filtro.conferida() != null) {
+                condicoes.add(filtro.conferida()
+                        ? cb.isNotNull(root.get("conferidaEm"))
+                        : cb.isNull(root.get("conferidaEm")));
+            }
             // Só COMPROVANTE prova o pagamento (ADR-023); recibo e nota fiscal não contam.
             if (Boolean.TRUE.equals(filtro.semComprovante())) {
                 Subquery<Long> comprovante = query.subquery(Long.class);

@@ -36,6 +36,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,7 +82,7 @@ class DespesaServiceTest {
 
     private static final LocalDate PAGAMENTO = LocalDate.of(2026, 8, 20);
     private static final FiltroDespesaDTO SEM_FILTRO =
-            new FiltroDespesaDTO(null, null, null, null, null, null, null, null, null, null, null);
+            new FiltroDespesaDTO(null, null, null, null, null, null, null, null, null, null, null, null);
 
     @Test
     void etapaDeObraEmDespesaDeLoteEhRecusada() {
@@ -176,7 +177,7 @@ class DespesaServiceTest {
     @Test
     void buscaRecusaPeriodoComInicioDepoisDoFim() {
         FiltroDespesaDTO invertido = new FiltroDespesaDTO(null, null, null, null, null, null, null, null,
-                LocalDate.of(2026, 6, 1), LocalDate.of(2026, 1, 1), null);
+                LocalDate.of(2026, 6, 1), LocalDate.of(2026, 1, 1), null, null);
 
         assertThatThrownBy(() -> despesaService.buscar(invertido, 0, 20))
                 .isInstanceOf(RegraDeNegocioException.class)
@@ -314,6 +315,86 @@ class DespesaServiceTest {
 
         assertThat(anteriorCaptor.getValue().valor()).isEqualByComparingTo("1000.00");
         assertThat(novoCaptor.getValue().valor()).isEqualByComparingTo("1500.00");
+    }
+
+    // ADR-048: conferir grava a data e audita EDICAO com o estado anterior ainda pendente.
+    @Test
+    void conferirGravaDataEAuditaEdicao() {
+        DespesaModel despesa = DespesaModel.builder().id(10L).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(despesa));
+        when(despesaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DespesaResponseDTO resposta = despesaService.alterarConferencia(10L, true);
+
+        assertThat(resposta.conferidaEm()).isNotNull();
+        ArgumentCaptor<DespesaResponseDTO> anteriorCaptor = ArgumentCaptor.forClass(DespesaResponseDTO.class);
+        verify(auditoriaService).registrar(eq("Despesa"), eq(10L), eq(OperacaoAuditoria.EDICAO),
+                anteriorCaptor.capture(), eq(resposta));
+        assertThat(anteriorCaptor.getValue().conferidaEm()).isNull();
+    }
+
+    // Dois cliques na reunião não podem trocar a data da conferência nem gerar evento à toa.
+    @Test
+    void conferirDespesaJaConferidaNaoTrocaDataNemAudita() {
+        LocalDateTime conferidaEm = LocalDateTime.of(2026, 9, 12, 20, 0);
+        DespesaModel despesa = DespesaModel.builder().id(10L).conferidaEm(conferidaEm).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(despesa));
+
+        DespesaResponseDTO resposta = despesaService.alterarConferencia(10L, true);
+
+        assertThat(resposta.conferidaEm()).isEqualTo(conferidaEm);
+        verify(despesaRepository, never()).save(any());
+        verify(auditoriaService, never()).registrar(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void desfazerConferenciaVoltaAPendente() {
+        DespesaModel despesa = DespesaModel.builder().id(10L).conferidaEm(LocalDateTime.of(2026, 9, 12, 20, 0)).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(despesa));
+        when(despesaRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DespesaResponseDTO resposta = despesaService.alterarConferencia(10L, false);
+
+        assertThat(resposta.conferidaEm()).isNull();
+        verify(auditoriaService).registrar(eq("Despesa"), eq(10L), eq(OperacaoAuditoria.EDICAO), any(), eq(resposta));
+    }
+
+    // ADR-048: conferida trava a edição avulsa — senão o "conferida" passaria a mentir.
+    @Test
+    void atualizarDespesaConferidaEhRecusado() {
+        DespesaModel conferida = DespesaModel.builder().id(10L).conferidaEm(LocalDateTime.of(2026, 9, 12, 20, 0)).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(conferida));
+
+        assertThatThrownBy(() -> despesaService.atualizar(10L, dto(1L, null, null)))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("conferência");
+        verify(despesaRepository, never()).save(any());
+    }
+
+    @Test
+    void excluirDespesaConferidaEhRecusado() {
+        DespesaModel conferida = DespesaModel.builder().id(10L).conferidaEm(LocalDateTime.of(2026, 9, 12, 20, 0)).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(conferida));
+
+        assertThatThrownBy(() -> despesaService.excluir(10L, "Duplicada"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("conferência");
+        assertThat(conferida.getExclusao().getAtivo()).isTrue();
+        verify(despesaRepository, never()).save(any());
+    }
+
+    // ADR-048: a conferência atesta o valor, não o arquivo — o comprovante às vezes chega depois.
+    @Test
+    void anexarComprovanteEmDespesaConferidaEhPermitido() {
+        DespesaModel conferida = DespesaModel.builder().id(10L).conferidaEm(LocalDateTime.of(2026, 9, 12, 20, 0)).build();
+        when(despesaRepository.findByIdAndAtivoTrue(10L)).thenReturn(Optional.of(conferida));
+        org.springframework.web.multipart.MultipartFile arquivo = org.mockito.Mockito.mock(org.springframework.web.multipart.MultipartFile.class);
+        when(storageService.salvar(any(), any())).thenReturn("comprovante.pdf");
+        when(despesaAnexoRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        var anexo = despesaService.adicionarAnexo(10L, arquivo, TipoAnexoDespesa.COMPROVANTE);
+
+        assertThat(anexo.tipoAnexo()).isEqualTo(TipoAnexoDespesa.COMPROVANTE);
     }
 
     // Sub-recurso (anexo de despesa) não audita — mesma fronteira de fotos/documentos.

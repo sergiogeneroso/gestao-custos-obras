@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -235,7 +236,9 @@ class ContratoFinanceiroServiceTest {
     @Test
     void excluirDesvinculaDespesaDeCustoAcessorioSemExcluiLa() {
         ContratoFinanceiroModel contrato = contratoParaExcluir(SituacaoContrato.ATIVO);
-        DespesaModel vistoria = DespesaModel.builder().id(50L).contratoFinanceiro(contrato).build();
+        // Conferida de propósito: desvincular não altera o que a conferência atesta (ADR-048).
+        DespesaModel vistoria = DespesaModel.builder().id(50L).contratoFinanceiro(contrato)
+                .conferidaEm(LocalDateTime.of(2026, 9, 12, 20, 0)).build();
         when(contratoFinanceiroRepository.findByIdAndAtivoTrue(1L)).thenReturn(Optional.of(contrato));
         when(contratoFinanceiroRepository.findByImovelId(1L)).thenReturn(List.of());
         when(contratoDocumentoRepository.findByContratoId(1L)).thenReturn(List.of());

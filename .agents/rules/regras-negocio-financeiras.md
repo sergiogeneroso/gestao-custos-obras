@@ -92,6 +92,17 @@ Convenção geral do projeto, não só destas seis: `Imovel`, `Pessoa`, `Despesa
   `temComprovante` no `DespesaResponseDTO` — nulo fora da busca paginada
   significa "não calculado", nunca "sem comprovante"
 
+## Conferência de despesa (ADR-048)
+
+- `conferidaEm` nulo = **pendente**; preenchido = **conferida**. Só esses dois
+  estados. Toda despesa nasce pendente, e o cadastro nunca a cria conferida
+- **Conferida trava `atualizar` e `excluir` avulsos** no `DespesaService`: para
+  mexer, primeiro desfaz a conferência (ação explícita, sem motivo, auditada
+  como `EDICAO`, assim como marcar)
+- Fora da trava: anexos (inclusive `COMPROVANTE`) e as cascatas
+  (`ImovelExclusaoService`, `ContratoFinanceiroService.cascatearExclusao`)
+- Conferir não exige comprovante e não entra em nenhum cálculo de custo
+
 ## Indicadores de apresentação (ADR-039)
 
 Alguns números do relatório existem só para responder uma pergunta do usuário e

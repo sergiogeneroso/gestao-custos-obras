@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -176,6 +177,24 @@ class DespesaRepositoryTest {
                 .containsExactlyInAnyOrder(comRecibo.getId(), semAnexo.getId());
     }
 
+    // ADR-048: conferida = conferidaEm preenchido; nulo no filtro traz as duas.
+    @Test
+    void filtroDeConferenciaSeparaPendentesDeConferidas() {
+        ImovelModel lote = imovelRepository.save(imovel("LOTE-08"));
+        PessoaModel pagador = pessoaRepository.save(pessoa("Pagador"));
+        CategoriaDespesaModel categoria = categoriaDespesaRepository.save(categoria("Mão de obra"));
+        DespesaModel pendente = despesaRepository.save(despesa(lote, pagador, categoria, true));
+        DespesaModel conferida = despesa(lote, pagador, categoria, true);
+        conferida.setConferidaEm(LocalDateTime.of(2026, 9, 12, 20, 0));
+        conferida = despesaRepository.save(conferida);
+
+        assertThat(buscar(filtroConferencia(lote.getId(), false)).getContent()).extracting(DespesaModel::getId)
+                .containsExactly(pendente.getId());
+        assertThat(buscar(filtroConferencia(lote.getId(), true)).getContent()).extracting(DespesaModel::getId)
+                .containsExactly(conferida.getId());
+        assertThat(buscar(filtroConferencia(lote.getId(), null)).getContent()).hasSize(2);
+    }
+
     // ADR-023: RECIBO/NOTA_FISCAL/outros tipos não provam pagamento — só COMPROVANTE conta.
     @Test
     void listarDespesaIdPorAnexoDoTipoSoTrazAnexoDoTipoComprovante() {
@@ -219,7 +238,11 @@ class DespesaRepositoryTest {
     private FiltroDespesaDTO filtro(String escopo, Long imovelId, Long categoriaId, LocalDate dataInicio,
                                     String busca, Boolean semComprovante) {
         return new FiltroDespesaDTO(busca, escopo, imovelId, categoriaId, null, null, null, null,
-                dataInicio, null, semComprovante);
+                dataInicio, null, semComprovante, null);
+    }
+
+    private FiltroDespesaDTO filtroConferencia(Long imovelId, Boolean conferida) {
+        return new FiltroDespesaDTO(null, null, imovelId, null, null, null, null, null, null, null, null, conferida);
     }
 
     private Page<DespesaModel> buscar(FiltroDespesaDTO filtro) {

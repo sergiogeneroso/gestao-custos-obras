@@ -13,6 +13,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "despesa")
@@ -67,6 +68,11 @@ public class DespesaModel {
     // Anotação livre do lançamento (o que a descrição, limitada a 255, não comporta).
     @Column(columnDefinition = "TEXT")
     private String observacao;
+
+    // Conferência pelos associados (ADR-048): nulo = pendente. Conferida trava edição e exclusão
+    // avulsas no DespesaService; não entra em nenhum cálculo de custo.
+    @Column(name = "conferida_em")
+    private LocalDateTime conferidaEm;
 
     @Embedded
     @Builder.Default
