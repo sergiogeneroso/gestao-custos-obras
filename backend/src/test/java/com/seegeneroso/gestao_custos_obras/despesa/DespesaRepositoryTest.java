@@ -2,6 +2,7 @@ package com.seegeneroso.gestao_custos_obras.despesa;
 
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaModel;
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaRepository;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.FiltroDespesaDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
@@ -114,20 +115,65 @@ class DespesaRepositoryTest {
         DespesaModel geralAtiva = despesaRepository.save(despesa(null, pagador, categoria, true));
         DespesaModel doImovelInativa = despesaRepository.save(despesa(imovel, pagador, categoria, false));
 
-        Page<DespesaModel> todas = despesaRepository.buscar("", "TODAS", PAGINA);
+        Page<DespesaModel> todas = buscar(filtro("TODAS", null, null, null, null, null));
         assertThat(todas.getContent()).extracting(DespesaModel::getId)
                 .contains(doImovelAtiva.getId(), geralAtiva.getId())
                 .doesNotContain(doImovelInativa.getId());
 
-        Page<DespesaModel> soImovel = despesaRepository.buscar("", "IMOVEL", PAGINA);
+        Page<DespesaModel> soImovel = buscar(filtro("IMOVEL", null, null, null, null, null));
         assertThat(soImovel.getContent()).extracting(DespesaModel::getId)
                 .contains(doImovelAtiva.getId())
                 .doesNotContain(geralAtiva.getId(), doImovelInativa.getId());
 
-        Page<DespesaModel> soGeral = despesaRepository.buscar("", "GERAL", PAGINA);
+        Page<DespesaModel> soGeral = buscar(filtro("GERAL", null, null, null, null, null));
         assertThat(soGeral.getContent()).extracting(DespesaModel::getId)
                 .contains(geralAtiva.getId())
                 .doesNotContain(doImovelAtiva.getId());
+    }
+
+    // O caso que motivou os filtros: "mão de obra do lote X a partir da data Y", com o total
+    // somando só o que casa — inclusive o que estaria em outra página.
+    @Test
+    void filtrosCombinadosSoTrazemOQueCasaComTodosESomamSoEles() {
+        ImovelModel lote = imovelRepository.save(imovel("LOTE-05"));
+        ImovelModel outroLote = imovelRepository.save(imovel("LOTE-06"));
+        PessoaModel pagador = pessoaRepository.save(pessoa("Pagador"));
+        CategoriaDespesaModel maoDeObra = categoriaDespesaRepository.save(categoria("Mão de obra"));
+        CategoriaDespesaModel material = categoriaDespesaRepository.save(categoria("Material"));
+        DespesaModel casa1 = despesaRepository.save(despesa(lote, pagador, maoDeObra, LocalDate.of(2026, 3, 1), "300"));
+        DespesaModel casa2 = despesaRepository.save(despesa(lote, pagador, maoDeObra, LocalDate.of(2026, 4, 1), "450"));
+        DespesaModel antesDaData = despesaRepository.save(despesa(lote, pagador, maoDeObra, LocalDate.of(2026, 2, 28), "999"));
+        DespesaModel outraCategoria = despesaRepository.save(despesa(lote, pagador, material, LocalDate.of(2026, 3, 5), "999"));
+        DespesaModel outroImovel = despesaRepository.save(despesa(outroLote, pagador, maoDeObra, LocalDate.of(2026, 3, 5), "999"));
+        FiltroDespesaDTO filtro = filtro(null, lote.getId(), maoDeObra.getId(), LocalDate.of(2026, 3, 1), null, null);
+
+        Page<DespesaModel> pagina = despesaRepository.findAll(DespesaEspecificacao.de(filtro), PageRequest.of(0, 1));
+        BigDecimal total = despesaRepository.somarValor(DespesaEspecificacao.de(filtro));
+
+        assertThat(pagina.getTotalElements()).isEqualTo(2);
+        assertThat(buscar(filtro).getContent()).extracting(DespesaModel::getId)
+                .containsExactlyInAnyOrder(casa1.getId(), casa2.getId())
+                .doesNotContain(antesDaData.getId(), outraCategoria.getId(), outroImovel.getId());
+        // 300 + 450, mesmo com a página de tamanho 1 mostrando só uma delas.
+        assertThat(total).isEqualByComparingTo("750");
+    }
+
+    // ADR-023: só COMPROVANTE prova o pagamento — despesa só com recibo continua "sem comprovante".
+    @Test
+    void filtroSemComprovanteIgnoraReciboETextoBuscaNoNomeDoPagador() {
+        ImovelModel lote = imovelRepository.save(imovel("LOTE-07"));
+        PessoaModel joao = pessoaRepository.save(pessoa("João Pedreiro"));
+        CategoriaDespesaModel categoria = categoriaDespesaRepository.save(categoria("Mão de obra"));
+        DespesaModel comComprovante = despesaRepository.save(despesa(lote, joao, categoria, true));
+        DespesaModel comRecibo = despesaRepository.save(despesa(lote, joao, categoria, true));
+        DespesaModel semAnexo = despesaRepository.save(despesa(lote, joao, categoria, true));
+        despesaAnexoRepository.save(anexo(comComprovante, TipoAnexoDespesa.COMPROVANTE));
+        despesaAnexoRepository.save(anexo(comRecibo, TipoAnexoDespesa.RECIBO));
+
+        Page<DespesaModel> semComprovante = buscar(filtro(null, lote.getId(), null, null, "joão ped", true));
+
+        assertThat(semComprovante.getContent()).extracting(DespesaModel::getId)
+                .containsExactlyInAnyOrder(comRecibo.getId(), semAnexo.getId());
     }
 
     // ADR-023: RECIBO/NOTA_FISCAL/outros tipos não provam pagamento — só COMPROVANTE conta.
@@ -157,6 +203,27 @@ class DespesaRepositoryTest {
             builder.exclusao(ExclusaoLogica.builder().ativo(false).motivoExclusao("Excluído para teste").build());
         }
         return builder.build();
+    }
+
+    private DespesaModel despesa(ImovelModel imovel, PessoaModel pagador, CategoriaDespesaModel categoria,
+                                 LocalDate dataPagamento, String valor) {
+        return DespesaModel.builder()
+                .imovel(imovel)
+                .categoriaDespesa(categoria)
+                .pagador(pagador)
+                .valor(new BigDecimal(valor))
+                .dataPagamento(dataPagamento)
+                .build();
+    }
+
+    private FiltroDespesaDTO filtro(String escopo, Long imovelId, Long categoriaId, LocalDate dataInicio,
+                                    String busca, Boolean semComprovante) {
+        return new FiltroDespesaDTO(busca, escopo, imovelId, categoriaId, null, null, null, null,
+                dataInicio, null, semComprovante);
+    }
+
+    private Page<DespesaModel> buscar(FiltroDespesaDTO filtro) {
+        return despesaRepository.findAll(DespesaEspecificacao.de(filtro), PAGINA);
     }
 
     private DespesaAnexoModel anexo(DespesaModel despesa, TipoAnexoDespesa tipo) {

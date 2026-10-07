@@ -45,14 +45,60 @@
   color: #9397ab;
 }
 
-.despesas__toolbar {
+.despesas__filtros {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 17px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
 }
+
+.despesas__busca {
+  flex: 1 1 260px;
+}
+
+.despesas__filtro {
+  width: 170px;
+  flex: 0 0 auto;
+}
+
+.despesas__filtro--imovel,
+.despesas__filtro--pessoa {
+  width: 240px;
+}
+
+.despesas__filtro--data {
+  width: 160px;
+}
+
+.despesas__acoes-filtro {
+  display: flex;
+  gap: 8px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.despesas__filtros--mais {
+  padding: 14px;
+  border: 1px solid rgba(233, 233, 237, 0.12);
+  border-radius: 10px;
+}
+
+.despesas__resumo {
+  margin: 8px 0 14px;
+  color: #9397ab;
+  font-size: 14px;
+
+  strong {
+    color: var(--mat-sys-on-surface, #e9e9ed);
+    font-weight: 500;
+  }
+}
+
 
 .table {
   width: 100%;
@@ -114,12 +160,11 @@
     }
   }
 
-  .despesas__toolbar {
-    align-items: stretch;
-
-    mat-button-toggle-group {
-      width: 100%;
-    }
+  .despesas__filtro,
+  .despesas__filtro--imovel,
+  .despesas__filtro--pessoa,
+  .despesas__filtro--data {
+    width: 100%;
   }
 
   .table {

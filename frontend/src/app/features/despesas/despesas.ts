@@ -1,7 +1,21 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { map, tap } from 'rxjs';
+import { Autocomplete, OpcaoAutocomplete } from '../../shared/autocomplete/autocomplete';
+import { MascaraDataDirective } from '../../shared/data/mascara-data.directive';
+import { CategoriaDespesaResponseDTO } from '../categorias-despesa/categoria-despesa.model';
+import { CategoriasDespesaService } from '../categorias-despesa/categorias-despesa.service';
+import { FASE_IMOVEL_LABEL, FaseImovel, opcaoImovel } from '../imoveis/imovel.model';
+import { ImoveisService } from '../imoveis/imoveis.service';
+import { opcaoPessoa, PessoaResponseDTO } from '../pessoas/pessoa.model';
+import { PessoasService } from '../pessoas/pessoas.service';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { PermissaoDirective } from '../../core/auth/permissao.directive';
@@ -10,7 +24,15 @@ import { ConfirmExclusaoDialog } from '../../shared/confirm-exclusao-dialog/conf
 import { ListagemPaginada } from '../../shared/pagina/listagem-paginada';
 import { DespesaDetalheDialog } from './despesa-detalhe-dialog/despesa-detalhe-dialog';
 import { DespesaFormDialog } from './despesa-form-dialog/despesa-form-dialog';
-import { DespesaResponseDTO } from './despesa.model';
+import {
+  ajustarFiltro,
+  contarMaisFiltros,
+  DespesaResponseDTO,
+  ETAPA_CONSTRUCAO_LABEL,
+  ETAPAS_CONSTRUCAO,
+  FILTRO_DESPESAS_VAZIO,
+  FiltroDespesas,
+} from './despesa.model';
 import { DespesasService } from './despesas.service';
 
 @Component({
@@ -18,8 +40,15 @@ import { DespesasService } from './despesas.service';
   imports: [
     CurrencyPipe,
     DatePipe,
+    FormsModule,
+    Autocomplete,
+    MascaraDataDirective,
     MatButtonModule,
-    MatButtonToggleModule,
+    MatCheckboxModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
     MatPaginatorModule,
     BuscaToolbar,
     PermissaoDirective,
@@ -27,19 +56,53 @@ import { DespesasService } from './despesas.service';
   templateUrl: './despesas.html',
   styleUrl: './despesas.scss',
 })
-export class Despesas {
+export class Despesas implements OnInit {
   private readonly service = inject(DespesasService);
   private readonly dialog = inject(MatDialog);
+  private readonly imoveisService = inject(ImoveisService);
+  private readonly categoriasService = inject(CategoriasDespesaService);
+  private readonly pessoasService = inject(PessoasService);
+
+  protected readonly fases: FaseImovel[] = ['LOTE', 'CONSTRUCAO', 'CASA'];
+  protected readonly faseLabel = FASE_IMOVEL_LABEL;
+  protected readonly etapas = ETAPAS_CONSTRUCAO;
+  protected readonly etapaLabel = ETAPA_CONSTRUCAO_LABEL;
 
   protected readonly busca = signal('');
-  protected readonly filtro = signal<'todas' | 'imovel' | 'geral'>('todas');
+  protected readonly filtro = signal<FiltroDespesas>(FILTRO_DESPESAS_VAZIO);
+  protected readonly maisFiltrosAberto = signal(false);
+  protected readonly valorTotal = signal(0);
 
-  // Busca e filtro são resolvidos no backend junto com a paginação: filtrar só a página
+  protected readonly categorias = signal<CategoriaDespesaResponseDTO[]>([]);
+  private readonly pessoas = signal<PessoaResponseDTO[]>([]);
+  private readonly imoveis = signal<OpcaoAutocomplete[]>([]);
+
+  protected readonly opcoesImovel = computed<OpcaoAutocomplete[]>(() => [
+    { id: 'IMOVEL', rotulo: 'Qualquer imóvel' },
+    { id: 'GERAL', rotulo: 'Gastos gerais (sem imóvel)' },
+    ...this.imoveis(),
+  ]);
+  // No filtro, pessoa excluída continua escolhível — as despesas dela seguem ativas — e vem marcada.
+  protected readonly opcoesPessoa = computed(() =>
+    this.pessoas().map((p) => {
+      const opcao = opcaoPessoa(p);
+      return { ...opcao, detalhe: [opcao.detalhe, p.ativo ? null : 'excluída'].filter(Boolean).join(' · ') };
+    }),
+  );
+  protected readonly quantidadeMaisFiltros = computed(() => contarMaisFiltros(this.filtro()));
+  protected readonly temFiltro = computed(
+    () => !!this.busca().trim() || JSON.stringify(this.filtro()) !== JSON.stringify(FILTRO_DESPESAS_VAZIO),
+  );
+
+  // Busca e filtros são resolvidos no backend junto com a paginação: filtrar só a página
   // carregada esconderia lançamentos que casam com o termo mas estão em outra página.
   protected readonly lista = new ListagemPaginada<DespesaResponseDTO>(
     inject(DestroyRef),
     (pagina, tamanho) =>
-      this.service.listarPagina(this.busca().trim(), this.escopo(), pagina, tamanho),
+      this.service.listarPagina(this.busca().trim(), this.filtro(), pagina, tamanho).pipe(
+        tap((resposta) => this.valorTotal.set(resposta.valorTotal)),
+        map((resposta) => resposta.pagina),
+      ),
   );
 
   constructor() {
@@ -50,8 +113,19 @@ export class Despesas {
     });
   }
 
-  private escopo(): 'TODAS' | 'IMOVEL' | 'GERAL' {
-    return this.filtro() === 'imovel' ? 'IMOVEL' : this.filtro() === 'geral' ? 'GERAL' : 'TODAS';
+  ngOnInit(): void {
+    this.imoveisService.listar().subscribe((imoveis) => this.imoveis.set(imoveis.map(opcaoImovel)));
+    this.categoriasService.listar().subscribe((categorias) => this.categorias.set(categorias));
+    this.pessoasService.listar().subscribe((pessoas) => this.pessoas.set(pessoas));
+  }
+
+  protected alterar(parcial: Partial<FiltroDespesas>): void {
+    this.filtro.set(ajustarFiltro({ ...this.filtro(), ...parcial }));
+  }
+
+  protected limparFiltros(): void {
+    this.busca.set('');
+    this.filtro.set(FILTRO_DESPESAS_VAZIO);
   }
 
   protected mudarPagina(evento: PageEvent): void {

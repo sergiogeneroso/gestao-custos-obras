@@ -6,6 +6,7 @@ import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiro
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.FiltroDespesaDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.DadosCompra;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
@@ -30,6 +31,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -77,6 +80,8 @@ class DespesaServiceTest {
     private DespesaService despesaService;
 
     private static final LocalDate PAGAMENTO = LocalDate.of(2026, 8, 20);
+    private static final FiltroDespesaDTO SEM_FILTRO =
+            new FiltroDespesaDTO(null, null, null, null, null, null, null, null, null, null, null);
 
     @Test
     void etapaDeObraEmDespesaDeLoteEhRecusada() {
@@ -157,15 +162,25 @@ class DespesaServiceTest {
     void buscaContaAnexosDaPaginaESomaZeroParaDespesaSemAnexo() {
         DespesaModel comAnexos = DespesaModel.builder().id(10L).build();
         DespesaModel semAnexo = DespesaModel.builder().id(11L).build();
-        when(despesaRepository.buscar(any(), any(), any()))
+        when(despesaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(comAnexos, semAnexo)));
         // Um id por anexo: a despesa 10 tem dois, a 11 não aparece porque não tem nenhum.
         when(despesaAnexoRepository.listarDespesaIdPorAnexo(List.of(10L, 11L)))
                 .thenReturn(List.of(10L, 10L));
 
-        List<DespesaResponseDTO> conteudo = despesaService.buscar("", "TODAS", 0, 20).conteudo();
+        List<DespesaResponseDTO> conteudo = despesaService.buscar(SEM_FILTRO, 0, 20).pagina().conteudo();
 
         assertThat(conteudo).extracting(DespesaResponseDTO::quantidadeAnexos).containsExactly(2, 0);
+    }
+
+    @Test
+    void buscaRecusaPeriodoComInicioDepoisDoFim() {
+        FiltroDespesaDTO invertido = new FiltroDespesaDTO(null, null, null, null, null, null, null, null,
+                LocalDate.of(2026, 6, 1), LocalDate.of(2026, 1, 1), null);
+
+        assertThatThrownBy(() -> despesaService.buscar(invertido, 0, 20))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("data de início");
     }
 
     @Test
@@ -184,13 +199,13 @@ class DespesaServiceTest {
     void buscaMarcaTemComprovanteSoParaDespesaComAnexoDoTipoComprovante() {
         DespesaModel comComprovante = DespesaModel.builder().id(10L).build();
         DespesaModel semComprovante = DespesaModel.builder().id(11L).build();
-        when(despesaRepository.buscar(any(), any(), any()))
+        when(despesaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(comComprovante, semComprovante)));
         when(despesaAnexoRepository.listarDespesaIdPorAnexo(List.of(10L, 11L))).thenReturn(List.of());
         when(despesaAnexoRepository.listarDespesaIdPorAnexoDoTipo(List.of(10L, 11L), TipoAnexoDespesa.COMPROVANTE))
                 .thenReturn(List.of(10L));
 
-        List<DespesaResponseDTO> conteudo = despesaService.buscar("", "TODAS", 0, 20).conteudo();
+        List<DespesaResponseDTO> conteudo = despesaService.buscar(SEM_FILTRO, 0, 20).pagina().conteudo();
 
         assertThat(conteudo).extracting(DespesaResponseDTO::temComprovante).containsExactly(true, false);
     }

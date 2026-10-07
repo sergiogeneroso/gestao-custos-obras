@@ -1,11 +1,12 @@
 package com.seegeneroso.gestao_custos_obras.despesa;
 
+import com.seegeneroso.gestao_custos_obras.despesa.dto.BuscaDespesaDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaAnexoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.FiltroDespesaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
 import jakarta.validation.Valid;
-import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exclusao.ExclusaoRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,15 +42,15 @@ public class DespesaController {
         return ResponseEntity.ok(despesaService.listar(imovelId, categoriaDespesaId, semImovel));
     }
 
-    // Endpoint da tela de listagem: busca e escopo (TODAS/IMOVEL/GERAL) vão para o banco junto
-    // com a paginação. O GET sem /pagina continua devolvendo a lista inteira.
+    // Endpoint da tela de listagem: todos os filtros (ver FiltroDespesaDTO) vão para o banco junto
+    // com a paginação, e o total soma tudo o que casa. O GET sem /pagina continua devolvendo a
+    // lista inteira.
     @GetMapping("/pagina")
-    public ResponseEntity<PaginaDTO<DespesaResponseDTO>> buscar(
-            @RequestParam(defaultValue = "") String busca,
-            @RequestParam(defaultValue = "TODAS") String escopo,
+    public ResponseEntity<BuscaDespesaDTO> buscar(
+            FiltroDespesaDTO filtro,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamanho) {
-        return ResponseEntity.ok(despesaService.buscar(busca, escopo, pagina, tamanho));
+        return ResponseEntity.ok(despesaService.buscar(filtro, pagina, tamanho));
     }
 
     @GetMapping("/imovel/{imovelId}")

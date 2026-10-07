@@ -2,8 +2,15 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { PaginaDTO } from '../../shared/pagina/pagina.model';
-import { DespesaAnexoResponseDTO, DespesaRequestDTO, DespesaResponseDTO, TipoAnexoDespesa } from './despesa.model';
+import { paraIso } from '../../shared/data/data.util';
+import {
+  BuscaDespesaDTO,
+  DespesaAnexoResponseDTO,
+  DespesaRequestDTO,
+  DespesaResponseDTO,
+  FiltroDespesas,
+  TipoAnexoDespesa,
+} from './despesa.model';
 
 @Injectable({ providedIn: 'root' })
 export class DespesasService {
@@ -18,19 +25,32 @@ export class DespesasService {
     return this.http.get<DespesaResponseDTO[]>(this.baseUrl, { params });
   }
 
-  /** Página da tela de listagem. O escopo espelha o filtro com/sem imóvel da tela. */
+  /** Página da tela de listagem, com o total em R$ de tudo o que casa com os filtros. */
   listarPagina(
     busca: string,
-    escopo: 'TODAS' | 'IMOVEL' | 'GERAL',
+    filtro: FiltroDespesas,
     pagina: number,
     tamanho: number,
-  ): Observable<PaginaDTO<DespesaResponseDTO>> {
-    const params = new HttpParams()
-      .set('busca', busca)
-      .set('escopo', escopo)
-      .set('pagina', pagina)
-      .set('tamanho', tamanho);
-    return this.http.get<PaginaDTO<DespesaResponseDTO>>(`${this.baseUrl}/pagina`, { params });
+  ): Observable<BuscaDespesaDTO> {
+    let params = new HttpParams().set('busca', busca).set('pagina', pagina).set('tamanho', tamanho);
+    const opcionais: Record<string, string | number | null> = {
+      escopo: filtro.imovel === 'IMOVEL' || filtro.imovel === 'GERAL' ? filtro.imovel : null,
+      imovelId: typeof filtro.imovel === 'number' ? filtro.imovel : null,
+      categoriaDespesaId: filtro.categoriaDespesaId,
+      pagadorId: filtro.pagadorId,
+      beneficiarioId: filtro.beneficiarioId,
+      faseImovel: filtro.faseImovel,
+      etapaConstrucao: filtro.etapaConstrucao,
+      dataInicio: paraIso(filtro.dataInicio),
+      dataFim: paraIso(filtro.dataFim),
+      semComprovante: filtro.semComprovante ? 'true' : null,
+    };
+    for (const [nome, valor] of Object.entries(opcionais)) {
+      if (valor !== null) {
+        params = params.set(nome, valor);
+      }
+    }
+    return this.http.get<BuscaDespesaDTO>(`${this.baseUrl}/pagina`, { params });
   }
 
   criar(dto: DespesaRequestDTO): Observable<DespesaResponseDTO> {

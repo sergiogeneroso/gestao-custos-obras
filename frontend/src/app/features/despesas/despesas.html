@@ -10,28 +10,118 @@
     </button>
   </header>
 
-  <div class="despesas__toolbar">
+  <div class="despesas__filtros">
     <app-busca-toolbar
+      class="despesas__busca"
       [(valor)]="busca"
       rotulo="Buscar despesa"
-      placeholder="Categoria, pessoa ou imóvel"
+      placeholder="Categoria, pessoa, imóvel ou descrição"
     />
-    <mat-button-toggle-group
-      [value]="filtro()"
-      (change)="filtro.set($event.value)"
-      aria-label="Filtrar por vínculo"
-    >
-      <mat-button-toggle value="todas">Todas</mat-button-toggle>
-      <mat-button-toggle value="imovel">Do imóvel</mat-button-toggle>
-      <mat-button-toggle value="geral">Gastos gerais</mat-button-toggle>
-    </mat-button-toggle-group>
+
+    <app-autocomplete
+      class="despesas__filtro despesas__filtro--imovel"
+      rotulo="Imóvel"
+      placeholder="Todos"
+      [opcoes]="opcoesImovel()"
+      [ngModel]="filtro().imovel"
+      (ngModelChange)="alterar({ imovel: $event })"
+    />
+
+    <mat-form-field appearance="outline" class="despesas__filtro" subscriptSizing="dynamic">
+      <mat-label>Categoria</mat-label>
+      <mat-select [value]="filtro().categoriaDespesaId" (selectionChange)="alterar({ categoriaDespesaId: $event.value })">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (categoria of categorias(); track categoria.id) {
+          <mat-option [value]="categoria.id">{{ categoria.nome }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="despesas__filtro despesas__filtro--data" subscriptSizing="dynamic">
+      <mat-label>Pago de</mat-label>
+      <input matInput [matDatepicker]="inicioPicker" appMascaraData placeholder="dd/mm/aaaa" [value]="filtro().dataInicio" (dateChange)="alterar({ dataInicio: $event.value })" />
+      <mat-datepicker-toggle matSuffix [for]="inicioPicker" />
+      <mat-datepicker #inicioPicker />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="despesas__filtro despesas__filtro--data" subscriptSizing="dynamic">
+      <mat-label>até</mat-label>
+      <input matInput [matDatepicker]="fimPicker" appMascaraData placeholder="dd/mm/aaaa" [value]="filtro().dataFim" (dateChange)="alterar({ dataFim: $event.value })" />
+      <mat-datepicker-toggle matSuffix [for]="fimPicker" />
+      <mat-datepicker #fimPicker />
+    </mat-form-field>
+
+    <div class="despesas__acoes-filtro">
+      <button mat-stroked-button type="button" (click)="maisFiltrosAberto.set(!maisFiltrosAberto())" [attr.aria-expanded]="maisFiltrosAberto()">
+        <i class="ph" [class.ph-caret-down]="!maisFiltrosAberto()" [class.ph-caret-up]="maisFiltrosAberto()"></i>
+        Mais filtros{{ quantidadeMaisFiltros() ? ' (' + quantidadeMaisFiltros() + ')' : '' }}
+      </button>
+      @if (temFiltro()) {
+        <button mat-button type="button" (click)="limparFiltros()">Limpar filtros</button>
+      }
+    </div>
   </div>
+
+  @if (maisFiltrosAberto()) {
+    <div class="despesas__filtros despesas__filtros--mais">
+      <app-autocomplete
+        class="despesas__filtro despesas__filtro--pessoa"
+        rotulo="Pagador"
+        placeholder="Todos"
+        [opcoes]="opcoesPessoa()"
+        [oferecerInativos]="true"
+        [ngModel]="filtro().pagadorId"
+        (ngModelChange)="alterar({ pagadorId: $event })"
+      />
+
+      <app-autocomplete
+        class="despesas__filtro despesas__filtro--pessoa"
+        rotulo="Beneficiário"
+        placeholder="Todos"
+        [opcoes]="opcoesPessoa()"
+        [oferecerInativos]="true"
+        [ngModel]="filtro().beneficiarioId"
+        (ngModelChange)="alterar({ beneficiarioId: $event })"
+      />
+
+      <mat-form-field appearance="outline" class="despesas__filtro" subscriptSizing="dynamic">
+        <mat-label>Fase</mat-label>
+        <mat-select [value]="filtro().faseImovel" [disabled]="filtro().imovel === 'GERAL'" (selectionChange)="alterar({ faseImovel: $event.value })">
+          <mat-option [value]="null">Todas</mat-option>
+          @for (fase of fases; track fase) {
+            <mat-option [value]="fase">{{ faseLabel[fase] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="despesas__filtro" subscriptSizing="dynamic">
+        <mat-label>Etapa</mat-label>
+        <mat-select [value]="filtro().etapaConstrucao" [disabled]="filtro().faseImovel !== 'CONSTRUCAO'" (selectionChange)="alterar({ etapaConstrucao: $event.value })">
+          <mat-option [value]="null">Todas</mat-option>
+          @for (etapa of etapas; track etapa) {
+            <mat-option [value]="etapa">{{ etapaLabel[etapa] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox [checked]="filtro().semComprovante" (change)="alterar({ semComprovante: $event.checked })">
+        Só sem comprovante
+      </mat-checkbox>
+    </div>
+  }
+
+  @if (!lista.carregando() && lista.total() > 0) {
+    <p class="despesas__resumo">
+      {{ lista.total() }} {{ lista.total() === 1 ? 'lançamento' : 'lançamentos' }} ·
+      <strong>{{ valorTotal() | currency: 'BRL' }}</strong>
+    </p>
+  }
 
   @if (lista.carregando()) {
     <p class="despesas__carregando">Carregando…</p>
   } @else if (lista.total() === 0) {
     <p class="despesas__vazio">
-      @if (busca().trim() || filtro() !== 'todas') {
+      @if (temFiltro()) {
         Nenhuma despesa encontrada para os filtros aplicados.
       } @else {
         Nenhuma despesa cadastrada ainda.

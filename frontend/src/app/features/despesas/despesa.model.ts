@@ -1,3 +1,5 @@
+import { IdOpcao } from '../../shared/autocomplete/autocomplete';
+import { PaginaDTO } from '../../shared/pagina/pagina.model';
 import { FaseImovel } from '../imoveis/imovel.model';
 
 export type TipoAnexoDespesa = 'COMPROVANTE' | 'NOTA_FISCAL' | 'RECIBO' | 'CONTRATO' | 'OUTRO';
@@ -117,4 +119,59 @@ export function tipoArquivoAnexo(url: string): 'imagem' | 'pdf' | 'outro' {
     return 'pdf';
   }
   return EXTENSOES_IMAGEM.has(extensao) ? 'imagem' : 'outro';
+}
+
+/**
+ * Filtros da listagem de despesas, todos combinados com "e". `imovel`: vazio = todos, 'IMOVEL' =
+ * qualquer imóvel, 'GERAL' = gastos gerais (sem imóvel), número = aquele imóvel.
+ */
+export interface FiltroDespesas {
+  imovel: IdOpcao | null;
+  categoriaDespesaId: number | null;
+  dataInicio: Date | null;
+  dataFim: Date | null;
+  pagadorId: number | null;
+  beneficiarioId: number | null;
+  faseImovel: FaseImovel | null;
+  etapaConstrucao: EtapaConstrucao | null;
+  semComprovante: boolean;
+}
+
+export const FILTRO_DESPESAS_VAZIO: FiltroDespesas = {
+  imovel: null,
+  categoriaDespesaId: null,
+  dataInicio: null,
+  dataFim: null,
+  pagadorId: null,
+  beneficiarioId: null,
+  faseImovel: null,
+  etapaConstrucao: null,
+  semComprovante: false,
+};
+
+/**
+ * Nunca deixa uma combinação que sempre volta vazia: gasto geral não tem fase nem etapa, e etapa
+ * só existe na fase Construção (mesma regra do formulário de despesa).
+ */
+export function ajustarFiltro(filtro: FiltroDespesas): FiltroDespesas {
+  const ajustado = { ...filtro };
+  if (ajustado.imovel === 'GERAL') {
+    ajustado.faseImovel = null;
+  }
+  if (ajustado.faseImovel !== 'CONSTRUCAO') {
+    ajustado.etapaConstrucao = null;
+  }
+  return ajustado;
+}
+
+// Os filtros que ficam dentro de "Mais filtros", para o contador do botão.
+export function contarMaisFiltros(filtro: FiltroDespesas): number {
+  return [filtro.pagadorId, filtro.beneficiarioId, filtro.faseImovel, filtro.etapaConstrucao]
+    .filter((v) => v !== null).length + (filtro.semComprovante ? 1 : 0);
+}
+
+// valorTotal soma todas as despesas que casam com o filtro, não só as da página.
+export interface BuscaDespesaDTO {
+  pagina: PaginaDTO<DespesaResponseDTO>;
+  valorTotal: number;
 }

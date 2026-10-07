@@ -4,9 +4,11 @@ import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaMode
 import com.seegeneroso.gestao_custos_obras.categoriaDespesa.CategoriaDespesaRepository;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroModel;
 import com.seegeneroso.gestao_custos_obras.contratoFinanceiro.ContratoFinanceiroRepository;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.BuscaDespesaDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaAnexoResponseDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaRequestDTO;
 import com.seegeneroso.gestao_custos_obras.despesa.dto.DespesaResponseDTO;
+import com.seegeneroso.gestao_custos_obras.despesa.dto.FiltroDespesaDTO;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelModel;
 import com.seegeneroso.gestao_custos_obras.imovel.ImovelRepository;
 import com.seegeneroso.gestao_custos_obras.pessoa.PessoaModel;
@@ -14,7 +16,6 @@ import com.seegeneroso.gestao_custos_obras.pessoa.PessoaRepository;
 import com.seegeneroso.gestao_custos_obras.shared.enums.EtapaConstrucao;
 import com.seegeneroso.gestao_custos_obras.shared.enums.FaseImovel;
 import com.seegeneroso.gestao_custos_obras.shared.enums.TipoAnexoDespesa;
-import com.seegeneroso.gestao_custos_obras.shared.Buscas;
 import com.seegeneroso.gestao_custos_obras.shared.PaginaDTO;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RecursoNaoEncontradoException;
 import com.seegeneroso.gestao_custos_obras.shared.exception.RegraDeNegocioException;
@@ -28,6 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -142,21 +144,22 @@ public class DespesaService {
      * (só gasto geral, sem imóvel) — os mesmos três estados do filtro da tela.
      */
     @Transactional(readOnly = true)
-    public PaginaDTO<DespesaResponseDTO> buscar(String busca, String escopo, int pagina, int tamanho) {
-        String escopoValido = switch (escopo == null ? "TODAS" : escopo.toUpperCase()) {
-            case "IMOVEL", "GERAL" -> escopo.toUpperCase();
-            default -> "TODAS";
-        };
+    public BuscaDespesaDTO buscar(FiltroDespesaDTO filtro, int pagina, int tamanho) {
+        if (filtro.dataInicio() != null && filtro.dataFim() != null && filtro.dataInicio().isAfter(filtro.dataFim())) {
+            throw new RegraDeNegocioException("A data de início não pode ser posterior à data de fim.");
+        }
+        Specification<DespesaModel> especificacao = DespesaEspecificacao.de(filtro);
         // Mais recente primeiro, e o id desempata lançamentos do mesmo dia para a paginação não
         // repetir nem pular linha entre páginas.
         Pageable pageable = PageRequest.of(pagina, tamanho,
                 Sort.by(Sort.Direction.DESC, "dataPagamento", "id"));
-        Page<DespesaModel> paginaDespesas = despesaRepository.buscar(Buscas.normalizar(busca), escopoValido, pageable);
+        Page<DespesaModel> paginaDespesas = despesaRepository.findAll(especificacao, pageable);
         Map<Long, Integer> contagens = contarAnexos(paginaDespesas.getContent());
         Set<Long> comComprovante = despesasComComprovante(paginaDespesas.getContent());
-        return PaginaDTO.de(paginaDespesas,
+        PaginaDTO<DespesaResponseDTO> resultado = PaginaDTO.de(paginaDespesas,
                 despesa -> despesaMapper.toResponseDTO(despesa, contagens.getOrDefault(despesa.getId(), 0),
                         comComprovante.contains(despesa.getId())));
+        return new BuscaDespesaDTO(resultado, despesaRepository.somarValor(especificacao));
     }
 
     /**

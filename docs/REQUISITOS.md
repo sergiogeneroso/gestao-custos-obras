@@ -88,6 +88,13 @@ combustível, ferramentas) e não entra no custo de nenhum imóvel. Mão de obra
 despesa avulsa, uma por diária ou medição. Soft delete (ADR-028).
 `/api/despesas`
 
+**Listagem com filtros combinados** (`/api/despesas/pagina`): busca de texto,
+imóvel (todos / qualquer imóvel / gastos gerais / um imóvel), categoria, período
+de pagamento, pagador, beneficiário (inclusive pessoa excluída, cujas despesas
+continuam valendo), fase, etapa (só na fase Construção) e "só sem comprovante".
+Acima da tabela, a quantidade e o **total em R$ de tudo o que casa com os
+filtros**, não só da página visível.
+
 ### RF05 — Relatórios ✅
 - **Resultado por imóvel** (principal): custo de compra, despesas quebradas por
   fase, juros pagos, custo total, valor de venda, lucro, margem, tempo em cada
