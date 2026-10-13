@@ -1,4 +1,4 @@
-# Restaura o banco ao estado do snapshot (backend/db/snapshot/snapshot.sql).
+# Restaura o banco ao estado do snapshot mais recente (backend/db/snapshot/snapshot-AAAA-MM-DD.sql).
 #
 # DESTRUTIVO: apaga o schema `public` inteiro e o recria a partir do snapshot. Tudo que foi
 # lançado depois de o snapshot ter sido gerado é perdido — é exatamente esse o objetivo.
@@ -35,8 +35,9 @@ if ($url -notmatch 'postgresql://([^:/]+):(\d+)/(.+)$') { throw "Não consegui l
 $servidor = $Matches[1]; $porta = $Matches[2]; $banco = $Matches[3]
 $usuario = Valor 'spring.datasource.username'
 
-$snapshot = "$PSScriptRoot\snapshot.sql"
-if (-not (Test-Path $snapshot)) { throw "Snapshot não encontrado em $snapshot. Rode .\gerar.ps1 primeiro." }
+# O nome traz a data (AAAA-MM-DD), então a ordem alfabética é a cronológica.
+$snapshot = Get-ChildItem "$PSScriptRoot\snapshot-*.sql" | Sort-Object Name | Select-Object -Last 1 -ExpandProperty FullName
+if (-not $snapshot) { throw "Nenhum snapshot-*.sql em $PSScriptRoot. Rode .\gerar.ps1 primeiro." }
 
 $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
 if (-not (Test-Path $psql)) { throw "psql não encontrado em $psql" }

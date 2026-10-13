@@ -1,4 +1,5 @@
-# Regera o snapshot do banco (backend/db/snapshot/snapshot.sql) a partir do estado atual.
+# Gera um snapshot do banco (backend/db/snapshot/snapshot-AAAA-MM-DD.sql, com a data de hoje) a partir do estado atual.
+# Gerar de novo no mesmo dia sobrescreve o snapshot daquele dia.
 #
 # O snapshot guarda schema E dados. Os arquivos de anexo e foto NÃO entram nele: eles vivem em
 # backend/uploads/, que a restauração não toca — por isso as linhas de despesa_anexo, imovel_foto
@@ -31,7 +32,7 @@ $usuario = Valor 'spring.datasource.username'
 $pgDump = "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe"
 if (-not (Test-Path $pgDump)) { throw "pg_dump não encontrado em $pgDump" }
 
-$destino = "$PSScriptRoot\snapshot.sql"
+$destino = "$PSScriptRoot\snapshot-$(Get-Date -Format 'yyyy-MM-dd').sql"
 Write-Host "Gerando snapshot de $banco em $servidor`:$porta -> $destino"
 
 $env:PGPASSWORD = Valor 'spring.datasource.password'
