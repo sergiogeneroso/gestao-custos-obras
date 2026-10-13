@@ -28,6 +28,10 @@
     </div>
   }
   <div>
+    <dt>Conferência</dt>
+    <dd>{{ despesa().conferidaEm ? 'Conferida em ' + (despesa().conferidaEm | date: 'dd/MM/yyyy') : 'Pendente' }}</dd>
+  </div>
+  <div>
     <dt>Pagador</dt>
     <dd>{{ despesa().pagadorNome }}</dd>
   </div>

@@ -70,7 +70,14 @@
                 <i class="ph ph-caret-right"></i>
               </button>
             </div>
-            <button mat-stroked-button type="button" color="primary" (click)="editar(despesa)">
+            <button
+              mat-stroked-button
+              type="button"
+              color="primary"
+              [disabled]="!!despesa.conferidaEm"
+              [title]="despesa.conferidaEm ? 'Desfaça a conferência na listagem de despesas para editar' : ''"
+              (click)="editar(despesa)"
+            >
               <i class="ph ph-pencil-simple"></i>
               Editar
             </button>

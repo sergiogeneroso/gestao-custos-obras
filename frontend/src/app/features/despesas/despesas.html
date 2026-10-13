@@ -37,6 +37,15 @@
       </mat-select>
     </mat-form-field>
 
+    <mat-form-field appearance="outline" class="despesas__filtro" subscriptSizing="dynamic">
+      <mat-label>Conferência</mat-label>
+      <mat-select [value]="filtro().conferida" (selectionChange)="alterar({ conferida: $event.value })">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option [value]="false">Pendentes</mat-option>
+        <mat-option [value]="true">Conferidas</mat-option>
+      </mat-select>
+    </mat-form-field>
+
     <mat-form-field appearance="outline" class="despesas__filtro despesas__filtro--data" subscriptSizing="dynamic">
       <mat-label>Pago de</mat-label>
       <input matInput [matDatepicker]="inicioPicker" appMascaraData placeholder="dd/mm/aaaa" [value]="filtro().dataInicio" (dateChange)="alterar({ dataInicio: $event.value })" />
@@ -138,6 +147,7 @@
           <th>Beneficiário</th>
           <th class="table__num">Valor</th>
           <th class="table__num">Anexos</th>
+          <th class="despesas__conferencia">Conferida</th>
           <th class="table__acoes"></th>
         </tr>
       </thead>
@@ -160,13 +170,28 @@
                 {{ despesa.quantidadeAnexos }}
               }
             </td>
+            <td class="despesas__conferencia" data-rotulo="Conferida" (click)="$event.stopPropagation()">
+              <button
+                mat-icon-button
+                type="button"
+                class="despesas__conferir"
+                [class.despesas__conferir--feita]="despesa.conferidaEm"
+                [disabled]="!podeConferir()"
+                (click)="alternarConferencia(despesa)"
+                [attr.aria-label]="despesa.conferidaEm ? 'Desfazer conferência' : 'Marcar como conferida'"
+                [title]="despesa.conferidaEm ? 'Conferida em ' + (despesa.conferidaEm | date: 'dd/MM/yyyy HH:mm') : 'Pendente — clique para marcar como conferida'"
+              >
+                <i class="ph" [class.ph-check-circle]="despesa.conferidaEm" [class.ph-circle]="!despesa.conferidaEm"></i>
+              </button>
+            </td>
             <td class="table__acoes" (click)="$event.stopPropagation()">
-              <div class="table__acoes-grupo">
-                <button *appPermissao="'DESPESA:ALTERAR'" mat-stroked-button type="button" (click)="editar(despesa)">Editar</button>
+              <div class="table__acoes-grupo" [title]="despesa.conferidaEm ? 'Desfaça a conferência para editar ou excluir' : ''">
+                <button *appPermissao="'DESPESA:ALTERAR'" mat-stroked-button type="button" [disabled]="!!despesa.conferidaEm" (click)="editar(despesa)">Editar</button>
                 <button
                   *appPermissao="'DESPESA:DELETAR'"
                   mat-icon-button
                   type="button"
+                  [disabled]="!!despesa.conferidaEm"
                   (click)="excluir(despesa)"
                   aria-label="Excluir despesa"
                 >

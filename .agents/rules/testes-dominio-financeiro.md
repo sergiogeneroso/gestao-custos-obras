@@ -119,7 +119,9 @@ contra o banco `gestao_custos_obras_test`: `ImovelRepositoryTest`,
 
 **Frontend** — `cronograma.spec.ts` cobre `totalCronograma`, `diferencaJuros`,
 `distribuirJuros`, `gerarParcelas`, `somarMeses`, `proximoNumero` em centavos
-inteiros; `contrato.model.spec.ts` cobre `saldoAEstornar`.
+inteiros; `contrato.model.spec.ts` cobre `saldoAEstornar`; `despesas.spec.ts` cobre a
+coluna de conferência (ADR-048): marcar sem confirmação, desfazer só se
+confirmado, editar/excluir desabilitados em despesa conferida.
 
 ## Regras estáticas/não testáveis
 

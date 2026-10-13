@@ -100,6 +100,8 @@ export interface DespesaResponseDTO {
    * "sem comprovante".
    */
   temComprovante: boolean | null;
+  /** Quando os associados conferiram a despesa; nulo = pendente (ADR-048). Conferida trava editar/excluir. */
+  conferidaEm: string | null;
 }
 
 export interface DespesaAnexoResponseDTO {
@@ -135,6 +137,8 @@ export interface FiltroDespesas {
   faseImovel: FaseImovel | null;
   etapaConstrucao: EtapaConstrucao | null;
   semComprovante: boolean;
+  /** true = só conferidas, false = só pendentes, null = todas (ADR-048). */
+  conferida: boolean | null;
 }
 
 export const FILTRO_DESPESAS_VAZIO: FiltroDespesas = {
@@ -147,6 +151,7 @@ export const FILTRO_DESPESAS_VAZIO: FiltroDespesas = {
   faseImovel: null,
   etapaConstrucao: null,
   semComprovante: false,
+  conferida: null,
 };
 
 /**

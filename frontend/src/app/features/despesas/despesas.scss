@@ -221,3 +221,19 @@
   font-size: 11.5px;
   white-space: nowrap;
 }
+
+// Coluna de conferência (ADR-048): pendente em cinza discreto, conferida em verde.
+.despesas__conferencia {
+  text-align: center;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.despesas__conferir {
+  color: #9397ab;
+  font-size: 22px;
+
+  &--feita {
+    color: #9de8bb;
+  }
+}

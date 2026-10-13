@@ -44,6 +44,7 @@ export class DespesasService {
       dataInicio: paraIso(filtro.dataInicio),
       dataFim: paraIso(filtro.dataFim),
       semComprovante: filtro.semComprovante ? 'true' : null,
+      conferida: filtro.conferida === null ? null : String(filtro.conferida),
     };
     for (const [nome, valor] of Object.entries(opcionais)) {
       if (valor !== null) {
@@ -63,6 +64,11 @@ export class DespesasService {
 
   excluir(id: number, motivo: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`, { body: { motivo } });
+  }
+
+  /** Marca como conferida ou desfaz a conferência (ADR-048). */
+  alterarConferencia(id: number, conferida: boolean): Observable<DespesaResponseDTO> {
+    return this.http.patch<DespesaResponseDTO>(`${this.baseUrl}/${id}/conferencia`, { conferida });
   }
 
   listarAnexos(despesaId: number): Observable<DespesaAnexoResponseDTO[]> {

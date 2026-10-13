@@ -1,4 +1,5 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,7 +8,11 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { map, tap } from 'rxjs';
+import { PermissoesService } from '../../core/auth/permissoes.service';
+import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
+import { mensagemErro } from '../../shared/erro/erro.util';
 import { Autocomplete, OpcaoAutocomplete } from '../../shared/autocomplete/autocomplete';
 import { MascaraDataDirective } from '../../shared/data/mascara-data.directive';
 import { CategoriaDespesaResponseDTO } from '../categorias-despesa/categoria-despesa.model';
@@ -62,6 +67,11 @@ export class Despesas implements OnInit {
   private readonly imoveisService = inject(ImoveisService);
   private readonly categoriasService = inject(CategoriasDespesaService);
   private readonly pessoasService = inject(PessoasService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly permissoes = inject(PermissoesService);
+
+  // Sem "alterar" o ícone continua mostrando o estado, só não é clicável.
+  protected readonly podeConferir = computed(() => this.permissoes.temPermissao('DESPESA', 'ALTERAR'));
 
   protected readonly fases: FaseImovel[] = ['LOTE', 'CONSTRUCAO', 'CASA'];
   protected readonly faseLabel = FASE_IMOVEL_LABEL;
@@ -154,6 +164,48 @@ export class Despesas implements OnInit {
       })
       .afterClosed()
       .subscribe(() => this.lista.carregar());
+  }
+
+  /**
+   * Coluna "Conferida" (ADR-048): marcar é um clique só, porque numa reunião são dezenas seguidas;
+   * desfazer pede confirmação. A linha é trocada no lugar em vez de recarregar a página: com o
+   * filtro "Pendentes" ela sumiria na hora, e um clique errado ficaria sem como ser desfeito ali.
+   */
+  protected alternarConferencia(despesa: DespesaResponseDTO): void {
+    if (!despesa.conferidaEm) {
+      this.gravarConferencia(despesa, true);
+      return;
+    }
+    this.dialog
+      .open(ConfirmDialog, {
+        data: {
+          titulo: 'Desfazer a conferência desta despesa?',
+          mensagem: 'Ela volta a ficar pendente e poderá ser editada ou excluída.',
+        },
+        autoFocus: false,
+        width: '420px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (confirmado) {
+          this.gravarConferencia(despesa, false);
+        }
+      });
+  }
+
+  private gravarConferencia(despesa: DespesaResponseDTO, conferida: boolean): void {
+    this.service.alterarConferencia(despesa.id, conferida).subscribe({
+      next: (atualizada) =>
+        // Só a conferência muda; anexos/comprovante não vêm calculados fora da busca paginada.
+        this.lista.itens.update((itens) =>
+          itens.map((item) => (item.id === despesa.id ? { ...item, conferidaEm: atualizada.conferidaEm } : item)),
+        ),
+      error: (erro: HttpErrorResponse) =>
+        this.snackBar.open(mensagemErro(erro, 'Não foi possível alterar a conferência.'), 'Fechar', {
+          duration: 6000,
+        }),
+    });
   }
 
   protected excluir(despesa: DespesaResponseDTO): void {

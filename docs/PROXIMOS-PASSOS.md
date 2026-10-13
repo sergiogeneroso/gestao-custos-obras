@@ -560,9 +560,11 @@ Decisão fechada em sessão de grilling, campo a campo. Ver
       auditoria `EDICAO`); `atualizar`/`excluir` recusam despesa conferida
 - [x] Backend: `FiltroDespesaDTO` ganha filtro de conferência
       (`conferida=true|false`, ausente = todas)
-- [ ] Frontend: coluna de conferência na listagem de despesas (clique marca,
+- [x] Frontend: coluna de conferência na listagem de despesas (clique marca,
       clique em conferida pede confirmação para desfazer, tooltip com a
-      data); filtro novo; editar/excluir desabilitados em conferida
+      data); filtro novo; editar/excluir desabilitados em conferida (também o
+      Editar do detalhe e da aba de despesas do imóvel); painel de detalhe
+      mostra "Conferência"
 - [ ] **Revisar depois de implementar (pedido do usuário):** as cascatas de
       exclusão do imóvel (`ImovelExclusaoService`) e de contrato
       (`ContratoFinanceiroService.cascatearExclusao`) ignoram a trava de
